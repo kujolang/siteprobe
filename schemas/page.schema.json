@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.kujolang.ai/siteprobe/page.v1.json",
+  "title": "SiteProbe page",
+  "type": "object",
+  "required": ["schema", "url", "final_url", "status", "depth", "indexable", "links", "content_fingerprint"],
+  "properties": {
+    "schema": {"const": "siteprobe.page/v1"},
+    "url": {"type": "string", "format": "uri"},
+    "status": {"type": "integer"},
+    "depth": {"type": "integer", "minimum": 0},
+    "indexable": {"type": "boolean"},
+    "links": {"type": "array"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.kujolang.ai/siteprobe/run.v1.json",
+  "title": "SiteProbe run",
+  "type": "object",
+  "required": ["schema", "run_id", "started_at", "target", "configuration", "counts"],
+  "properties": {
+    "schema": {"const": "siteprobe.run/v1"},
+    "run_id": {"type": "string"},
+    "target": {"type": "string", "format": "uri"},
+    "configuration": {"type": "object"},
+    "counts": {"type": "object"}
+  },
+  "additionalProperties": true
+}

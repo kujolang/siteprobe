@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.kujolang.ai/siteprobe/findings.v1.json",
+  "type": "object",
+  "required": ["schema", "findings"],
+  "properties": {
+    "schema": {"const": "siteprobe.findings/v1"},
+    "findings": {"type": "array", "items": {"type": "object", "required": ["id", "check", "target", "severity", "evidence"]}}
+  }
+}
