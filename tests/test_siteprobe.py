@@ -45,7 +45,9 @@ class FixtureHandler(BaseHTTPRequestHandler):
         if self.path == "/slow":
             time.sleep(0.2); routes["/slow"] = (200, "text/html", "<title>Slow</title>")
         status, ctype, body = routes.get(self.path, (404, "text/html", "<title>Not found</title>"))
-        encoded = body.encode(); self.send_response(status); self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(encoded))); self.end_headers(); self.wfile.write(encoded)
+        encoded = body.encode(); self.send_response(status); self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(encoded))); self.end_headers()
+        try: self.wfile.write(encoded)
+        except BrokenPipeError: pass
 
 
 class SiteProbeTests(unittest.TestCase):
