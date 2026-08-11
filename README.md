@@ -32,9 +32,11 @@ system. It never submits forms or mutates the target.
 | `sitemap <run>` | Print discovered sitemap evidence as JSON. |
 | `version` | Print version and schema contract. |
 
-`crawl` supports `--out`, `--max-pages`, `--max-depth`, `--concurrency`,
-`--timeout`, `--respect-robots`/`--ignore-robots`, `--same-origin`, `--json`,
-and `--baseline`. Same-origin and robots compliance are on by default.
+`crawl` supports explicit page, depth, concurrency, timeout, retry, artifact-byte,
+and report-token budgets. `--deterministic` fixes timestamps for comparable
+fixture reruns. `--offline` fails closed for crawl; validation, comparison, and
+report commands remain network-free. Same-origin redirects and crawling plus
+robots compliance are enforced by default.
 
 ## Artifacts
 
@@ -57,4 +59,7 @@ See [security boundaries](docs/security.md) and [agent integration](docs/agent-i
 
 ```bash
 bash scripts/validate.sh
+python3 scripts/benchmark.py --pages 1000
 ```
+
+See [the 0.1.0 release qualification](docs/release-qualification-0.1.0.md).
