@@ -8,7 +8,18 @@
     "schema": {"const": "siteprobe.run/v1"},
     "run_id": {"type": "string"},
     "target": {"type": "string", "format": "uri"},
-    "configuration": {"type": "object"},
+    "configuration": {
+      "type": "object",
+      "required": ["max_pages", "max_depth", "concurrency", "timeout", "retries", "max_output_bytes", "max_report_tokens"],
+      "properties": {
+        "max_pages": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "max_depth": {"type": "integer", "minimum": 0, "maximum": 20},
+        "concurrency": {"type": "integer", "minimum": 1, "maximum": 32},
+        "retries": {"type": "integer", "minimum": 0, "maximum": 5},
+        "max_output_bytes": {"type": "integer", "minimum": 1024},
+        "max_report_tokens": {"type": "integer", "minimum": 64}
+      }
+    },
     "counts": {"type": "object"}
   },
   "additionalProperties": true
