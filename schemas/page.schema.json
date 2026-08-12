@@ -9,10 +9,17 @@
     "url": {"type": "string", "format": "uri"},
     "final_url": {"type": "string", "format": "uri"},
     "status": {"type": "integer", "minimum": 0, "maximum": 599},
+    "response_status": {"type": "integer", "minimum": 0, "maximum": 599},
     "depth": {"type": "integer", "minimum": 0},
     "indexable": {"type": "boolean"},
     "links": {"type": "array", "items": {"$ref": "#/$defs/link"}},
-    "content_fingerprint": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"}
+    "content_fingerprint": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"},
+    "hreflang": {"type": "array"},
+    "refresh": {"type": "object"},
+    "http_links": {"type": "array"},
+    "etag": {"type": "string"},
+    "last_modified": {"type": "string"},
+    "not_modified": {"type": "boolean"}
   },
   "$defs": {
     "link": {

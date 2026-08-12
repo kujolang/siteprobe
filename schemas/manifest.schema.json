@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.kujolang.ai/siteprobe/manifest.v1.json",
+  "title": "SiteProbe run manifest",
+  "type": "object",
+  "required": ["schema", "digest_algorithm", "artifacts", "signature"],
+  "properties": {
+    "schema": {"const": "siteprobe.manifest/v1"},
+    "digest_algorithm": {"const": "sha256"},
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["bytes", "sha256"],
+        "properties": {
+          "bytes": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "signature": {
+      "type": "object",
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": {"enum": ["none", "hmac-sha256"]},
+        "value": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

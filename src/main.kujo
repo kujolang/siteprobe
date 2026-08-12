@@ -1,9 +1,46 @@
-# SiteProbe's Kujo entrypoint. The Python adapter is deliberately bounded to
-# standards-library HTTP, HTML, XML, and URL primitives that Kujo does not yet
-# expose as a complete parsing stack.
+# SiteProbe's Kujo entrypoint and native artifact-schema gate.
+# The Python adapter is bounded to protocol and HTML/XML parsing primitives.
 
+/// Validate one decoded artifact value against its checked-in JSON Schema.
+func validate_value(value, schema, label) {
+    report := json_schema_validate(value, schema)
+    if ! report["valid"] {
+        print("SiteProbe schema validation failed for " + label + ": " + to_json(report["errors"]))
+        exit(1)
+    }
+}
+
+/// Apply Kujo's Draft 2020-12 validator to every primary run artifact.
+func validate_run_schemas(run_path) {
+    try {
+        run_schema := parse_json(read_file("schemas/run.schema.json"))
+        page_schema := parse_json(read_file("schemas/page.schema.json"))
+        findings_schema := parse_json(read_file("schemas/findings.schema.json"))
+        manifest_schema := parse_json(read_file("schemas/manifest.schema.json"))
+        validate_value(parse_json(read_file(run_path + "/run.json")), run_schema, "run.json")
+        validate_value(parse_json(read_file(run_path + "/findings.json")), findings_schema, "findings.json")
+        if file_exists(run_path + "/manifest.json") {
+            validate_value(parse_json(read_file(run_path + "/manifest.json")), manifest_schema, "manifest.json")
+        }
+        lines := read_lines(run_path + "/pages.jsonl")
+        i := 0
+        loop {
+            if i >= len(lines) {break}
+            line := trim(to_string(lines[i]))
+            if line != "" {validate_value(parse_json(line), page_schema, "pages.jsonl line " + to_string(i + 1))}
+            i := i + 1
+        }
+    } except err {
+        print("SiteProbe schema validation error: " + to_string(err))
+        exit(1)
+    }
+}
+
+/// Delegate protocol work, then enforce Kujo-native artifact contracts.
 func main() {
-    command := ["python3", "src/siteprobe.py"]
+    python := env("SITEPROBE_PYTHON")
+    if python == "" {python = "python3"}
+    command := [python, "src/siteprobe.py"]
     argv := args()
     i := 0
     loop {
@@ -11,10 +48,12 @@ func main() {
         command = push(command, to_string(argv[i]))
         i := i + 1
     }
-result := spawn_process(command, {"timeout_ms": 900000})
-if result.stdout != "" {print(trim_end(result.stdout))}
-if result.stderr != "" {print(trim_end(result.stderr))}
-exit(result.exitcode)
+    result := spawn_process(command, {"timeout_ms": 900000})
+    if result.stdout != "" {print(trim_end(result.stdout))}
+    if result.stderr != "" {print(trim_end(result.stderr))}
+    if result.exitcode != 0 {exit(result.exitcode)}
+    if len(argv) >= 2&&to_string(argv[0]) == "validate" {validate_run_schemas(to_string(argv[1]))}
+    exit(0)
 }
 
 main()
