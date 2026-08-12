@@ -10,10 +10,16 @@ rejection; offline command boundaries; and semantic deterministic reruns.
 Fixture servers record request methods and the suite fails if SiteProbe uses
 anything other than GET.
 
+The post-qualification hardening suite also covers private-network denial and
+explicit override, atomic output-budget failure, immutable destinations,
+cross-artifact count validation, nested title/heading parsing, per-page
+structure caps, and severity-based CI exits.
+
 The WebOps dogfood baseline is
 `kujo-workflows/docs/evidence/siteprobe-live-final-2026-08-11`: 60 public pages,
 1,177 links, and zero findings. Release dogfood must use the same 60-page scope
 and compare the resulting run to that immutable baseline.
 
-Run `bash scripts/validate.sh` and `python3 scripts/benchmark.py --pages 1000`.
+Run `bash scripts/validate.sh` and
+`kujo run scripts/benchmark.kujo -- --pages 1000`.
 SiteProbe has no publish, submit, or ACT command.
