@@ -1,7 +1,10 @@
-[project]
+[package]
 name = "siteprobe"
-version = "0.1.0"
+version = "0.2.0"
 entry = "src/main.kujo"
+description = "Deterministic, bounded website intelligence built with Kujo"
+
+[dependencies]
 
 [scripts]
 test = "kujo run tests/siteprobe_tests.kujo"

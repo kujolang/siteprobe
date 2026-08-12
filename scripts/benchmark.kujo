@@ -1,5 +1,7 @@
 func main() {
-    command := ["python3", "scripts/benchmark_fixture.py"]
+    python := env("SITEPROBE_PYTHON")
+    if python == "" {python = "python3"}
+    command := [python, "scripts/benchmark_fixture.py"]
     argv := args()
     i := 0
     loop {
@@ -7,10 +9,10 @@ func main() {
         command = push(command, to_string(argv[i]))
         i := i + 1
     }
-result := spawn_process(command, {"timeout_ms": 900000, "max_output_bytes": 1048576})
-if result.stdout != "" {print(trim_end(result.stdout))}
-if result.stderr != "" {print(trim_end(result.stderr))}
-exit(result.exitcode)
+    result := spawn_process(command, {"timeout_ms": 900000, "max_output_bytes": 1048576})
+    if result.stdout != "" {print(trim_end(result.stdout))}
+    if result.stderr != "" {print(trim_end(result.stderr))}
+    exit(result.exitcode)
 }
 
 main()

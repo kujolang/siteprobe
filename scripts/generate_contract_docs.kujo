@@ -1,0 +1,27 @@
+# Generate a deterministic Markdown reference from SiteProbe's JSON Schemas.
+func render_schema(path) {
+    try {
+        schema := parse_json(read_file(path))
+        text := "## " + basename(path) + "\n\n"
+        text = text + "- Schema ID: `" + to_string(schema["$id"]) + "`\n"
+        text = text + "- Draft: `" + to_string(schema["$schema"]) + "`\n"
+        text = text + "- Required fields: `" + join(schema["required"], "`, `") + "`\n\n"
+        return text
+    } except err {
+        print("contract documentation error: " + to_string(err))
+        exit(1)
+    }
+}
+
+func main() {
+    output := "# SiteProbe artifact contract reference\n\n"
+    output = output + "Generated from the checked-in Draft 2020-12 JSON Schemas by `scripts/generate_contract_docs.kujo`.\n\n"
+    output = output + render_schema("schemas/run.schema.json")
+    output = output + render_schema("schemas/page.schema.json")
+    output = output + render_schema("schemas/findings.schema.json")
+    output = output + render_schema("schemas/manifest.schema.json")
+    write_file("docs/generated/artifact-contracts.md", output, true)
+    print("generated docs/generated/artifact-contracts.md")
+}
+
+main()

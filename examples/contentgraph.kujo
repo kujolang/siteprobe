@@ -1,0 +1,8 @@
+# Emit SiteProbe links in a compact ContentGraph-ready envelope.
+argv := args()
+if len(argv) != 1 {print("usage: kujo run examples/contentgraph.kujo -- <run>"); exit(2)}
+try {
+    run_path := to_string(argv[0])
+    links := parse_json(read_file(run_path + "/links.json"))
+    print(to_json({"schema": "siteprobe.contentgraph-example/v1", "edges": links["links"]}))
+} except err {print("contentgraph example error: " + to_string(err)); exit(1)}

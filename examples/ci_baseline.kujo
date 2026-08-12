@@ -1,0 +1,18 @@
+# Validate and compare two immutable SiteProbe runs for CI baseline promotion.
+argv := args()
+if len(argv) < 2||len(argv) > 3 {print("usage: kujo run examples/ci_baseline.kujo -- <baseline> <candidate> [kujo-runtime]"); exit(2)}
+baseline := to_string(argv[0])
+candidate := to_string(argv[1])
+kujo := "kujo"
+if len(argv) == 3 {kujo = to_string(argv[2])}
+for run_path in [baseline, candidate] {
+    result := spawn_process([kujo, "run", "src/main.kujo", "--", "validate", run_path], {"timeout_ms": 120000})
+    if result.exitcode != 0 {
+        if result.stderr != "" {print(trim_end(result.stderr))}
+        exit(result.exitcode)
+    }
+}
+comparison := spawn_process([kujo, "run", "src/main.kujo", "--", "compare", baseline, candidate], {"timeout_ms": 120000})
+if comparison.stdout != "" {print(trim_end(comparison.stdout))}
+if comparison.stderr != "" {print(trim_end(comparison.stderr))}
+exit(comparison.exitcode)

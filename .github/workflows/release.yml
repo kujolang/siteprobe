@@ -1,0 +1,79 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: macos-13
+            platform: macos-x64
+          - os: macos-14
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: siteprobe
+      - uses: actions/checkout@v4
+        with:
+          repository: kujolang/kujo
+          ref: 510cca19cb03c2dcc5589697cdbbe0158ae15c04
+          path: kujo
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: kujo
+      - run: cargo build --release --manifest-path kujo/Cargo.toml
+      - name: Validate (Unix)
+        if: runner.os != 'Windows'
+        run: bash scripts/validate.sh
+        working-directory: siteprobe
+      - name: Validate (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/validate.ps1
+        working-directory: siteprobe
+      - name: Generated artifacts are current
+        shell: bash
+        run: git diff --exit-code -- kujo.lock docs/generated
+        working-directory: siteprobe
+      - name: Verify tag matches package version
+        shell: bash
+        run: test "${GITHUB_REF_NAME}" = "v$(cat siteprobe/VERSION)"
+      - name: Build checksummed package (Unix)
+        if: runner.os != 'Windows'
+        working-directory: siteprobe
+        run: ../kujo/target/release/kujo run scripts/release.kujo -- ../kujo/target/release/kujo "${{ matrix.platform }}"
+      - name: Build checksummed package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: siteprobe
+        run: ../kujo/target/release/kujo.exe run scripts/release.kujo -- ../kujo/target/release/kujo.exe "${{ matrix.platform }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: |
+            siteprobe/dist/*.zip
+            siteprobe/dist/*.sha256
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

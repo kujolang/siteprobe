@@ -1,0 +1,31 @@
+# Generate committed Kujo API and artifact-contract references.
+func main() {
+    argv := args()
+    if len(argv) != 1 {
+        print("usage: kujo run scripts/generate_docs.kujo -- <kujo-runtime>")
+        exit(2)
+    }
+    kujo := to_string(argv[0])
+    docs := spawn_process([kujo, "docgen", "src", "--language", "kujo", "--out-dir", ".siteprobe-docgen-tmp", "--format", "markdown", "--source-links", "--kujo-parser-assisted"], {"timeout_ms": 120000, "max_output_bytes": 1048576})
+    if docs.exitcode != 0 {
+        if docs.stdout != "" {print(trim_end(docs.stdout))}
+        if docs.stderr != "" {print(trim_end(docs.stderr))}
+        exit(docs.exitcode)
+    }
+    try {
+        api_reference := read_file(".siteprobe-docgen-tmp/docgen.md")
+        api_reference = replace(api_reference, os_getcwd() + "/src", "src")
+        write_file("docs/generated/kujo-api.md", api_reference, true)
+    } except err {
+        print("documentation copy error: " + to_string(err))
+        exit(1)
+    }
+    contracts := spawn_process([kujo, "run", "scripts/generate_contract_docs.kujo"], {"timeout_ms": 30000, "max_output_bytes": 1048576})
+    if contracts.exitcode != 0 {
+        if contracts.stderr != "" {print(trim_end(contracts.stderr))}
+        exit(contracts.exitcode)
+    }
+    print("generated SiteProbe reference documentation")
+}
+
+main()

@@ -1,0 +1,68 @@
+func ensure_dir(path) {
+    if ! file_exists(path) {create_dir(path)}
+}
+
+func safe_read(path) {
+    try {return read_file(path)} except err {
+        print("release read error: " + to_string(err))
+        exit(1)
+    }
+}
+
+func main() {
+    argv := args()
+    if len(argv) < 2 {
+        print("usage: kujo run scripts/release.kujo -- <kujo-runtime> <platform> [output-dir]")
+        exit(2)
+    }
+    kujo := to_string(argv[0])
+    platform := to_string(argv[1])
+    output_dir := "dist"
+    if len(argv) >= 3 {output_dir = to_string(argv[2])}
+    version := trim(safe_read("VERSION"))
+    package_name := "siteprobe-" + version + "-" + platform
+    archive_path := output_dir + "/" + package_name + ".zip"
+    checksum_path := archive_path + ".sha256"
+    stage_path := output_dir + "/." + package_name + "-stage"
+    if file_exists(archive_path)||file_exists(checksum_path) {
+        print("release artifacts already exist: " + archive_path)
+        exit(2)
+    }
+    preview := spawn_process([kujo, "package-publish", "--manifest", "kujo.toml"], {"timeout_ms": 30000})
+    if preview.exitcode != 0 {
+        if preview.stderr != "" {print(trim_end(preview.stderr))}
+        exit(preview.exitcode)
+    }
+    ensure_dir(output_dir)
+    ensure_dir(stage_path)
+    directories := ["src", "schemas", "scripts", "docs", "docs/generated", "examples"]
+    for directory in directories {ensure_dir(stage_path + "/" + directory)}
+    files := [
+    "README.md", "LICENSE", "VERSION", "KUJO_REVISION", "CHANGELOG.md", "kujo.toml", "kujo.lock",
+    "siteprobe", "siteprobe.ps1", "siteprobe.cmd", "src/main.kujo", "src/siteprobe.py",
+    "schemas/run.schema.json", "schemas/page.schema.json", "schemas/findings.schema.json",
+    "schemas/manifest.schema.json", "scripts/validate.sh", "scripts/validate.ps1",
+    "scripts/validate.kujo", "scripts/benchmark.kujo", "scripts/benchmark_fixture.py",
+    "scripts/generate_docs.kujo", "scripts/generate_contract_docs.kujo", "scripts/release.kujo",
+    "docs/security.md", "docs/agent-integration.md", "docs/release-qualification-0.1.0.md",
+    "docs/release-qualification-0.2.0.md",
+    "docs/next-session-roadmap.md", "docs/benchmark-10000.json",
+    "docs/generated/kujo-api.md", "docs/generated/artifact-contracts.md", "examples/README.md",
+    "examples/contentgraph.kujo", "examples/eval.kujo", "examples/runledger.kujo",
+    "examples/ci_baseline.kujo"
+    ]
+    i := 0
+    loop {
+        if i >= len(files) {break}
+        copy_file(files[i], stage_path + "/" + files[i])
+        i := i + 1
+    }
+    archive := zip_create(archive_path)
+    zip_add_dir(archive, stage_path)
+    zip_close(archive)
+    digest := sha256(read_binary_file(archive_path))
+    write_file(checksum_path, digest + "  " + basename(archive_path) + "\n")
+    print(to_json({"schema": "siteprobe.release/v1", "package": package_name, "archive": archive_path, "sha256": digest, "checksum": checksum_path}))
+}
+
+main()

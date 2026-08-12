@@ -1,0 +1,13 @@
+# Fail deterministically when a SiteProbe run retains error-severity findings.
+argv := args()
+if len(argv) != 1 {print("usage: kujo run examples/eval.kujo -- <run>"); exit(2)}
+try {
+    run_path := to_string(argv[0])
+    document := parse_json(read_file(run_path + "/findings.json"))
+    errors := 0
+    for finding in document["findings"] {
+        if finding["severity"] == "error" {errors := errors + 1}
+    }
+    print(to_json({"schema": "siteprobe.eval-example/v1", "check": "no-error-findings", "passed": errors == 0, "errors": errors}))
+    if errors > 0 {exit(1)}
+} except err {print("eval example error: " + to_string(err)); exit(1)}

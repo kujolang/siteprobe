@@ -14,29 +14,66 @@ func run_quiet(command, timeout_ms) {
     }
 }
 
+func safe_read(path) {
+    try {return read_file(path)} except err {
+        print("validation read error: " + to_string(err))
+        exit(1)
+    }
+}
+
 func main() {
     argv := args()
     if len(argv) != 1 {
         print("usage: kujo run scripts/validate.kujo -- <kujo-runtime>")
         exit(2)
     }
-kujo := to_string(argv[0])
-run_step(["python3", "-m", "py_compile", "src/siteprobe.py", "tests/test_siteprobe.py", "scripts/benchmark_fixture.py"], 30000)
-run_step([kujo, "check", "src/main.kujo"], 30000)
-run_step([kujo, "check", "scripts/validate.kujo"], 30000)
-run_step([kujo, "check", "scripts/benchmark.kujo"], 30000)
-run_step([kujo, "format", "--check", "src/main.kujo"], 30000)
-run_step([kujo, "format", "--check", "scripts/validate.kujo"], 30000)
-run_step([kujo, "format", "--check", "scripts/benchmark.kujo"], 30000)
-run_step([kujo, "lint", "src/main.kujo"], 30000)
-run_step([kujo, "lint", "scripts/validate.kujo"], 30000)
-run_step([kujo, "lint", "scripts/benchmark.kujo"], 30000)
-run_step([kujo, "run", "tests/siteprobe_tests.kujo"], 120000)
-run_quiet(["python3", "-m", "json.tool", "schemas/run.schema.json"], 30000)
-run_quiet(["python3", "-m", "json.tool", "schemas/page.schema.json"], 30000)
-run_quiet(["python3", "-m", "json.tool", "schemas/findings.schema.json"], 30000)
-run_step(["git", "diff", "--check"], 30000)
-print("SiteProbe validation passed.")
+    kujo := to_string(argv[0])
+    python := env("SITEPROBE_PYTHON")
+    if python == "" {python = "python3"}
+    kujo_revision := trim(safe_read("KUJO_REVISION"))
+    if len(kujo_revision) != 40||contains(safe_read(".github/workflows/validate.yml"), kujo_revision) == false||contains(safe_read(".github/workflows/release.yml"), kujo_revision) == false {
+        print("KUJO_REVISION must be a 40-character commit pinned by validation and release workflows")
+        exit(1)
+    }
+    run_step([python, "-m", "py_compile", "src/siteprobe.py", "tests/test_siteprobe.py", "scripts/benchmark_fixture.py"], 30000)
+    run_step([kujo, "check", "src/main.kujo"], 30000)
+    run_step([kujo, "check", "scripts/validate.kujo"], 30000)
+    run_step([kujo, "check", "scripts/benchmark.kujo"], 30000)
+    run_step([kujo, "check", "scripts/release.kujo"], 30000)
+    run_step([kujo, "check", "scripts/generate_docs.kujo"], 30000)
+    run_step([kujo, "check", "scripts/generate_contract_docs.kujo"], 30000)
+    run_step([kujo, "check", "tests/siteprobe_tests.kujo"], 30000)
+    run_step([kujo, "format", "--check", "src/main.kujo"], 30000)
+    run_step([kujo, "format", "--check", "scripts/validate.kujo"], 30000)
+    run_step([kujo, "format", "--check", "scripts/benchmark.kujo"], 30000)
+    run_step([kujo, "format", "--check", "scripts/release.kujo"], 30000)
+    run_step([kujo, "format", "--check", "scripts/generate_docs.kujo"], 30000)
+    run_step([kujo, "format", "--check", "scripts/generate_contract_docs.kujo"], 30000)
+    run_step([kujo, "format", "--check", "tests/siteprobe_tests.kujo"], 30000)
+    run_step([kujo, "lint", "src/main.kujo"], 30000)
+    run_step([kujo, "lint", "scripts/validate.kujo"], 30000)
+    run_step([kujo, "lint", "scripts/benchmark.kujo"], 30000)
+    run_step([kujo, "lint", "scripts/release.kujo"], 30000)
+    run_step([kujo, "lint", "scripts/generate_docs.kujo"], 30000)
+    run_step([kujo, "lint", "scripts/generate_contract_docs.kujo"], 30000)
+    run_step([kujo, "lint", "tests/siteprobe_tests.kujo"], 30000)
+    example_files := ["examples/contentgraph.kujo", "examples/eval.kujo", "examples/runledger.kujo", "examples/ci_baseline.kujo"]
+    for file in example_files {
+        run_step([kujo, "check", file], 30000)
+        run_step([kujo, "format", "--check", file], 30000)
+        run_step([kujo, "lint", file], 30000)
+    }
+    run_step([kujo, "run", "tests/siteprobe_tests.kujo"], 120000)
+    run_step([kujo, "package-install", "--manifest", "kujo.toml"], 30000)
+    run_step([kujo, "package-install", "--manifest", "kujo.toml", "--frozen"], 30000)
+    run_step([kujo, "package-publish", "--manifest", "kujo.toml"], 30000)
+    run_step([kujo, "run", "scripts/generate_docs.kujo", "--", kujo], 120000)
+    run_quiet([python, "-m", "json.tool", "schemas/run.schema.json"], 30000)
+    run_quiet([python, "-m", "json.tool", "schemas/page.schema.json"], 30000)
+    run_quiet([python, "-m", "json.tool", "schemas/findings.schema.json"], 30000)
+    run_quiet([python, "-m", "json.tool", "schemas/manifest.schema.json"], 30000)
+    run_step(["git", "diff", "--check"], 30000)
+    print("SiteProbe validation passed.")
 }
 
 main()

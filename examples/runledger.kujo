@@ -1,0 +1,8 @@
+# Emit a compact RunLedger-style receipt without copying full crawl evidence.
+argv := args()
+if len(argv) != 1 {print("usage: kujo run examples/runledger.kujo -- <run>"); exit(2)}
+try {
+    run_path := to_string(argv[0])
+    run := parse_json(read_file(run_path + "/run.json"))
+    print(to_json({"schema": "siteprobe.runledger-example/v1", "run_directory": run_path, "run_id": run["run_id"], "target": run["target"], "counts": run["counts"], "artifact_contract": run["schema"]}))
+} except err {print("runledger example error: " + to_string(err)); exit(1)}
