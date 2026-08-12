@@ -1,4 +1,6 @@
 .siteprobe/
+.siteprobe-docgen-tmp/
+dist/
 .loop-engineering/
 __pycache__/
 *.pyc

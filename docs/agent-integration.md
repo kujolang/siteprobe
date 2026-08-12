@@ -15,3 +15,12 @@ Automation should pass an explicit `--out` path, treat it as immutable, and use
 gate exit does not discard evidence: a valid completed run is still published.
 Do not add `--allow-private-network` unless the operator has authorized the
 target network.
+
+For remotely transferred evidence, run `siteprobe verify` before `validate`.
+Consumers can distinguish conditional baseline reuse with `not_modified=true`
+and `response_status=304`; the stable semantic `status` remains the baseline
+page status. `hreflang`, meta refresh, and HTTP `Link` relationships are explicit
+page fields rather than inferred recommendations.
+
+Executable integration examples for ContentGraph, Eval, RunLedger, and CI
+baseline promotion live in [`examples/`](../examples/README.md).

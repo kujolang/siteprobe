@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-08-12T16:35:58Z",
+  "pages": 10000,
+  "platform": "Darwin",
+  "results": [
+    {
+      "concurrency": 1,
+      "cpu_seconds": 18.537964,
+      "output_bytes": 16754609,
+      "pages": 10000,
+      "pages_per_second": 368.426,
+      "peak_rss_bytes": 77225984,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 27.142506
+    },
+    {
+      "concurrency": 4,
+      "cpu_seconds": 20.000667,
+      "output_bytes": 16754830,
+      "pages": 10000,
+      "pages_per_second": 506.37,
+      "peak_rss_bytes": 77029376,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 19.748417
+    },
+    {
+      "concurrency": 8,
+      "cpu_seconds": 21.195387,
+      "output_bytes": 16756067,
+      "pages": 10000,
+      "pages_per_second": 319.589,
+      "peak_rss_bytes": 76034048,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 31.290149
+    },
+    {
+      "concurrency": 16,
+      "cpu_seconds": 21.38176,
+      "output_bytes": 16760161,
+      "pages": 10000,
+      "pages_per_second": 374.262,
+      "peak_rss_bytes": 76943360,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 26.719274
+    }
+  ],
+  "schema": "siteprobe.benchmark/v2"
+}
