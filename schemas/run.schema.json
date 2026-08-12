@@ -3,24 +3,46 @@
   "$id": "https://schemas.kujolang.ai/siteprobe/run.v1.json",
   "title": "SiteProbe run",
   "type": "object",
-  "required": ["schema", "run_id", "started_at", "target", "configuration", "counts"],
+  "required": ["schema", "run_id", "started_at", "completed_at", "target", "configuration", "counts"],
   "properties": {
     "schema": {"const": "siteprobe.run/v1"},
-    "run_id": {"type": "string"},
+    "run_id": {"type": "string", "minLength": 1},
+    "started_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
     "target": {"type": "string", "format": "uri"},
     "configuration": {
       "type": "object",
-      "required": ["max_pages", "max_depth", "concurrency", "timeout", "retries", "max_output_bytes", "max_report_tokens"],
+      "required": ["max_pages", "max_depth", "concurrency", "timeout", "retries", "respect_robots", "same_origin", "allow_private_network", "max_links_per_page", "max_output_bytes", "max_report_tokens", "fail_on"],
       "properties": {
         "max_pages": {"type": "integer", "minimum": 1, "maximum": 10000},
         "max_depth": {"type": "integer", "minimum": 0, "maximum": 20},
         "concurrency": {"type": "integer", "minimum": 1, "maximum": 32},
+        "timeout": {"type": "number", "exclusiveMinimum": 0, "maximum": 120},
         "retries": {"type": "integer", "minimum": 0, "maximum": 5},
+        "respect_robots": {"type": "boolean"},
+        "same_origin": {"const": true},
+        "allow_private_network": {"type": "boolean"},
+        "max_links_per_page": {"type": "integer", "minimum": 1, "maximum": 100000},
         "max_output_bytes": {"type": "integer", "minimum": 1024},
-        "max_report_tokens": {"type": "integer", "minimum": 64}
-      }
+        "max_report_tokens": {"type": "integer", "minimum": 64},
+        "fail_on": {"enum": ["none", "info", "warning", "error"]}
+      },
+      "additionalProperties": true
     },
-    "counts": {"type": "object"}
+    "counts": {
+      "type": "object",
+      "required": ["pages", "links", "redirects", "findings", "findings_by_severity"],
+      "properties": {
+        "pages": {"type": "integer", "minimum": 0},
+        "links": {"type": "integer", "minimum": 0},
+        "redirects": {"type": "integer", "minimum": 0},
+        "findings": {"type": "integer", "minimum": 0},
+        "findings_by_severity": {
+          "type": "object",
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        }
+      }
+    }
   },
   "additionalProperties": true
 }

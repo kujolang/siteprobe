@@ -5,6 +5,21 @@
   "required": ["schema", "findings"],
   "properties": {
     "schema": {"const": "siteprobe.findings/v1"},
-    "findings": {"type": "array", "items": {"type": "object", "required": ["id", "check", "target", "severity", "evidence"]}}
-  }
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "check", "target", "severity", "evidence"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^SP-[A-F0-9]{16}$"},
+          "check": {"type": "string", "minLength": 1},
+          "target": {"type": "string", "format": "uri"},
+          "severity": {"enum": ["info", "warning", "error"]},
+          "evidence": {"type": "object"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
 }

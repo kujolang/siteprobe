@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import hashlib
+import ipaddress
 import json
 import os
 import re
+import socket
 import sys
 import tempfile
 import time
@@ -22,13 +24,16 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
-VERSION = "0.1.0"
+ROOT = Path(__file__).resolve().parents[1]
+VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
 RUN_SCHEMA = "siteprobe.run/v1"
 PAGE_SCHEMA = "siteprobe.page/v1"
 UA = f"Kujo-SiteProbe/{VERSION} (+https://github.com/kujolang/siteprobe)"
 MAX_BYTES = 5 * 1024 * 1024
+MAX_SITEMAP_URLS = 100_000
+MAX_VALIDATION_FILE_BYTES = 256 * 1024 * 1024
 DETERMINISTIC_TIME = "1970-01-01T00:00:00Z"
 REQUIRED = [
     "run.json", "site.json", "pages.jsonl", "links.json", "redirects.json",
@@ -81,6 +86,22 @@ def same_origin(a: str, b: str) -> bool:
     return origin(a) == origin(b)
 
 
+def private_network_reason(url: str) -> str:
+    """Return a reason when a URL currently resolves outside public address space."""
+    hostname = urllib.parse.urlsplit(url).hostname
+    if not hostname:
+        return "missing hostname"
+    try:
+        addresses = {row[4][0] for row in socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)}
+    except socket.gaierror:
+        return ""
+    for raw in sorted(addresses):
+        address = ipaddress.ip_address(raw)
+        if not address.is_global:
+            return f"host resolves to non-public address {address}"
+    return ""
+
+
 def text_fingerprint(text: str) -> str:
     normalized = re.sub(r"\s+", " ", text).strip().lower()
     return hashlib.sha256(normalized.encode()).hexdigest() if normalized else ""
@@ -93,9 +114,9 @@ class RedirectRecorder(urllib.request.HTTPRedirectHandler):
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
         normalized = normalize_url(newurl, req.full_url)
+        self.chain.append({"from": req.full_url, "status": code, "to": normalized or newurl})
         if not normalized or origin(normalized) != self.allowed_origin:
             raise urllib.error.URLError("cross-origin redirect blocked")
-        self.chain.append({"from": req.full_url, "status": code, "to": newurl})
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -116,23 +137,32 @@ class ParsedPage:
 
 
 class PageParser(HTMLParser):
-    def __init__(self, base: str) -> None:
+    def __init__(self, base: str, max_links: int) -> None:
         super().__init__(convert_charrefs=True)
         self.base = base
+        self.max_links = max_links
         self.page = ParsedPage()
-        self._tag = ""
         self._skip = 0
         self._jsonld = False
         self._json_parts: list[str] = []
         self._link: dict[str, str] | None = None
+        self._title_depth = 0
+        self._heading_tag = ""
+        self._heading_parts: list[str] = []
+        self.links_truncated = False
+        self.images_truncated = False
 
     def handle_starttag(self, tag: str, attrs_list: list[tuple[str, str | None]]) -> None:
         attrs = {k.lower(): (v or "") for k, v in attrs_list}
         tag = tag.lower()
-        self._tag = tag
         if tag in {"script", "style", "noscript", "template"}:
             self._skip += 1
-        if tag == "html":
+        if tag == "title":
+            self._title_depth += 1
+        elif tag in {"h1", "h2", "h3", "h4", "h5", "h6"} and not self._heading_tag:
+            self._heading_tag = tag
+            self._heading_parts = []
+        elif tag == "html":
             self.page.language = attrs.get("lang", "")
         elif tag == "meta":
             name = (attrs.get("name") or attrs.get("property") or attrs.get("http-equiv") or "").lower()
@@ -148,17 +178,31 @@ class PageParser(HTMLParser):
             if "next" in rels and href: self.page.pagination["next"] = href
             if "prev" in rels and href: self.page.pagination["prev"] = href
         elif tag == "a":
-            href = normalize_url(attrs.get("href", ""), self.base)
-            if href: self._link = {"url": href, "text": "", "rel": attrs.get("rel", "")}
+            if len(self.page.links) >= self.max_links:
+                self.links_truncated = True
+            else:
+                href = normalize_url(attrs.get("href", ""), self.base)
+                if href: self._link = {"url": href, "text": "", "rel": attrs.get("rel", "")}
         elif tag == "img":
-            src = normalize_url(attrs.get("src", ""), self.base)
-            if src:
-                self.page.images.append({"url": src, "alt": attrs.get("alt", ""), "missing_alt": "alt" not in attrs})
+            if len(self.page.images) >= self.max_links:
+                self.images_truncated = True
+            else:
+                src = normalize_url(attrs.get("src", ""), self.base)
+                if src:
+                    self.page.images.append({"url": src, "alt": attrs.get("alt", ""), "missing_alt": "alt" not in attrs})
         elif tag == "script" and attrs.get("type", "").lower() == "application/ld+json":
             self._jsonld = True
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.lower()
+        if tag == "title" and self._title_depth:
+            self._title_depth -= 1
+        if tag == self._heading_tag:
+            heading = re.sub(r"\s+", " ", " ".join(self._heading_parts)).strip()
+            if heading:
+                self.page.headings[self._heading_tag].append(heading)
+            self._heading_tag = ""
+            self._heading_parts = []
         if tag == "a" and self._link:
             self._link["text"] = re.sub(r"\s+", " ", self._link["text"]).strip()
             self.page.links.append(self._link)
@@ -172,7 +216,6 @@ class PageParser(HTMLParser):
             self._json_parts = []
         if tag in {"script", "style", "noscript", "template"} and self._skip:
             self._skip -= 1
-        self._tag = ""
 
     def handle_data(self, data: str) -> None:
         if self._jsonld:
@@ -180,15 +223,22 @@ class PageParser(HTMLParser):
             return
         clean = re.sub(r"\s+", " ", data).strip()
         if not clean or self._skip: return
-        if self._tag == "title": self.page.title += clean
-        if self._tag in {"h1", "h2", "h3", "h4", "h5", "h6"}: self.page.headings[self._tag].append(clean)
+        if self._title_depth:
+            self.page.title += (" " if self.page.title else "") + clean
+        if self._heading_tag:
+            self._heading_parts.append(clean)
         if self._link is not None: self._link["text"] += " " + clean
         self.page.text_parts.append(clean)
 
 
-def fetch(url: str, timeout: float, retries: int = 0) -> tuple[int, str, dict[str, str], bytes, list[dict[str, Any]], str]:
+def fetch(url: str, timeout: float, retries: int = 0, allow_private_network: bool = False) -> tuple[int, str, dict[str, str], bytes, list[dict[str, Any]], str]:
+    if not allow_private_network:
+        reason = private_network_reason(url)
+        if reason:
+            return 0, url, {}, b"", [], f"private network blocked: {reason}"
     last_error = ""
     for attempt in range(retries + 1):
+        retry_after = 0.0
         recorder = RedirectRecorder(origin(url))
         opener = urllib.request.build_opener(recorder)
         request = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5"}, method="GET")
@@ -202,10 +252,12 @@ def fetch(url: str, timeout: float, retries: int = 0) -> tuple[int, str, dict[st
             if exc.code not in {429, 500, 502, 503, 504} or attempt >= retries:
                 return exc.code, exc.geturl(), {k.lower(): v for k, v in exc.headers.items()}, body[:MAX_BYTES], recorder.chain, str(exc)
             last_error = str(exc)
+            try: retry_after = float(exc.headers.get("Retry-After", "0"))
+            except ValueError: retry_after = 0.0
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
             last_error = str(exc)
             if attempt >= retries: return 0, url, {}, b"", recorder.chain, last_error
-        time.sleep(min(0.25 * (2 ** attempt), 2.0))
+        time.sleep(min(max(0.25 * (2 ** attempt), retry_after), 2.0))
     return 0, url, {}, b"", [], last_error
 
 
@@ -216,7 +268,7 @@ def decode_body(body: bytes, content_type: str) -> str:
     except LookupError: return body.decode("utf-8", errors="replace")
 
 
-def discover_sitemaps(base_url: str, robots_text: str, timeout: float, retries: int = 0) -> dict[str, Any]:
+def discover_sitemaps(base_url: str, robots_text: str, timeout: float, retries: int = 0, allow_private_network: bool = False) -> dict[str, Any]:
     candidates = [line.split(":", 1)[1].strip() for line in robots_text.splitlines() if line.lower().startswith("sitemap:")]
     if not candidates: candidates = [urllib.parse.urljoin(origin(base_url), "/sitemap.xml")]
     seen: set[str] = set()
@@ -227,7 +279,7 @@ def discover_sitemaps(base_url: str, robots_text: str, timeout: float, retries: 
         sitemap_url = normalize_url(queue.popleft())
         if not sitemap_url or sitemap_url in seen or not same_origin(sitemap_url, base_url): continue
         seen.add(sitemap_url)
-        status, _, headers, body, _, error = fetch(sitemap_url, timeout, retries)
+        status, _, headers, body, _, error = fetch(sitemap_url, timeout, retries, allow_private_network)
         if status != 200:
             errors.append({"url": sitemap_url, "error": error or f"HTTP {status}"})
             continue
@@ -235,17 +287,20 @@ def discover_sitemaps(base_url: str, robots_text: str, timeout: float, retries: 
             root = ET.fromstring(decode_body(body, headers.get("content-type", "")))
             locs = [normalize_url((node.text or "").strip()) for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "loc"]
             if root.tag.rsplit("}", 1)[-1] == "sitemapindex": queue.extend([x for x in locs if x])
-            else: urls.update(x for x in locs if x and same_origin(x, base_url))
+            else:
+                for value in locs:
+                    if value and same_origin(value, base_url) and len(urls) < MAX_SITEMAP_URLS:
+                        urls.add(value)
         except ET.ParseError as exc:
             errors.append({"url": sitemap_url, "error": f"invalid XML: {exc}"})
     return {"schema": "siteprobe.sitemap/v1", "sitemaps": sorted(seen), "urls": sorted(urls), "errors": errors}
 
 
-def inspect_page(url: str, depth: int, timeout: float, sitemap_urls: set[str], retries: int = 0) -> dict[str, Any]:
+def inspect_page(url: str, depth: int, timeout: float, sitemap_urls: set[str], retries: int = 0, allow_private_network: bool = False, max_links_per_page: int = 10_000) -> dict[str, Any]:
     started = time.monotonic()
-    status, final_url, headers, body, redirects, error = fetch(url, timeout, retries)
+    status, final_url, headers, body, redirects, error = fetch(url, timeout, retries, allow_private_network)
     content_type = headers.get("content-type", "").split(";", 1)[0].lower()
-    parser = PageParser(final_url)
+    parser = PageParser(final_url, max_links_per_page)
     if body and ("html" in content_type or body.lstrip().startswith(b"<")):
         try: parser.feed(decode_body(body, headers.get("content-type", "")))
         except (UnicodeError, ValueError): pass
@@ -267,6 +322,7 @@ def inspect_page(url: str, depth: int, timeout: float, sitemap_urls: set[str], r
         "open_graph": {k: v for k, v in page.metadata.items() if k.startswith("og:")},
         "social_metadata": {k: v for k, v in page.metadata.items() if k.startswith("twitter:")},
         "structured_data": page.structured_data, "pagination": page.pagination, "depth": depth,
+        "truncated": {"links": parser.links_truncated, "images": parser.images_truncated},
         "incoming_link_count": 0, "outgoing_link_count": len(page.links), "error": error,
         "elapsed_ms": round((time.monotonic() - started) * 1000),
     }
@@ -306,6 +362,7 @@ def analyze(pages: list[dict[str, Any]], sitemap: dict[str, Any], start_url: str
         if page["missing_alt_count"]: add("missing-image-alt", url, "warning", {"count": page["missing_alt_count"]})
         if not page["indexable"] and page["status"] == 200: add("not-indexable", url, "info", {"directives": page["robots_directives"]})
         if any(isinstance(x, dict) and x.get("invalid") for x in page["structured_data"]): add("invalid-structured-data", url, "warning", {})
+        if any(page.get("truncated", {}).values()): add("page-structure-truncated", url, "info", page["truncated"])
     for check, groups in (("duplicate-title", titles), ("duplicate-description", descriptions), ("duplicate-content", fingerprints)):
         for value, urls in groups.items():
             if len(urls) > 1: add(check, urls[0], "warning", {"urls": sorted(urls), "value_fingerprint": text_fingerprint(value)})
@@ -319,42 +376,46 @@ def crawl(args: argparse.Namespace) -> int:
     target = normalize_url(args.url)
     if not target:
         print("SiteProbe: target must be an http(s) URL without credentials", file=sys.stderr); return 2
-    out = Path(args.out or f".siteprobe/{slug_time()}").expanduser().resolve()
-    if out.exists() and not out.is_dir():
-        print(f"SiteProbe: output is not a directory: {out}", file=sys.stderr); return 2
-    if out.exists() and any(out.iterdir()):
-        print(f"SiteProbe: output directory must be empty: {out}", file=sys.stderr); return 2
-    out.mkdir(parents=True, exist_ok=True)
+    if not args.allow_private_network:
+        reason = private_network_reason(target)
+        if reason:
+            print(f"SiteProbe: private network target blocked: {reason}; use --allow-private-network for an authorized target", file=sys.stderr); return 2
+    final_out = Path(args.out or f".siteprobe/{slug_time()}").expanduser().resolve()
+    if final_out.exists():
+        print(f"SiteProbe: output path already exists: {final_out}", file=sys.stderr); return 2
+    final_out.parent.mkdir(parents=True, exist_ok=True)
+    staging = tempfile.TemporaryDirectory(prefix=f".{final_out.name}.tmp-", dir=final_out.parent)
+    out = Path(staging.name)
     robots_url = urllib.parse.urljoin(origin(target), "/robots.txt")
-    robots_status, _, robots_headers, robots_body, _, robots_error = fetch(robots_url, args.timeout, args.retries)
+    robots_status, _, robots_headers, robots_body, _, robots_error = fetch(robots_url, args.timeout, args.retries, args.allow_private_network)
     robots_text = decode_body(robots_body, robots_headers.get("content-type", "")) if robots_body else ""
     robot = urllib.robotparser.RobotFileParser(); robot.set_url(robots_url); robot.parse(robots_text.splitlines())
-    sitemap = discover_sitemaps(target, robots_text, args.timeout, args.retries)
+    sitemap = discover_sitemaps(target, robots_text, args.timeout, args.retries, args.allow_private_network)
     sitemap_urls = set(sitemap["urls"])
     queue = deque([(target, 0)])
     queued = {target}
     pages: list[dict[str, Any]] = []
     redirects: list[dict[str, Any]] = []
     started = utc_now()
-    while queue and len(pages) < args.max_pages:
-        batch: list[tuple[str, int]] = []
-        while queue and len(batch) < min(args.concurrency, args.max_pages - len(pages)):
-            url, depth = queue.popleft()
-            if depth > args.max_depth: continue
-            if args.respect_robots and not robot.can_fetch(UA, url):
-                pages.append({"schema": PAGE_SCHEMA, "url": url, "normalized_url": url, "status": 0, "redirect_chain": [], "final_url": url, "canonical": "", "indexable": False, "robots_directives": ["blocked-by-robots"], "sitemap_member": url in sitemap_urls, "title": "", "meta_description": "", "headings": {}, "language": "", "content_type": "", "content_fingerprint": "", "word_count": 0, "internal_links": [], "external_links": [], "links": [], "images": [], "missing_alt_count": 0, "open_graph": {}, "social_metadata": {}, "structured_data": [], "pagination": {}, "depth": depth, "incoming_link_count": 0, "outgoing_link_count": 0, "error": "blocked by robots.txt", "elapsed_ms": 0})
-                continue
-            batch.append((url, depth))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-            futures = {pool.submit(inspect_page, url, depth, args.timeout, sitemap_urls, args.retries): (url, depth) for url, depth in batch}
-            results = [future.result() for future in futures]
-        for page in sorted(results, key=lambda p: p["normalized_url"]):
-            pages.append(page); redirects.extend(page["redirect_chain"])
-            if page["depth"] >= args.max_depth: continue
-            for link in page["internal_links"]:
-                url = link["url"]
-                if same_origin(url, target) and url not in queued and len(queued) < args.max_pages * 10:
-                    queued.add(url); queue.append((url, page["depth"] + 1))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+        while queue and len(pages) < args.max_pages:
+            batch: list[tuple[str, int]] = []
+            while queue and len(batch) < min(args.concurrency, args.max_pages - len(pages)):
+                url, depth = queue.popleft()
+                if depth > args.max_depth: continue
+                if args.respect_robots and not robot.can_fetch(UA, url):
+                    pages.append({"schema": PAGE_SCHEMA, "url": url, "normalized_url": url, "status": 0, "redirect_chain": [], "final_url": url, "canonical": "", "indexable": False, "robots_directives": ["blocked-by-robots"], "sitemap_member": url in sitemap_urls, "title": "", "meta_description": "", "headings": {}, "language": "", "content_type": "", "content_fingerprint": "", "word_count": 0, "internal_links": [], "external_links": [], "links": [], "images": [], "missing_alt_count": 0, "open_graph": {}, "social_metadata": {}, "structured_data": [], "pagination": {}, "truncated": {"links": False, "images": False}, "depth": depth, "incoming_link_count": 0, "outgoing_link_count": 0, "error": "blocked by robots.txt", "elapsed_ms": 0})
+                    continue
+                batch.append((url, depth))
+            futures = [pool.submit(inspect_page, url, depth, args.timeout, sitemap_urls, args.retries, args.allow_private_network, args.max_links_per_page) for url, depth in batch]
+            results = [future.result() for future in concurrent.futures.as_completed(futures)]
+            for page in sorted(results, key=lambda p: p["normalized_url"]):
+                pages.append(page); redirects.extend(page["redirect_chain"])
+                if page["depth"] >= args.max_depth: continue
+                for link in page["internal_links"]:
+                    url = link["url"]
+                    if same_origin(url, target) and url not in queued and len(queued) < args.max_pages * 10:
+                        queued.add(url); queue.append((url, page["depth"] + 1))
     pages.sort(key=lambda p: p["normalized_url"])
     links, findings = analyze(pages, sitemap, target)
     titles = defaultdict(list); descriptions = defaultdict(list)
@@ -363,9 +424,10 @@ def crawl(args: argparse.Namespace) -> int:
         if p["meta_description"]: descriptions[p["meta_description"]].append(p["normalized_url"])
     completed = DETERMINISTIC_TIME if args.deterministic else utc_now()
     if args.deterministic: started = DETERMINISTIC_TIME
-    run = {"schema": RUN_SCHEMA, "run_id": out.name, "started_at": started, "completed_at": completed, "target": target,
-           "configuration": {"max_pages": args.max_pages, "max_depth": args.max_depth, "concurrency": args.concurrency, "timeout": args.timeout, "retries": args.retries, "respect_robots": args.respect_robots, "same_origin": True, "baseline": args.baseline, "offline": False, "max_output_bytes": args.max_output_bytes, "max_report_tokens": args.max_report_tokens, "deterministic": args.deterministic},
-           "counts": {"pages": len(pages), "links": len(links["links"]), "redirects": len(redirects), "findings": len(findings)}}
+    severity_counts = dict(sorted(Counter(f["severity"] for f in findings).items()))
+    run = {"schema": RUN_SCHEMA, "run_id": final_out.name, "started_at": started, "completed_at": completed, "target": target,
+           "configuration": {"max_pages": args.max_pages, "max_depth": args.max_depth, "concurrency": args.concurrency, "timeout": args.timeout, "retries": args.retries, "respect_robots": args.respect_robots, "same_origin": True, "allow_private_network": args.allow_private_network, "max_links_per_page": args.max_links_per_page, "baseline": args.baseline, "offline": False, "max_output_bytes": args.max_output_bytes, "max_report_tokens": args.max_report_tokens, "deterministic": args.deterministic, "fail_on": args.fail_on},
+           "counts": {"pages": len(pages), "links": len(links["links"]), "redirects": len(redirects), "findings": len(findings), "findings_by_severity": severity_counts}}
     site = {"schema": "siteprobe.site/v1", "target": target, "origin": origin(target), "robots_url": robots_url, "sitemaps": sitemap["sitemaps"], "crawlable_pages": sum(1 for p in pages if p["status"] == 200), "indexable_pages": sum(1 for p in pages if p["indexable"])}
     metadata = {"schema": "siteprobe.metadata/v1", "titles": titles, "descriptions": descriptions}
     structured = {"schema": "siteprobe.structured-data/v1", "pages": [{"url": p["normalized_url"], "items": p["structured_data"]} for p in pages if p["structured_data"]]}
@@ -374,16 +436,24 @@ def crawl(args: argparse.Namespace) -> int:
     (out / "pages.jsonl").write_text("".join(json.dumps(p, sort_keys=True) + "\n" for p in pages), encoding="utf-8")
     report_text = render_report(run, findings, args.max_report_tokens)
     (out / "report.md").write_text(report_text, encoding="utf-8")
-    output_bytes = sum(path.stat().st_size for path in out.iterdir() if path.is_file())
-    if output_bytes > args.max_output_bytes:
-        print(f"SiteProbe: output budget exceeded ({output_bytes} > {args.max_output_bytes} bytes)", file=sys.stderr); return 1
     if args.baseline:
         rc, comparison = compare_runs(Path(args.baseline), out)
+        comparison["new_run"] = str(final_out)
         dump(out / "comparison.json", comparison)
-        if rc: return rc
-    if args.json: print(json.dumps({"run": str(out), "counts": run["counts"]}, sort_keys=True))
-    else: print(f"SiteProbe crawl complete: {out}\nPages: {len(pages)}  Findings: {len(findings)}")
-    return 0
+        if rc:
+            staging.cleanup()
+            return rc
+    output_bytes = sum(path.stat().st_size for path in out.iterdir() if path.is_file())
+    if output_bytes > args.max_output_bytes:
+        staging.cleanup()
+        print(f"SiteProbe: output budget exceeded ({output_bytes} > {args.max_output_bytes} bytes); no run was published", file=sys.stderr); return 1
+    os.replace(out, final_out)
+    staging.cleanup()
+    if args.json: print(json.dumps({"run": str(final_out), "counts": run["counts"]}, sort_keys=True))
+    else: print(f"SiteProbe crawl complete: {final_out}\nPages: {len(pages)}  Findings: {len(findings)}")
+    fail_rank = {"none": 99, "error": 2, "warning": 1, "info": 0}[args.fail_on]
+    severity_rank = {"error": 2, "warning": 1, "info": 0}
+    return 1 if any(severity_rank.get(f["severity"], -1) >= fail_rank for f in findings) else 0
 
 
 def read_pages(run: Path) -> list[dict[str, Any]]:
@@ -406,17 +476,34 @@ def validate_run(run: Path) -> tuple[int, list[str]]:
     errors: list[str] = []
     if not run.is_dir(): return 1, [f"run directory not found: {run}"]
     for name in REQUIRED:
-        if not (run / name).is_file(): errors.append(f"missing {name}")
+        artifact = run / name
+        if artifact.is_symlink(): errors.append(f"symbolic-link artifact rejected: {name}")
+        elif not artifact.is_file(): errors.append(f"missing {name}")
     if errors: return 1, errors
     try:
+        for name in REQUIRED:
+            if (run / name).stat().st_size > MAX_VALIDATION_FILE_BYTES:
+                errors.append(f"artifact exceeds validation limit: {name}")
+        if errors: return 1, errors
         data = load(run / "run.json")
         if data.get("schema") != RUN_SCHEMA: errors.append("unsupported run schema")
         pages = read_pages(run)
         if len(pages) != data.get("counts", {}).get("pages"): errors.append("page count mismatch")
         if any(page.get("schema") != PAGE_SCHEMA for page in pages): errors.append("unsupported page schema")
-        finding_ids = [x["id"] for x in load(run / "findings.json").get("findings", [])]
+        links = load(run / "links.json").get("links", [])
+        redirects = load(run / "redirects.json").get("redirects", [])
+        findings = load(run / "findings.json").get("findings", [])
+        counts = data.get("counts", {})
+        if len(links) != counts.get("links"): errors.append("link count mismatch")
+        if len(redirects) != counts.get("redirects"): errors.append("redirect count mismatch")
+        if len(findings) != counts.get("findings"): errors.append("finding count mismatch")
+        finding_ids = [x["id"] for x in findings]
         if len(finding_ids) != len(set(finding_ids)): errors.append("duplicate finding IDs")
-    except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc: errors.append(str(exc))
+        configured_budget = data.get("configuration", {}).get("max_output_bytes")
+        output_bytes = sum(path.stat().st_size for path in run.iterdir() if path.is_file())
+        if isinstance(configured_budget, int) and output_bytes > configured_budget:
+            errors.append("run exceeds declared output budget")
+    except (AttributeError, OSError, TypeError, ValueError, KeyError, json.JSONDecodeError) as exc: errors.append(str(exc))
     return (1 if errors else 0), errors
 
 
@@ -444,7 +531,11 @@ def compare_runs(old: Path, new: Path) -> tuple[int, dict[str, Any]]:
 def command_inspect(args: argparse.Namespace) -> int:
     url = normalize_url(args.url)
     if not url: print("invalid URL", file=sys.stderr); return 2
-    print(json.dumps(inspect_page(url, 0, args.timeout, set()), indent=2, sort_keys=True)); return 0
+    if not args.allow_private_network:
+        reason = private_network_reason(url)
+        if reason:
+            print(f"SiteProbe: private network target blocked: {reason}; use --allow-private-network for an authorized target", file=sys.stderr); return 2
+    print(json.dumps(inspect_page(url, 0, args.timeout, set(), args.retries, args.allow_private_network, args.max_links_per_page), indent=2, sort_keys=True)); return 0
 
 
 def command_validate(args: argparse.Namespace) -> int:
@@ -461,15 +552,15 @@ def command_compare(args: argparse.Namespace) -> int:
 
 
 def parser() -> argparse.ArgumentParser:
-    root = argparse.ArgumentParser(prog="siteprobe", description="Deterministic website intelligence for Kujo WebOps")
+    root = argparse.ArgumentParser(prog="siteprobe", description="Deterministic, bounded website intelligence built with Kujo")
     sub = root.add_subparsers(dest="command", required=True)
-    sub.add_parser("doctor"); sub.add_parser("version")
-    crawl_p = sub.add_parser("crawl"); crawl_p.add_argument("url"); crawl_p.add_argument("--out"); crawl_p.add_argument("--max-pages", type=int, default=100); crawl_p.add_argument("--max-depth", type=int, default=4); crawl_p.add_argument("--concurrency", type=int, default=4); crawl_p.add_argument("--timeout", type=float, default=15); crawl_p.add_argument("--retries", type=int, default=2); crawl_p.add_argument("--max-output-bytes", type=int, default=100 * 1024 * 1024); crawl_p.add_argument("--max-report-tokens", type=int, default=2000); crawl_p.add_argument("--offline", action="store_true"); crawl_p.add_argument("--deterministic", action="store_true"); crawl_p.add_argument("--respect-robots", dest="respect_robots", action="store_true", default=True); crawl_p.add_argument("--ignore-robots", dest="respect_robots", action="store_false"); crawl_p.add_argument("--same-origin", action="store_true", default=True); crawl_p.add_argument("--json", action="store_true"); crawl_p.add_argument("--baseline")
-    inspect_p = sub.add_parser("inspect"); inspect_p.add_argument("url"); inspect_p.add_argument("--timeout", type=float, default=15)
-    validate_p = sub.add_parser("validate"); validate_p.add_argument("run")
-    compare_p = sub.add_parser("compare"); compare_p.add_argument("old"); compare_p.add_argument("new")
+    sub.add_parser("doctor", help="check local runtime prerequisites"); sub.add_parser("version", help="print versioned contract metadata")
+    crawl_p = sub.add_parser("crawl", help="crawl a bounded same-origin surface"); crawl_p.add_argument("url"); crawl_p.add_argument("--out"); crawl_p.add_argument("--max-pages", type=int, default=100); crawl_p.add_argument("--max-depth", type=int, default=4); crawl_p.add_argument("--concurrency", type=int, default=4); crawl_p.add_argument("--timeout", type=float, default=15); crawl_p.add_argument("--retries", type=int, default=2); crawl_p.add_argument("--max-links-per-page", type=int, default=10_000); crawl_p.add_argument("--max-output-bytes", type=int, default=100 * 1024 * 1024); crawl_p.add_argument("--max-report-tokens", type=int, default=2000); crawl_p.add_argument("--offline", action="store_true"); crawl_p.add_argument("--deterministic", action="store_true"); crawl_p.add_argument("--respect-robots", dest="respect_robots", action="store_true", default=True); crawl_p.add_argument("--ignore-robots", dest="respect_robots", action="store_false"); crawl_p.add_argument("--same-origin", action="store_true", default=True, help=argparse.SUPPRESS); crawl_p.add_argument("--allow-private-network", action="store_true"); crawl_p.add_argument("--json", action="store_true"); crawl_p.add_argument("--baseline"); crawl_p.add_argument("--fail-on", choices=("none", "info", "warning", "error"), default="none")
+    inspect_p = sub.add_parser("inspect", help="inspect one URL without writing a run"); inspect_p.add_argument("url"); inspect_p.add_argument("--timeout", type=float, default=15); inspect_p.add_argument("--retries", type=int, default=0); inspect_p.add_argument("--max-links-per-page", type=int, default=10_000); inspect_p.add_argument("--allow-private-network", action="store_true")
+    validate_p = sub.add_parser("validate", help="validate a run's artifact integrity"); validate_p.add_argument("run")
+    compare_p = sub.add_parser("compare", help="compare two valid runs"); compare_p.add_argument("old"); compare_p.add_argument("new")
     for name in ("report", "links", "sitemap"):
-        p = sub.add_parser(name); p.add_argument("run")
+        p = sub.add_parser(name, help=f"print a run's {name} artifact"); p.add_argument("run")
     return root
 
 
@@ -477,14 +568,17 @@ def main() -> int:
     args = parser().parse_args()
     if args.command == "version": print(json.dumps({"name": "siteprobe", "version": VERSION, "contract": RUN_SCHEMA})); return 0
     if args.command == "doctor":
-        writable = os.access(Path.cwd(), os.W_OK); print(json.dumps({"ok": writable, "python": sys.version.split()[0], "kujo_entrypoint": "siteprobe.kujo", "network_credentials_required": False, "same_origin_default": True, "respect_robots_default": True}, sort_keys=True)); return 0 if writable else 1
+        writable = os.access(Path.cwd(), os.W_OK); print(json.dumps({"ok": writable, "python": sys.version.split()[0], "kujo_entrypoint": "src/main.kujo", "network_credentials_required": False, "same_origin_default": True, "respect_robots_default": True, "private_network_default": "blocked"}, sort_keys=True)); return 0 if writable else 1
     if args.command == "crawl":
         if args.offline:
             print("SiteProbe: crawl requires network access; use validate/compare/report in offline mode", file=sys.stderr); return 2
-        if args.max_pages < 1 or args.max_pages > 10000 or args.max_depth < 0 or args.max_depth > 20 or args.concurrency < 1 or args.concurrency > 32 or args.timeout <= 0 or args.timeout > 120 or args.retries < 0 or args.retries > 5 or args.max_output_bytes < 1024 or args.max_report_tokens < 64:
+        if args.max_pages < 1 or args.max_pages > 10000 or args.max_depth < 0 or args.max_depth > 20 or args.concurrency < 1 or args.concurrency > 32 or args.timeout <= 0 or args.timeout > 120 or args.retries < 0 or args.retries > 5 or args.max_links_per_page < 1 or args.max_links_per_page > 100_000 or args.max_output_bytes < 1024 or args.max_report_tokens < 64:
             print("SiteProbe: bounds exceeded", file=sys.stderr); return 2
         return crawl(args)
-    if args.command == "inspect": return command_inspect(args)
+    if args.command == "inspect":
+        if args.timeout <= 0 or args.timeout > 120 or args.retries < 0 or args.retries > 5 or args.max_links_per_page < 1 or args.max_links_per_page > 100_000:
+            print("SiteProbe: bounds exceeded", file=sys.stderr); return 2
+        return command_inspect(args)
     if args.command == "validate": return command_validate(args)
     if args.command == "compare": return command_compare(args)
     run = Path(args.run).resolve(); rc, errors = validate_run(run)

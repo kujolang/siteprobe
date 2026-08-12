@@ -1,7 +1,7 @@
 [project]
 name = "siteprobe"
 version = "0.1.0"
-entry = "siteprobe.kujo"
+entry = "src/main.kujo"
 
 [scripts]
 test = "kujo run tests/siteprobe_tests.kujo"

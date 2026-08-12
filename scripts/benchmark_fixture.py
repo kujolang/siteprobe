@@ -23,7 +23,7 @@ def main():
     server=ThreadingHTTPServer(("127.0.0.1",0),Handler); thread=threading.Thread(target=server.serve_forever,daemon=True); thread.start()
     try:
         with tempfile.TemporaryDirectory() as tmp:
-            started=time.monotonic(); result=subprocess.run(["python3",str(ROOT/"bridge/siteprobe.py"),"crawl",f"http://127.0.0.1:{server.server_port}/p/0","--out",str(Path(tmp)/"run"),"--max-pages",str(args.pages),"--max-depth","2","--concurrency","8","--json"],capture_output=True,text=True,check=True)
+            started=time.monotonic(); result=subprocess.run(["python3",str(ROOT/"src/siteprobe.py"),"crawl",f"http://127.0.0.1:{server.server_port}/p/0","--out",str(Path(tmp)/"run"),"--max-pages",str(args.pages),"--max-depth","2","--concurrency","8","--allow-private-network","--json"],capture_output=True,text=True,check=True)
             run=Path(json.loads(result.stdout)["run"]); size=sum(x.stat().st_size for x in run.iterdir() if x.is_file())
             print(json.dumps({"schema":"siteprobe.benchmark/v1","pages":args.pages,"seconds":round(time.monotonic()-started,3),"output_bytes":size},sort_keys=True))
     finally: server.shutdown(); server.server_close()

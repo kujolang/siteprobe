@@ -9,9 +9,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: siteprobe
+      - uses: actions/checkout@v4
+        with:
+          repository: kujolang/kujo
+          path: kujo
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python3 -m py_compile bridge/siteprobe.py tests/test_siteprobe.py
-      - run: python3 tests/test_siteprobe.py
-      - run: python3 -m json.tool schemas/run.schema.json >/dev/null
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: kujo
+      - run: cargo build --release --manifest-path kujo/Cargo.toml
+      - run: bash scripts/validate.sh
+        working-directory: siteprobe

@@ -1,0 +1,42 @@
+func run_step(command, timeout_ms) {
+    result := spawn_process(command, {"timeout_ms": timeout_ms, "max_output_bytes": 4194304})
+    if result.stdout != "" {print(trim_end(result.stdout))}
+    if result.stderr != "" {print(trim_end(result.stderr))}
+    if result.exitcode != 0 {exit(result.exitcode)}
+}
+
+func run_quiet(command, timeout_ms) {
+    result := spawn_process(command, {"timeout_ms": timeout_ms, "max_output_bytes": 4194304})
+    if result.exitcode != 0 {
+        if result.stdout != "" {print(trim_end(result.stdout))}
+        if result.stderr != "" {print(trim_end(result.stderr))}
+        exit(result.exitcode)
+    }
+}
+
+func main() {
+    argv := args()
+    if len(argv) != 1 {
+        print("usage: kujo run scripts/validate.kujo -- <kujo-runtime>")
+        exit(2)
+    }
+kujo := to_string(argv[0])
+run_step(["python3", "-m", "py_compile", "src/siteprobe.py", "tests/test_siteprobe.py", "scripts/benchmark_fixture.py"], 30000)
+run_step([kujo, "check", "src/main.kujo"], 30000)
+run_step([kujo, "check", "scripts/validate.kujo"], 30000)
+run_step([kujo, "check", "scripts/benchmark.kujo"], 30000)
+run_step([kujo, "format", "--check", "src/main.kujo"], 30000)
+run_step([kujo, "format", "--check", "scripts/validate.kujo"], 30000)
+run_step([kujo, "format", "--check", "scripts/benchmark.kujo"], 30000)
+run_step([kujo, "lint", "src/main.kujo"], 30000)
+run_step([kujo, "lint", "scripts/validate.kujo"], 30000)
+run_step([kujo, "lint", "scripts/benchmark.kujo"], 30000)
+run_step([kujo, "run", "tests/siteprobe_tests.kujo"], 120000)
+run_quiet(["python3", "-m", "json.tool", "schemas/run.schema.json"], 30000)
+run_quiet(["python3", "-m", "json.tool", "schemas/page.schema.json"], 30000)
+run_quiet(["python3", "-m", "json.tool", "schemas/findings.schema.json"], 30000)
+run_step(["git", "diff", "--check"], 30000)
+print("SiteProbe validation passed.")
+}
+
+main()

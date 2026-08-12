@@ -7,10 +7,24 @@
   "properties": {
     "schema": {"const": "siteprobe.page/v1"},
     "url": {"type": "string", "format": "uri"},
-    "status": {"type": "integer"},
+    "final_url": {"type": "string", "format": "uri"},
+    "status": {"type": "integer", "minimum": 0, "maximum": 599},
     "depth": {"type": "integer", "minimum": 0},
     "indexable": {"type": "boolean"},
-    "links": {"type": "array"}
+    "links": {"type": "array", "items": {"$ref": "#/$defs/link"}},
+    "content_fingerprint": {"type": "string", "pattern": "^$|^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "required": ["url", "text", "rel"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "text": {"type": "string"},
+        "rel": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": true
 }

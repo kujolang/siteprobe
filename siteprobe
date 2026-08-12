@@ -7,4 +7,4 @@ if [[ ! -x "$KUJO_RUNTIME" ]]; then
   exit 2
 fi
 cd "$ROOT"
-exec "$KUJO_RUNTIME" run siteprobe.kujo -- "$@"
+exec "$KUJO_RUNTIME" run src/main.kujo -- "$@"

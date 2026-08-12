@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / "bridge" / "siteprobe.py"
+CLI = ROOT / "src" / "siteprobe.py"
 
 
 class FixtureHandler(BaseHTTPRequestHandler):
@@ -34,6 +34,8 @@ class FixtureHandler(BaseHTTPRequestHandler):
             "/orphan": (200, "text/html", '<html><head><title>Orphan</title></head><body>Orphan content</body></html>'),
             "/private": (200, "text/html", '<html><head><title>Private</title></head><body>Private</body></html>'),
             "/image.png": (200, "image/png", "not-really-an-image"),
+            "/nested": (200, "text/html", "<title>Nested <span>title</span></title><h1>Useful <em>heading</em></h1>"),
+            "/many": (200, "text/html", "<title>Many</title>" + "".join(f'<a href=\"/p/{i}\">{i}</a>' for i in range(5))),
         }
         if self.path == "/redirect":
             self.send_response(302); self.send_header("Location", "/duplicate"); self.end_headers(); return
@@ -47,7 +49,7 @@ class FixtureHandler(BaseHTTPRequestHandler):
         status, ctype, body = routes.get(self.path, (404, "text/html", "<title>Not found</title>"))
         encoded = body.encode(); self.send_response(status); self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(encoded))); self.end_headers()
         try: self.wfile.write(encoded)
-        except BrokenPipeError: pass
+        except (BrokenPipeError, ConnectionResetError): pass
 
 
 class SiteProbeTests(unittest.TestCase):
@@ -69,7 +71,7 @@ class SiteProbeTests(unittest.TestCase):
     def test_full_fixture_contract_and_compare(self):
         with tempfile.TemporaryDirectory() as tmp:
             run1 = Path(tmp) / "run1"; run2 = Path(tmp) / "run2"
-            self.run_cli("crawl", self.base, "--out", run1, "--max-pages", "20", "--max-depth", "3", "--json")
+            self.run_cli("crawl", self.base, "--out", run1, "--max-pages", "20", "--max-depth", "3", "--allow-private-network", "--json")
             self.run_cli("validate", run1)
             data = json.loads((run1 / "run.json").read_text())
             self.assertEqual("siteprobe.run/v1", data["schema"])
@@ -78,21 +80,30 @@ class SiteProbeTests(unittest.TestCase):
             self.assertTrue({"broken-url", "duplicate-title", "duplicate-description", "not-indexable", "missing-image-alt", "orphan-candidate"} <= checks)
             pages = [json.loads(x) for x in (run1 / "pages.jsonl").read_text().splitlines()]
             self.assertFalse(any(x["normalized_url"].endswith("/private") and x["status"] == 200 for x in pages))
-            self.run_cli("crawl", self.base, "--out", run2, "--max-pages", "4", "--max-depth", "1")
+            self.run_cli("crawl", self.base, "--out", run2, "--max-pages", "4", "--max-depth", "1", "--allow-private-network")
             comparison = json.loads(self.run_cli("compare", run1, run2).stdout)
             self.assertTrue(comparison["changes"])
 
     def test_inspect_and_doctor(self):
         self.assertTrue(json.loads(self.run_cli("doctor").stdout)["ok"])
-        page = json.loads(self.run_cli("inspect", self.base).stdout)
+        blocked = self.run_cli("inspect", self.base, expected=2)
+        self.assertIn("private network target blocked", blocked.stderr)
+        page = json.loads(self.run_cli("inspect", self.base, "--allow-private-network").stdout)
         self.assertEqual(200, page["status"])
         self.assertEqual("Home", page["title"])
+        nested = json.loads(self.run_cli("inspect", self.base + "nested", "--allow-private-network").stdout)
+        self.assertEqual("Nested title", nested["title"])
+        self.assertEqual(["Useful heading"], nested["headings"]["h1"])
+        capped = json.loads(self.run_cli("inspect", self.base + "many", "--allow-private-network", "--max-links-per-page", "2").stdout)
+        self.assertEqual(2, capped["outgoing_link_count"])
+        self.assertTrue(capped["truncated"]["links"])
 
     def test_rejects_credentials_and_bad_bounds(self):
         self.run_cli("crawl", "https://user:pass@example.com", expected=2)
         self.run_cli("crawl", self.base, "--max-pages", "10001", expected=2)
         self.run_cli("crawl", self.base, "--offline", expected=2)
         self.run_cli("crawl", "http://example.com:99999/", expected=2)
+        self.run_cli("crawl", self.base, expected=2)
 
     def test_fuzz_urls_redirects_retries_cycles_and_read_only_boundary(self):
         rng = random.Random(20260811)
@@ -101,31 +112,54 @@ class SiteProbeTests(unittest.TestCase):
         for value in malformed:
             result = self.run_cli("inspect", value, expected=2)
             self.assertNotIn("Traceback", result.stderr)
-        page = json.loads(self.run_cli("inspect", self.base + "flaky", "--timeout", "1").stdout)
+        page = json.loads(self.run_cli("inspect", self.base + "flaky", "--timeout", "1", "--allow-private-network").stdout)
         self.assertIn(page["status"], {200, 429})
         with tempfile.TemporaryDirectory() as tmp:
             FixtureHandler.flaky_hits = 0
             retry_run = Path(tmp) / "retry"
-            self.run_cli("crawl", self.base + "flaky", "--out", retry_run, "--max-pages", "1", "--retries", "2")
+            self.run_cli("crawl", self.base + "flaky", "--out", retry_run, "--max-pages", "1", "--retries", "2", "--allow-private-network")
             self.assertEqual(200, json.loads((retry_run / "pages.jsonl").read_text())["status"])
-            slow = json.loads(self.run_cli("inspect", self.base + "slow", "--timeout", "0.05").stdout)
+            slow = json.loads(self.run_cli("inspect", self.base + "slow", "--timeout", "0.05", "--allow-private-network").stdout)
             self.assertEqual(0, slow["status"])
             run = Path(tmp) / "run"
-            self.run_cli("crawl", self.base, "--out", run, "--max-pages", "20", "--max-depth", "20", "--retries", "2", "--max-report-tokens", "64")
+            self.run_cli("crawl", self.base, "--out", run, "--max-pages", "20", "--max-depth", "20", "--retries", "2", "--max-report-tokens", "64", "--allow-private-network")
             pages = [json.loads(x) for x in (run / "pages.jsonl").read_text().splitlines()]
             self.assertEqual(len({x["normalized_url"] for x in pages}), len(pages))
             self.assertIn("invalid-structured-data", {x["check"] for x in json.loads((run / "findings.json").read_text())["findings"]})
-            self.run_cli("crawl", self.base, "--out", run, expected=2)
+            self.run_cli("crawl", self.base, "--out", run, "--allow-private-network", expected=2)
         self.assertEqual({"GET"}, set(FixtureHandler.methods))
 
     def test_deterministic_semantic_rerun_and_output_budget(self):
         with tempfile.TemporaryDirectory() as tmp:
             first, second = Path(tmp) / "same", Path(tmp) / "same-copy"
             for run in (first, second):
-                self.run_cli("crawl", self.base, "--out", run, "--max-pages", "8", "--deterministic")
+                self.run_cli("crawl", self.base, "--out", run, "--max-pages", "8", "--deterministic", "--allow-private-network")
             for name in ("site.json", "links.json", "metadata.json", "structured-data.json", "sitemap.json", "robots.json", "findings.json"):
                 self.assertEqual((first / name).read_bytes(), (second / name).read_bytes(), name)
-            self.run_cli("crawl", self.base, "--out", Path(tmp) / "tiny", "--max-output-bytes", "1024", expected=1)
+            tiny = Path(tmp) / "tiny"
+            self.run_cli("crawl", self.base, "--out", tiny, "--max-output-bytes", "1024", "--allow-private-network", expected=1)
+            self.assertFalse(tiny.exists())
+
+    def test_fail_on_and_cross_artifact_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp) / "gated"
+            self.run_cli("crawl", self.base, "--out", run, "--max-pages", "8", "--allow-private-network", "--fail-on", "error", expected=1)
+            self.run_cli("validate", run)
+            data = json.loads((run / "run.json").read_text())
+            data["counts"]["links"] += 1
+            (run / "run.json").write_text(json.dumps(data))
+            result = self.run_cli("validate", run, expected=1)
+            self.assertIn("link count mismatch", result.stderr)
+
+    def test_validation_rejects_symbolic_link_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp) / "run"
+            self.run_cli("crawl", self.base, "--out", run, "--max-pages", "1", "--allow-private-network")
+            report = run / "report.md"
+            report.unlink()
+            report.symlink_to(run / "run.json")
+            result = self.run_cli("validate", run, expected=1)
+            self.assertIn("symbolic-link artifact rejected", result.stderr)
 
 
 if __name__ == "__main__":
