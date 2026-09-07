@@ -24,8 +24,8 @@ func main() {
     archive_path := output_dir + "/" + package_name + ".zip"
     checksum_path := archive_path + ".sha256"
     stage_path := output_dir + "/." + package_name + "-stage"
-    if file_exists(archive_path)||file_exists(checksum_path) {
-        print("release artifacts already exist: " + archive_path)
+    if file_exists(archive_path)||file_exists(checksum_path)||file_exists(stage_path) {
+        print("release artifacts or staging directory already exist: " + archive_path)
         exit(2)
     }
     preview := spawn_process([kujo, "package-publish", "--manifest", "kujo.toml"], {"timeout_ms": 30000})
@@ -35,11 +35,12 @@ func main() {
     }
     ensure_dir(output_dir)
     ensure_dir(stage_path)
-    directories := ["src", "schemas", "scripts", "docs", "docs/generated", "examples"]
+    directories := ["src", "schemas", "scripts", "docs", "docs/generated", "examples", "tests"]
     for directory in directories {ensure_dir(stage_path + "/" + directory)}
     files := [
     "README.md", "LICENSE", "VERSION", "KUJO_REVISION", "CHANGELOG.md", "kujo.toml", "kujo.lock",
     "siteprobe", "siteprobe.ps1", "siteprobe.cmd", "src/main.kujo", "src/siteprobe.py",
+    "tests/siteprobe_tests.kujo", "tests/test_siteprobe.py", "tests/test_hardening.py",
     "schemas/run.schema.json", "schemas/page.schema.json", "schemas/findings.schema.json",
     "schemas/manifest.schema.json", "scripts/validate.sh", "scripts/validate.ps1",
     "scripts/validate.kujo", "scripts/benchmark.kujo", "scripts/benchmark_fixture.py",
@@ -60,7 +61,7 @@ func main() {
     archive := zip_create(archive_path)
     zip_add_dir(archive, stage_path)
     zip_close(archive)
-    digest := sha256(read_binary_file(archive_path))
+    digest := sha256_file(archive_path)
     write_file(checksum_path, digest + "  " + basename(archive_path) + "\n")
     print(to_json({"schema": "siteprobe.release/v1", "package": package_name, "archive": archive_path, "sha256": digest, "checksum": checksum_path}))
 }

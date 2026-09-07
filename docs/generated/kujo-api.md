@@ -2,7 +2,7 @@
 
 - Root: `src`
 - Languages: kujo
-- Symbols: 367
+- Symbols: 3
 - Gaps: 0
 
 ## main (kujo)
@@ -32,5 +32,5 @@ Apply Kujo's Draft 2020-12 validator to every primary run artifact.
 - Source: `main.kujo:40`
 - Signature: `func()`
 
-Delegate protocol work, then enforce Kujo-native artifact contracts.
+Launch the legacy product, then enforce Kujo-native artifact contracts.
 

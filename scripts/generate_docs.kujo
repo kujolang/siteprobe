@@ -6,7 +6,7 @@ func main() {
         exit(2)
     }
     kujo := to_string(argv[0])
-    docs := spawn_process([kujo, "docgen", "src", "--language", "kujo", "--out-dir", ".siteprobe-docgen-tmp", "--format", "markdown", "--source-links", "--kujo-parser-assisted"], {"timeout_ms": 120000, "max_output_bytes": 1048576})
+    docs := spawn_process([kujo, "docgen", "src", "--language", "kujo", "--out-dir", ".siteprobe-docgen-tmp", "--format", "markdown", "--source-links", "--kujo-parser-assisted", "--no-builtins"], {"timeout_ms": 120000, "max_output_bytes": 1048576})
     if docs.exitcode != 0 {
         if docs.stdout != "" {print(trim_end(docs.stdout))}
         if docs.stderr != "" {print(trim_end(docs.stderr))}
