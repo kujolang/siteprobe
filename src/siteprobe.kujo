@@ -787,7 +787,7 @@ func crawl_into(target, final_out, out, cfg) {
     write_rows(spool, [])
     mut active_policy := null
     if cfg["respect_robots"] {active_policy = policy}
-    let mapper := func(job) {return inspect_page(job, cfg, sitemap_urls, active_policy, pacer, delay)}
+    async func mapper(job) {return inspect_page(job, cfg, sitemap_urls, active_policy, pacer, delay)}
     while cursor < len(queue)&&page_count < cfg["max_pages"] {
         mut batch := []
         while cursor < len(queue)&&len(batch) < cfg["concurrency"]&&page_count + len(batch) < cfg["max_pages"] {

@@ -47,7 +47,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         try:
             self.wfile.write(raw)
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             pass
 
 
@@ -78,7 +78,7 @@ def main() -> None:
                     "--out", str(run), "--max-pages", str(args.pages), "--max-depth", "2",
                     "--concurrency", str(concurrency), "--allow-private-network", "--json",
                     "--metrics-file", str(metrics),
-                ], cwd=ROOT, capture_output=True, text=True, check=True)
+                ], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True)
                 actual_pages = json.loads((run / "run.json").read_text())["counts"]["pages"]
                 if actual_pages != args.pages:
                     raise RuntimeError(f"incomplete benchmark crawl: expected {args.pages} pages, got {actual_pages}")

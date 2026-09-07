@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Dispatch crawl batches through isolated async Kujo workers so configured
+  concurrency performs overlapping fetches; enforce this with a barrier fixture.
+- Preserve LF source checkouts and decode native test output as UTF-8 on Windows.
+
 - Replace the Python product with Kujo CLI, crawl, robots, page extraction,
   artifact analysis/validation, comparison, signing and reporting modules.
 - Stream sitemap downloads/XML projection and large JSONL transformations through

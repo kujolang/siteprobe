@@ -19,7 +19,7 @@ class NativeContracts(unittest.TestCase):
     run_cli = fixtures.SiteProbeTests.run_cli
 
     def legacy(self, *args):
-        result=subprocess.run([sys.executable,str(fixtures.CLI),*map(str,args)],cwd=fixtures.ROOT,text=True,capture_output=True)
+        result=subprocess.run([sys.executable,str(fixtures.CLI),*map(str,args)],cwd=fixtures.ROOT,text=True, encoding="utf-8",capture_output=True)
         self.assertEqual(0,result.returncode,result.stderr+result.stdout)
         return result
 
@@ -35,6 +35,18 @@ class NativeContracts(unittest.TestCase):
                 self.assertEqual([f'/map-{i}.xml' for i in range(49)],[path for path in fixtures.FixtureHandler.paths if path.startswith('/map-')])
         finally:
             fixtures.FixtureHandler.wide_sitemap=False
+
+    def test_crawl_fetches_configured_batch_concurrently(self):
+        fixtures.FixtureHandler.parallel_barrier=fixtures.threading.Barrier(3)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                run=Path(tmp)/'parallel'
+                self.run_cli('crawl',self.base+'parallel-root','--out',run,'--max-pages','4','--concurrency','3','--retries','0','--allow-private-network')
+                pages=[json.loads(line) for line in (run/'pages.jsonl').read_text().splitlines()]
+                self.assertEqual(4,len(pages))
+                self.assertTrue(all(page['status']==200 for page in pages),pages)
+        finally:
+            fixtures.FixtureHandler.parallel_barrier=None
 
     def test_full_run_matches_oracle_and_signatures_cross_verify(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -95,7 +107,7 @@ class NativeContracts(unittest.TestCase):
             script=Path(tmp)/'capability.kujo'
             for source,label in cases:
                 script.write_text(source+'\n')
-                result=subprocess.run([str(fixtures.KUJO),'run',str(script),'--untrusted'],cwd=fixtures.ROOT,text=True,capture_output=True)
+                result=subprocess.run([str(fixtures.KUJO),'run',str(script),'--untrusted'],cwd=fixtures.ROOT,text=True, encoding="utf-8",capture_output=True)
                 self.assertNotEqual(0,result.returncode,source)
                 self.assertIn('denied',result.stderr.lower(),result.stderr)
                 self.assertIn(label,result.stderr.lower(),result.stderr)
@@ -107,11 +119,11 @@ class NativeContracts(unittest.TestCase):
             source.write_text(json.dumps({'payload':payload})+'\n')
             script.write_text('jsonl_wrap_array(args()[0], args()[1], "rows", {"schema": "fixture/v1"}, 16777216)\n')
             command=[str(fixtures.KUJO),'run',str(script),'--',str(source),str(destination)]
-            result=subprocess.run(command,cwd=fixtures.ROOT,text=True,capture_output=True)
+            result=subprocess.run(command,cwd=fixtures.ROOT,text=True, encoding="utf-8",capture_output=True)
             self.assertEqual(0,result.returncode,result.stderr)
             self.assertEqual({'schema':'fixture/v1','rows':[{'payload':payload}]},json.loads(destination.read_text()))
             digest=__import__('hashlib').sha256(destination.read_bytes()).hexdigest()
-            collision=subprocess.run(command,cwd=fixtures.ROOT,text=True,capture_output=True)
+            collision=subprocess.run(command,cwd=fixtures.ROOT,text=True, encoding="utf-8",capture_output=True)
             self.assertNotEqual(0,collision.returncode)
             self.assertEqual(digest,__import__('hashlib').sha256(destination.read_bytes()).hexdigest())
             for code,allow,denied in [
@@ -119,7 +131,7 @@ class NativeContracts(unittest.TestCase):
                 ('jsonl_wrap_array("never", "never", "rows", {}, 100)','--allow-fs-write','filesystem-read'),
                 ('publish_directory_noreplace("never", "never")','--allow-fs-write','filesystem-delete')]:
                 script.write_text(code+'\n')
-                result=subprocess.run([str(fixtures.KUJO),'run',str(script),allow],cwd=fixtures.ROOT,text=True,capture_output=True)
+                result=subprocess.run([str(fixtures.KUJO),'run',str(script),allow],cwd=fixtures.ROOT,text=True, encoding="utf-8",capture_output=True)
                 self.assertNotEqual(0,result.returncode)
                 self.assertIn(denied,result.stderr,result.stderr)
 
@@ -127,7 +139,7 @@ class NativeContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run=Path(tmp)/'native'
             command=[str(fixtures.KUJO),'run','src/main.kujo','--untrusted','--allow-fs-read','--allow-fs-write','--allow-fs-delete','--allow-env-read','--allow-net-client','--allow-clock','--','crawl',self.base,'--out',str(run),'--max-pages','1','--allow-private-network','--json']
-            result=subprocess.run(command,cwd=fixtures.ROOT,env={**os.environ,'SITEPROBE_PYTHON':'/nonexistent/python','KUJO_ALLOW_PRIVATE_NETWORK_DESTINATIONS':'1',**{key:'http://127.0.0.1:1' for key in ['HTTP_PROXY','http_proxy','HTTPS_PROXY','https_proxy','ALL_PROXY','all_proxy']},'NO_PROXY':'','no_proxy':''},text=True,capture_output=True)
+            result=subprocess.run(command,cwd=fixtures.ROOT,env={**os.environ,'SITEPROBE_PYTHON':'/nonexistent/python','KUJO_ALLOW_PRIVATE_NETWORK_DESTINATIONS':'1',**{key:'http://127.0.0.1:1' for key in ['HTTP_PROXY','http_proxy','HTTPS_PROXY','https_proxy','ALL_PROXY','all_proxy']},'NO_PROXY':'','no_proxy':''},text=True, encoding="utf-8",capture_output=True)
             self.assertEqual(0,result.returncode,result.stderr)
             self.assertEqual(1,json.loads(result.stdout)['counts']['pages'])
             self.assertEqual(200,json.loads((run/'pages.jsonl').read_text())['status'])

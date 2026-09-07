@@ -34,6 +34,7 @@ class FixtureHandler(BaseHTTPRequestHandler):
     request_times = []
     flaky_hits = 0
     robots_status = 200
+    parallel_barrier = None
     wide_sitemap = False
     crawl_delay = 0
     def log_message(self, *_args):
@@ -60,6 +61,14 @@ class FixtureHandler(BaseHTTPRequestHandler):
             "/etag": (200, "text/html", '<title>ETag</title><a href="/etag-next">next</a>'),
             "/etag-next": (200, "text/html", '<title>ETag next</title>'),
         }
+        if self.path == '/parallel-root':
+            routes[self.path]=(200,'text/html','<title>Parallel</title>'+''.join(f'<a href="/parallel/{i}">page</a>' for i in range(3)))
+        if self.path.startswith('/parallel/') and type(self).parallel_barrier is not None:
+            try:
+                type(self).parallel_barrier.wait(timeout=5)
+                routes[self.path]=(200,'text/html','<title>Concurrent</title>')
+            except threading.BrokenBarrierError:
+                routes[self.path]=(500,'text/html','<title>Concurrency barrier failed</title>')
         if type(self).wide_sitemap:
             if self.path == '/sitemap-index.xml':
                 locations=['https://example.invalid/foreign.xml']+[f'http://127.0.0.1:{port}/map-{i}.xml' for i in range(100) for _ in range(2)]
@@ -97,7 +106,7 @@ class FixtureHandler(BaseHTTPRequestHandler):
             self.send_header("Link", '</feed>; rel="alternate"; type="application/rss+xml"')
         self.send_header("Content-Length", str(len(encoded))); self.end_headers()
         try: self.wfile.write(encoded)
-        except (BrokenPipeError, ConnectionResetError): pass
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError): pass
 
 
 class SiteProbeTests(unittest.TestCase):
@@ -112,7 +121,7 @@ class SiteProbeTests(unittest.TestCase):
         cls.server.shutdown(); cls.server.server_close()
 
     def run_cli(self, *args, expected=0):
-        result = subprocess.run([str(KUJO), "run", "src/main.kujo", "--", *map(str, args)], cwd=ROOT, text=True, capture_output=True)
+        result = subprocess.run([str(KUJO), "run", "src/main.kujo", "--", *map(str, args)], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
         self.assertEqual(expected, result.returncode, result.stderr + result.stdout)
         return result
 
@@ -130,7 +139,7 @@ class SiteProbeTests(unittest.TestCase):
         return result
 
     def run_kujo_cli(self, *args, expected=0):
-        result = subprocess.run([str(KUJO), "run", "src/main.kujo", "--", *map(str, args)], cwd=ROOT, text=True, capture_output=True)
+        result = subprocess.run([str(KUJO), "run", "src/main.kujo", "--", *map(str, args)], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
         self.assertEqual(expected, result.returncode, result.stderr + result.stdout)
         return result
 
@@ -151,12 +160,12 @@ class SiteProbeTests(unittest.TestCase):
             comparison = json.loads(self.run_cli("compare", run1, run2).stdout)
             self.assertTrue(comparison["changes"])
             for example in ("contentgraph.kujo", "runledger.kujo"):
-                result = subprocess.run([str(KUJO), "run", f"examples/{example}", "--", str(run1)], cwd=ROOT, text=True, capture_output=True)
+                result = subprocess.run([str(KUJO), "run", f"examples/{example}", "--", str(run1)], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
                 self.assertEqual(0, result.returncode, result.stderr + result.stdout)
                 self.assertTrue(json.loads(result.stdout)["schema"].startswith("siteprobe."))
-            eval_result = subprocess.run([str(KUJO), "run", "examples/eval.kujo", "--", str(run1)], cwd=ROOT, text=True, capture_output=True)
+            eval_result = subprocess.run([str(KUJO), "run", "examples/eval.kujo", "--", str(run1)], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
             self.assertEqual(1, eval_result.returncode)
-            ci_result = subprocess.run([str(KUJO), "run", "examples/ci_baseline.kujo", "--", str(run1), str(run2), str(KUJO)], cwd=ROOT, text=True, capture_output=True)
+            ci_result = subprocess.run([str(KUJO), "run", "examples/ci_baseline.kujo", "--", str(run1), str(run2), str(KUJO)], cwd=ROOT, text=True, encoding="utf-8", capture_output=True)
             self.assertEqual(0, ci_result.returncode, ci_result.stderr + ci_result.stdout)
             schema_pages = [json.loads(line) for line in (run2 / "pages.jsonl").read_text().splitlines()]
             schema_pages[0]["status"] = "not-an-integer"

@@ -13,13 +13,13 @@ from test_siteprobe import SITEPROBE as sp, FixtureHandler
 
 class HardeningUnits(unittest.TestCase):
     def cli(self, *args):
-        return subprocess.run([str(fixtures.KUJO), 'run', 'src/main.kujo', '--', *map(str,args)],cwd=fixtures.ROOT,text=True,capture_output=True)
+        return subprocess.run([str(fixtures.KUJO), 'run', 'src/main.kujo', '--', *map(str,args)],cwd=fixtures.ROOT,text=True, encoding="utf-8",capture_output=True)
 
     def probe(self, action, expected=0, **fields):
         with tempfile.TemporaryDirectory() as tmp:
             request=Path(tmp)/'request.json'
             request.write_text(json.dumps({'action':action,**fields}))
-            result=subprocess.run([str(fixtures.KUJO),'run','tests/native_probe.kujo','--',str(request)],cwd=fixtures.ROOT,text=True,capture_output=True)
+            result=subprocess.run([str(fixtures.KUJO),'run','tests/native_probe.kujo','--',str(request)],cwd=fixtures.ROOT,text=True, encoding="utf-8",capture_output=True)
             self.assertEqual(expected,result.returncode,result.stderr+result.stdout)
             return json.loads(result.stdout) if expected==0 else result.stderr
 
@@ -80,7 +80,7 @@ class HardeningUnits(unittest.TestCase):
         self.assertEqual([''],self.probe('normalize',urls=['https://exam\nple.com/']))
 
     def test_native_entrypoint_needs_no_python_or_process_capability(self):
-        result=subprocess.run([str(fixtures.KUJO),'run','src/main.kujo','--untrusted','--allow-fs-read','--','version'],cwd=fixtures.ROOT,env={**os.environ,'SITEPROBE_PYTHON':'/nonexistent/python'},text=True,capture_output=True)
+        result=subprocess.run([str(fixtures.KUJO),'run','src/main.kujo','--untrusted','--allow-fs-read','--','version'],cwd=fixtures.ROOT,env={**os.environ,'SITEPROBE_PYTHON':'/nonexistent/python'},text=True, encoding="utf-8",capture_output=True)
         self.assertEqual(0,result.returncode,result.stderr)
         self.assertEqual('siteprobe',json.loads(result.stdout)['name'])
 
