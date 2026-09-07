@@ -165,7 +165,10 @@ The validation gate checks the Python test fixtures and frozen oracle, runs the 
 adversarial fixture suite through Kujo, checks and lints Kujo sources, verifies
 Kujo formatting, parses every JSON Schema, and checks the Git diff. CI builds
 Kujo from the revision pinned in `KUJO_REVISION` and runs the same gate on
-Linux, macOS, and Windows. See the historical Python [10,000-page baseline](docs/benchmark-10000.json),
+Linux, macOS, and Windows. Linux also requires a complete 10,000-page native
+crawl with HTTP 200 results at concurrency 1, 4, 8 and 16. CI preserves timing,
+RSS and verification logs as artifacts; timing is not a flaky pass/fail threshold.
+See the historical Python [10,000-page baseline](docs/benchmark-10000.json),
 the native [audit measurements](docs/audits/repository-hardening.md),
 the [Kujo API reference](docs/generated/kujo-api.md), and
 the [artifact contract reference](docs/generated/artifact-contracts.md).
