@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-09-07
+
+- Qualify native operation on Linux, macOS and Windows, including complete
+  10,000-page crawls at concurrency 1, 4, 8 and 16.
+- Pin Kujo with corrected loop/exception scopes, bounded regex reuse, isolated
+  worker captures and Windows no-replace publication.
+- Refresh release metadata, current qualification, source-package documentation
+  and supported macOS runners.
 
 - Dispatch crawl batches through isolated async Kujo workers so configured
   concurrency performs overlapping fetches; enforce this with a barrier fixture.
@@ -23,7 +30,7 @@
 - Add adversarial regression coverage, reuse the CLI dispatch for deterministic
   fuzz samples, and remove runtime builtin inventory from generated product docs.
 
-## 0.2.0 - 2026-08-12
+## 0.2.0 - 2026-08-12 (development milestone; not tagged)
 
 - Pin DNS-approved addresses to connections and re-evaluate every redirect hop.
 - Add origin pacing, bounded robots crawl delay, gzip sitemap budgets, query policies, and conditional baseline fetches.

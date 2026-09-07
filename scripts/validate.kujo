@@ -47,12 +47,19 @@ func main() {
     kujo := to_string(argv[0])
     python := env("SITEPROBE_PYTHON")
     if python == "" {python = "python3"}
+    version := trim(safe_read("VERSION"))
+    manifest := parse_toml(safe_read("kujo.toml"))
+    lock := parse_toml(safe_read("kujo.lock"))
+    if manifest["package"]["version"] != version||lock["package"]["version"] != version||contains(safe_read("README.md"), "version-" + version + "-black") == 0||contains(safe_read("CHANGELOG.md"), "## " + version + " - ") == 0 {
+        eprint("Release versions must agree in VERSION, kujo.toml, kujo.lock, README and CHANGELOG")
+        exit(1)
+    }
     kujo_revision := trim(safe_read("KUJO_REVISION"))
     if len(kujo_revision) != 40||contains(safe_read(".github/workflows/validate.yml"), kujo_revision) == false||contains(safe_read(".github/workflows/release.yml"), kujo_revision) == false {
         print("KUJO_REVISION must be a 40-character commit pinned by validation and release workflows")
         exit(1)
     }
-    run_step([python, "-m", "py_compile", "tests/legacy/siteprobe.py", "tests/test_siteprobe.py", "tests/test_hardening.py", "tests/test_native_contracts.py", "scripts/benchmark_fixture.py"], 30000)
+    run_step([python, "-m", "py_compile", "tests/legacy/siteprobe.py", "tests/test_siteprobe.py", "tests/test_hardening.py", "tests/test_native_contracts.py", "scripts/benchmark_fixture.py", "scripts/verify_release.py"], 30000)
     for source in list_dir("src") {check_source(kujo, source)}
     run_step([kujo, "check", "src/main.kujo"], 30000)
     run_step([kujo, "check", "scripts/validate.kujo"], 30000)

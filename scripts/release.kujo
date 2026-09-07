@@ -1,3 +1,12 @@
+func copy_tree(source, destination) {
+    ensure_dir(destination)
+    for name in list_dir(source) {
+        entry := source + "/" + name
+        target := destination + "/" + basename(entry)
+        if path_is_dir(entry) {copy_tree(entry, target)} else {copy_file(entry, target)}
+    }
+}
+
 func ensure_dir(path) {
     if ! file_exists(path) {create_dir(path)}
 }
@@ -35,18 +44,18 @@ func main() {
     }
     ensure_dir(output_dir)
     ensure_dir(stage_path)
-    directories := ["src", "schemas", "scripts", "docs", "docs/generated", "examples", "tests", "tests/legacy"]
+    directories := ["src", "schemas", "scripts", "docs", "docs/generated", "examples", "tests", "tests/legacy", ".github", ".github/workflows"]
     for directory in directories {ensure_dir(stage_path + "/" + directory)}
     files := [
-    "README.md", "LICENSE", "VERSION", "KUJO_REVISION", "CHANGELOG.md", "kujo.toml", "kujo.lock",
+    "AGENTS.md", ".github/workflows/validate.yml", ".github/workflows/release.yml", "README.md", "LICENSE", "VERSION", "KUJO_REVISION", "CHANGELOG.md", "kujo.toml", "kujo.lock",
     "siteprobe", "siteprobe.ps1", "siteprobe.cmd", "src/main.kujo", "src/siteprobe.kujo",
     "tests/native_probe.kujo", "tests/legacy/siteprobe.py", "tests/siteprobe_tests.kujo", "tests/test_siteprobe.py", "tests/test_hardening.py", "tests/test_native_contracts.py",
     "schemas/run.schema.json", "schemas/page.schema.json", "schemas/findings.schema.json",
     "schemas/manifest.schema.json", "scripts/validate.sh", "scripts/validate.ps1",
-    "scripts/validate.kujo", "scripts/benchmark.kujo", "scripts/benchmark_fixture.py",
+    "scripts/verify_release.py", "docs/release-notes-0.3.0.md", "scripts/validate.kujo", "scripts/benchmark.kujo", "scripts/benchmark_fixture.py",
     "scripts/generate_docs.kujo", "scripts/generate_contract_docs.kujo", "scripts/release.kujo",
     "docs/security.md", "docs/agent-integration.md", "docs/release-qualification-0.1.0.md",
-    "docs/release-qualification-0.2.0.md",
+    "docs/release-qualification-0.2.0.md", "docs/release-qualification-0.3.0.md",
     "docs/next-session-roadmap.md", "docs/benchmark-10000.json",
     "docs/generated/kujo-api.md", "docs/generated/artifact-contracts.md", "examples/README.md",
     "examples/contentgraph.kujo", "examples/eval.kujo", "examples/runledger.kujo",
@@ -58,6 +67,7 @@ func main() {
         copy_file(files[i], stage_path + "/" + files[i])
         i := i + 1
     }
+    copy_tree("docs/audits", stage_path + "/docs/audits")
     archive := zip_create(archive_path)
     zip_add_dir(archive, stage_path)
     zip_close(archive)

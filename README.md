@@ -1,6 +1,6 @@
 # SiteProbe
 
-[![Version](https://img.shields.io/badge/version-0.2.0-black)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.3.0-black)](VERSION)
 [![CI](https://github.com/kujolang/siteprobe/actions/workflows/validate.yml/badge.svg)](https://github.com/kujolang/siteprobe/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
@@ -177,18 +177,38 @@ the [artifact contract reference](docs/generated/artifact-contracts.md).
 
 Clone the repository beside Kujo, run `kujo package-install --frozen`, and use
 `./siteprobe` on Unix or `siteprobe.cmd` / `siteprobe.ps1` on Windows. Tagged
-releases build platform-specific ZIP archives and matching `.sha256` files via
+releases build platform-qualified source ZIP archives and matching `.sha256` files via
 `scripts/release.kujo`; GitHub attaches them only after the multi-platform gate
 passes. `kujo package-publish` currently provides the local deterministic
 publish preview; SiteProbe does not imply a hosted registry transport.
 
+The ZIPs contain native Kujo source, launchers, schemas, tests and documentation;
+they do not bundle the Kujo runtime. Install/build the exact revision in
+`KUJO_REVISION` and set `KUJO_BIN` to its executable. A generic older Kujo release
+may lack required primitives. On Unix, verify and extract the download, then use
+`bash siteprobe doctor` (ZIP extraction may not preserve executable permissions):
+
+```bash
+sha256sum -c siteprobe-0.3.0-linux-x64.zip.sha256
+unzip siteprobe-0.3.0-linux-x64.zip -d siteprobe-0.3.0
+cd siteprobe-0.3.0
+export KUJO_BIN=/absolute/path/to/kujo
+bash siteprobe doctor
+bash siteprobe version
+```
+
+Use `shasum -a 256 -c <archive>.sha256` on macOS, or compare `Get-FileHash
+<archive> -Algorithm SHA256` with the checksum file on Windows. The archived
+README and qualification records describe the same source across platforms;
+platform labels identify the runner used to verify each package.
+
 See [security boundaries](docs/security.md), [agent integration](docs/agent-integration.md),
-[release qualification](docs/release-qualification-0.2.0.md), and the
+[release qualification](docs/release-qualification-0.3.0.md), and the
 [next-session roadmap](docs/next-session-roadmap.md).
 
 ## Maturity boundary
 
-SiteProbe 0.2 is a fixture-verified, local-first crawler for static and
+SiteProbe 0.3 is a fixture-verified, local-first crawler for static and
 server-rendered HTML. It is not a JavaScript renderer, browser automation tool,
 security scanner, search-engine emulator, or substitute for Lens. Near-duplicate
 signals use deterministic normalized-text fingerprints and metadata duplication;

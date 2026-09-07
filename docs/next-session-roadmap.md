@@ -37,8 +37,12 @@ artifact contract.
 
 Status: native implementation completed by the September 2026 rewrite. See [the current audit](audits/repository-hardening.md) for verification, compatibility and measured performance. The 10,000-page benchmark above records the historical Python implementation; native measurements are labeled separately.
 
-## Open after native migration
+## Native follow-ups completed — 2026-09-07
 
-- P1, Kujo runtime: reduce captured-environment/execution overhead while preserving scope isolation and closure semantics; see the current audit for paired evidence.
-- P2, Kujo runtime: fix the existing VM loop-local immutable binding defect with VM/interpreter parity coverage.
-- Qualification: hosted Linux/Windows checks and a full native concurrency sweep remain unverified locally.
+- [x] Reduce measured regex and captured-environment overhead while preserving isolation.
+- [x] Fix VM loop declarations and scope cleanup across break, continue, return and exceptions.
+- [x] Verify Linux/macOS/Windows and the full native concurrency sweep.
+
+No P0–P2 follow-up from this audit remains open. Future optimization needs new
+measurements and must preserve the established artifact and security contracts.
+See [0.3.0 qualification](release-qualification-0.3.0.md) for release evidence.
