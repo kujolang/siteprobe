@@ -42,8 +42,15 @@ jobs:
         run: git diff --exit-code -- kujo.lock docs/generated
         working-directory: siteprobe
 
+      - name: Verify full native concurrency sweep
+        if: runner.os == 'Linux'
+        working-directory: siteprobe
+        env:
+          KUJO_BIN: ${{ github.workspace }}/kujo/target/release/kujo
+        run: python scripts/benchmark_fixture.py --pages 10000 --concurrency-levels 1,4,8,16 --output .siteprobe/verification/native-concurrency-10000.json
+
       - name: Preserve verification evidence
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: verification-${{ matrix.os }}

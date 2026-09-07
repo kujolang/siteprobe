@@ -15,6 +15,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class FixtureServer(ThreadingHTTPServer):
+    # Accept the entire supported batch without imposing the stdlib backlog of 5.
+    request_queue_size = 32
+
+
 class Handler(BaseHTTPRequestHandler):
     pages = 10_000
 
@@ -62,7 +67,7 @@ def main() -> None:
     if args.pages < 1 or args.pages > 10_000 or not levels or levels[0] < 1 or levels[-1] > 32:
         parser.error("pages must be 1..10000 and concurrency levels 1..32")
     Handler.pages = args.pages
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server = FixtureServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     results = []
@@ -82,10 +87,15 @@ def main() -> None:
                 actual_pages = json.loads((run / "run.json").read_text())["counts"]["pages"]
                 if actual_pages != args.pages:
                     raise RuntimeError(f"incomplete benchmark crawl: expected {args.pages} pages, got {actual_pages}")
+                with (run / "pages.jsonl").open(encoding="utf-8") as rows:
+                    successful_pages = sum(json.loads(row)["status"] == 200 for row in rows)
+                if successful_pages != args.pages:
+                    raise RuntimeError(f"failed benchmark fetches: expected {args.pages} HTTP 200 pages, got {successful_pages}")
                 measurement = json.loads(metrics.read_text())
                 measurement.update({
                     "concurrency": concurrency,
                     "pages": actual_pages,
+                    "successful_pages": successful_pages,
                     "output_bytes": sum(item.stat().st_size for item in run.iterdir() if item.is_file()),
                     "pages_per_second": round(args.pages / measurement["wall_seconds"], 3),
                 })
