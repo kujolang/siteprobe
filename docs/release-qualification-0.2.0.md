@@ -1,6 +1,7 @@
 # SiteProbe 0.2.0 release qualification
 
-Status: PASS for the bounded, read-only crawler and portable artifact contract.
+Status: historical PASS for the Python-backed 0.2.0 implementation.
+For the native Kujo rewrite, use [the current audit](audits/repository-hardening.md).
 
 The fixture gate covers GET-only behavior, same-origin redirect denial,
 DNS-pinned public-address policy, private-network opt-in, robots enforcement and
@@ -12,7 +13,7 @@ HTML, JSON-LD, symlink, output-budget, and tampering cases.
 
 The 10,000-page performance matrix in `benchmark-10000.json` records wall time,
 CPU time, peak RSS, artifact bytes, and throughput at concurrency 1, 4, 8, and
-16. The current Darwin fixture envelope peaks below 78 MiB RSS; concurrency 4
+16. The historical Python Darwin fixture envelope peaks below 78 MiB RSS; concurrency 4
 is the fastest recorded setting at 506.37 pages per second.
 
 Linux, macOS, and Windows run the same Kujo-owned validation workflow in CI.

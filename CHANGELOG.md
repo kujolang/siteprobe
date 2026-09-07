@@ -2,8 +2,14 @@
 
 ## Unreleased
 
-- Correct the implementation-language description: the product is still Python;
-  the complete Kujo migration is pending the runtime scope decision.
+- Replace the Python product with Kujo CLI, crawl, robots, page extraction,
+  artifact analysis/validation, comparison, signing and reporting modules.
+- Stream sitemap downloads/XML projection and large JSONL transformations through
+  bounded runtime mechanisms; preserve the v1 artifact schemas and CLI commands.
+- Remove Python discovery from production launchers. Keep Python only for test
+  servers, benchmarks and the frozen differential oracle.
+- Add a source gate rejecting production Python and subprocess delegation.
+
 - Enforce robots policy on redirects, reject unavailable rules and nonfinite
   bounds, and keep blocked pages inside the page budget.
 - Publish runs with atomic no-replace rename; bound manifest/key reads and reject

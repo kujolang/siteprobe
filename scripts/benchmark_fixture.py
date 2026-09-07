@@ -56,6 +56,7 @@ def main() -> None:
     parser.add_argument("--pages", type=int, default=10_000)
     parser.add_argument("--concurrency-levels", default="1,4,8,16")
     parser.add_argument("--output")
+    parser.add_argument("--legacy", action="store_true", help="measure the frozen compatibility oracle")
     args = parser.parse_args()
     levels = sorted({int(value) for value in args.concurrency_levels.split(",")})
     if args.pages < 1 or args.pages > 10_000 or not levels or levels[0] < 1 or levels[-1] > 32:
@@ -70,17 +71,21 @@ def main() -> None:
             for concurrency in levels:
                 run = Path(tmp) / f"run-{concurrency}"
                 metrics = Path(tmp) / f"metrics-{concurrency}.json"
+                command = [sys.executable, str(ROOT / "tests/legacy/siteprobe.py")] if args.legacy else [os.environ.get("KUJO_BIN", str(ROOT.parent / "kujo/target/release/kujo")), "run", "src/main.kujo", "--"]
                 subprocess.run([
-                    sys.executable, str(ROOT / "src/siteprobe.py"), "crawl",
+                    *command, "crawl",
                     f"http://127.0.0.1:{server.server_port}/p/0",
                     "--out", str(run), "--max-pages", str(args.pages), "--max-depth", "2",
                     "--concurrency", str(concurrency), "--allow-private-network", "--json",
                     "--metrics-file", str(metrics),
-                ], capture_output=True, text=True, check=True)
+                ], cwd=ROOT, capture_output=True, text=True, check=True)
+                actual_pages = json.loads((run / "run.json").read_text())["counts"]["pages"]
+                if actual_pages != args.pages:
+                    raise RuntimeError(f"incomplete benchmark crawl: expected {args.pages} pages, got {actual_pages}")
                 measurement = json.loads(metrics.read_text())
                 measurement.update({
                     "concurrency": concurrency,
-                    "pages": args.pages,
+                    "pages": actual_pages,
                     "output_bytes": sum(item.stat().st_size for item in run.iterdir() if item.is_file()),
                     "pages_per_second": round(args.pages / measurement["wall_seconds"], 3),
                 })

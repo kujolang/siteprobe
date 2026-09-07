@@ -37,7 +37,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Callable
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
 RUN_SCHEMA = "siteprobe.run/v1"
 PAGE_SCHEMA = "siteprobe.page/v1"

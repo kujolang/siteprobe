@@ -1,70 +1,9 @@
-# SiteProbe's Kujo entrypoint and native artifact-schema gate.
-# Legacy Python currently owns crawl and artifact behavior; see the native migration audit.
+from src.siteprobe import dispatch, diagnostic
 
-/// Validate one decoded artifact value against its checked-in JSON Schema.
-func validate_value(value, schema, label) {
-    report := json_schema_validate(value, schema)
-    if ! report["valid"] {
-        print("SiteProbe schema validation failed for " + label + ": " + to_json(report["errors"]))
-        exit(1)
-    }
-}
-
-/// Apply Kujo's Draft 2020-12 validator to every primary run artifact.
-func validate_run_schemas(run_path) {
-    try {
-        run_schema := parse_json(read_file("schemas/run.schema.json"))
-        page_schema := parse_json(read_file("schemas/page.schema.json"))
-        findings_schema := parse_json(read_file("schemas/findings.schema.json"))
-        manifest_schema := parse_json(read_file("schemas/manifest.schema.json"))
-        validate_value(parse_json(read_file(run_path + "/run.json")), run_schema, "run.json")
-        validate_value(parse_json(read_file(run_path + "/findings.json")), findings_schema, "findings.json")
-        if file_exists(run_path + "/manifest.json") {
-            validate_value(parse_json(read_file(run_path + "/manifest.json")), manifest_schema, "manifest.json")
-        }
-        lines := read_lines(run_path + "/pages.jsonl")
-        i := 0
-        loop {
-            if i >= len(lines) {break}
-            line := trim(to_string(lines[i]))
-            if line != "" {validate_value(parse_json(line), page_schema, "pages.jsonl line " + to_string(i + 1))}
-            i := i + 1
-        }
-    } except err {
-        print("SiteProbe schema validation error: " + to_string(err))
-        exit(1)
-    }
-}
-
-/// Launch the legacy product, then enforce Kujo-native artifact contracts.
+/// Native Kujo product entrypoint. Host mechanisms remain capability-gated.
 func main() {
-    python := env("SITEPROBE_PYTHON")
-    if python == "" {python = "python3"}
-    command := [python, "src/siteprobe.py"]
-    argv := args()
-    i := 0
-    loop {
-        if i >= len(argv) {break}
-        command = push(command, to_string(argv[i]))
-        i := i + 1
-    }
-    result := spawn_process(command, {"timeout_ms": 900000})
-    if result.stderr != "" {eprint(trim_end(result.stderr))}
-    if result.stdout_truncated||result.stderr_truncated {
-        eprint("SiteProbe: command output exceeded the transport limit; inspect the run artifacts directly")
-        exit(1)
-    }
-    if result.timed_out||result.cancelled {
-        eprint("SiteProbe: command did not complete")
-        exit(1)
-    }
-    if result.exitcode != 0 {
-        if result.stdout != "" {print(trim_end(result.stdout))}
-        exit(result.exitcode)
-    }
-    if len(argv) >= 2&&to_string(argv[0]) == "validate" {validate_run_schemas(to_string(argv[1]))}
-    if result.stdout != "" {print(trim_end(result.stdout))}
-    exit(0)
+    mut result := 1
+    try {result = dispatch(args())} except err {diagnostic("SiteProbe: " + to_string(err))}
+    exit(result)
 }
-
 main()

@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / "src" / "siteprobe.py"
+CLI = ROOT / "tests" / "legacy" / "siteprobe.py"
 KUJO = Path(os.environ.get("KUJO_BIN", ROOT.parent / "kujo" / "target" / "release" / ("kujo.exe" if os.name == "nt" else "kujo")))
 SPEC = importlib.util.spec_from_file_location("siteprobe_runtime", CLI)
 SITEPROBE = importlib.util.module_from_spec(SPEC)
@@ -34,6 +34,7 @@ class FixtureHandler(BaseHTTPRequestHandler):
     request_times = []
     flaky_hits = 0
     robots_status = 200
+    wide_sitemap = False
     crawl_delay = 0
     def log_message(self, *_args):
         pass
@@ -59,6 +60,12 @@ class FixtureHandler(BaseHTTPRequestHandler):
             "/etag": (200, "text/html", '<title>ETag</title><a href="/etag-next">next</a>'),
             "/etag-next": (200, "text/html", '<title>ETag next</title>'),
         }
+        if type(self).wide_sitemap:
+            if self.path == '/sitemap-index.xml':
+                locations=['https://example.invalid/foreign.xml']+[f'http://127.0.0.1:{port}/map-{i}.xml' for i in range(100) for _ in range(2)]
+                routes[self.path]=(200,'application/xml','<sitemapindex>'+''.join(f'<sitemap><loc>{url}</loc></sitemap>' for url in locations)+'</sitemapindex>')
+            elif self.path.startswith('/map-'):
+                routes[self.path]=(200,'application/xml','<urlset/>')
         if self.path == "/robots.txt" and type(self).robots_status != 200:
             self.send_response(type(self).robots_status); self.end_headers(); return
         if self.path == "/sitemap.xml.gz":
@@ -105,7 +112,7 @@ class SiteProbeTests(unittest.TestCase):
         cls.server.shutdown(); cls.server.server_close()
 
     def run_cli(self, *args, expected=0):
-        result = subprocess.run([sys.executable, str(CLI), *map(str, args)], cwd=ROOT, text=True, capture_output=True)
+        result = subprocess.run([str(KUJO), "run", "src/main.kujo", "--", *map(str, args)], cwd=ROOT, text=True, capture_output=True)
         self.assertEqual(expected, result.returncode, result.stderr + result.stdout)
         return result
 
@@ -156,7 +163,7 @@ class SiteProbeTests(unittest.TestCase):
             (run2 / "pages.jsonl").write_text("".join(json.dumps(page) + "\n" for page in schema_pages))
             (run2 / "manifest.json").unlink()
             native_failure = self.run_kujo_cli("validate", run2, expected=1)
-            self.assertIn("schema validation failed", native_failure.stdout)
+            self.assertIn("schema validation failed", native_failure.stderr)
 
     def test_inspect_and_doctor(self):
         self.assertTrue(json.loads(self.run_cli("doctor").stdout)["ok"])
@@ -273,8 +280,10 @@ class SiteProbeTests(unittest.TestCase):
             FixtureHandler.request_times = []
             FixtureHandler.crawl_delay = 1
             paced = Path(tmp) / "paced"
-            self.run_cli("crawl", self.base + "etag", "--out", paced, "--max-pages", "2", "--max-depth", "1", "--allow-private-network", "--max-crawl-delay", "0.04")
-            FixtureHandler.crawl_delay = 0
+            try:
+                self.run_cli("crawl", self.base + "etag", "--out", paced, "--max-pages", "2", "--max-depth", "1", "--allow-private-network", "--max-crawl-delay", "0.04")
+            finally:
+                FixtureHandler.crawl_delay = 0
             intervals = [b - a for a, b in zip(FixtureHandler.request_times[1:], FixtureHandler.request_times[2:])]
             self.assertTrue(any(value >= 0.03 for value in intervals), intervals)
             pacing = json.loads((paced / "run.json").read_text())["configuration"]["request_pacing"]

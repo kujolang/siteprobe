@@ -1,0 +1,22 @@
+from src.siteprobe import sorted_rows, signing_key, manifest_verify, manifest_write, normalize, report_text, read_json, decode_body, parse_page_html, robots_parse, robots_allowed
+func main() {
+    let request := read_json(args()[0])
+    let action := request["action"]
+    mut result := null
+    if action == "sort_rows" {result = sorted_rows(request["rows"], request["fields"])}
+    else if action == "robots" {result = robots_allowed(robots_parse(request["text"]), request["url"])}
+    else if action == "normalize" {
+        mut values := []
+        for url in request["urls"] {values = push(values, normalize(url, "", {}))}
+        result = values
+    } else if action == "report" {result = report_text(request["run"], request["findings"], request["tokens"])}
+    else if action == "key" {result = len(signing_key(request["path"]))}
+    else if action == "manifest" {manifest_write(request["path"], null); result = manifest_verify(request["path"], null)}
+    else if action == "publish" {publish_directory_noreplace(request["source"], request["destination"]); result = true}
+    else if action == "sort" {jsonl_sort(request["source"], request["destination"], ["key"], request["budget"]); result = true}
+    else if action == "html" {result = parse_page_html(request["html"], request["url"], {"max_links_per_page": 10000})}
+    else if action == "decode" {result = decode_body(bytes(request["bytes"]), request["type"])}
+    else {error("unknown probe action")}
+    print(to_json(result))
+}
+try {main()} except err {eprint(to_string(err)); exit(1)}

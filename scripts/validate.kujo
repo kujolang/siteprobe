@@ -1,18 +1,35 @@
-func run_step(command, timeout_ms) {
-    result := spawn_process(command, {"timeout_ms": timeout_ms, "max_output_bytes": 4194304})
-    if result.stdout != "" {print(trim_end(result.stdout))}
-    if result.stderr != "" {print(trim_end(result.stderr))}
-    if result.exitcode != 0 {exit(result.exitcode)}
-}
-
-func run_quiet(command, timeout_ms) {
-    result := spawn_process(command, {"timeout_ms": timeout_ms, "max_output_bytes": 4194304})
-    if result.exitcode != 0 {
-        if result.stdout != "" {print(trim_end(result.stdout))}
-        if result.stderr != "" {print(trim_end(result.stderr))}
-        exit(result.exitcode)
+func check_source(kujo, source) {
+    if ends_with(source, ".py") {eprint("Production source must be Kujo: " + source); exit(1)}
+    if ends_with(source, ".kujo") {
+        let path := "src/" + source
+        let content := safe_read(path)
+        if contains(content, "spawn_process(")||contains(content, "execute(") {eprint("Product must not delegate to host processes: " + path); exit(1)}
+        run_step([kujo, "check", path], 30000)
+        run_step([kujo, "format", "--check", path], 30000)
+        run_step([kujo, "lint", path], 30000)
     }
 }
+
+func run_step(command, timeout_ms) {
+    let result := spawn_process(command, {"timeout_ms": timeout_ms, "max_output_bytes": 4194304})
+    create_dir(".siteprobe/verification")
+    let receipt := ".siteprobe/verification/" + substring(sha256(to_json(command)), 0, 16)
+    write_file(receipt + ".stdout.log", result.stdout, true)
+    write_file(receipt + ".stderr.log", result.stderr, true)
+    write_file(receipt + ".json", to_json({"command": command, "exitcode": result.exitcode, "timed_out": result.timed_out, "cancelled": result.cancelled, "stdout_truncated": result.stdout_truncated, "stderr_truncated": result.stderr_truncated}), true)
+    if result.timed_out||result.cancelled||result.stdout_truncated||result.stderr_truncated {
+        eprint("Verification did not complete with full evidence: " + receipt)
+        exit(1)
+    }
+    if result.exitcode != 0 {
+        eprint("FAIL " + join(command, " ") + "; evidence: " + receipt)
+        if result.stderr != "" {eprint(trim_end(result.stderr))}
+        if result.stdout != "" {eprint(trim_end(result.stdout))}
+        exit(result.exitcode)
+    }
+    print("PASS " + join(command, " "))
+}
+func run_quiet(command, timeout_ms) {run_step(command, timeout_ms)}
 
 func safe_read(path) {
     try {return read_file(path)} except err {
@@ -35,7 +52,8 @@ func main() {
         print("KUJO_REVISION must be a 40-character commit pinned by validation and release workflows")
         exit(1)
     }
-    run_step([python, "-m", "py_compile", "src/siteprobe.py", "tests/test_siteprobe.py", "tests/test_hardening.py", "scripts/benchmark_fixture.py"], 30000)
+    run_step([python, "-m", "py_compile", "tests/legacy/siteprobe.py", "tests/test_siteprobe.py", "tests/test_hardening.py", "tests/test_native_contracts.py", "scripts/benchmark_fixture.py"], 30000)
+    for source in list_dir("src") {check_source(kujo, source)}
     run_step([kujo, "check", "src/main.kujo"], 30000)
     run_step([kujo, "check", "scripts/validate.kujo"], 30000)
     run_step([kujo, "check", "scripts/benchmark.kujo"], 30000)

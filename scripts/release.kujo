@@ -35,12 +35,12 @@ func main() {
     }
     ensure_dir(output_dir)
     ensure_dir(stage_path)
-    directories := ["src", "schemas", "scripts", "docs", "docs/generated", "examples", "tests"]
+    directories := ["src", "schemas", "scripts", "docs", "docs/generated", "examples", "tests", "tests/legacy"]
     for directory in directories {ensure_dir(stage_path + "/" + directory)}
     files := [
     "README.md", "LICENSE", "VERSION", "KUJO_REVISION", "CHANGELOG.md", "kujo.toml", "kujo.lock",
-    "siteprobe", "siteprobe.ps1", "siteprobe.cmd", "src/main.kujo", "src/siteprobe.py",
-    "tests/siteprobe_tests.kujo", "tests/test_siteprobe.py", "tests/test_hardening.py",
+    "siteprobe", "siteprobe.ps1", "siteprobe.cmd", "src/main.kujo", "src/siteprobe.kujo",
+    "tests/native_probe.kujo", "tests/legacy/siteprobe.py", "tests/siteprobe_tests.kujo", "tests/test_siteprobe.py", "tests/test_hardening.py", "tests/test_native_contracts.py",
     "schemas/run.schema.json", "schemas/page.schema.json", "schemas/findings.schema.json",
     "schemas/manifest.schema.json", "scripts/validate.sh", "scripts/validate.ps1",
     "scripts/validate.kujo", "scripts/benchmark.kujo", "scripts/benchmark_fixture.py",

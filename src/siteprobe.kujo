@@ -1,0 +1,983 @@
+/// COMMON
+/// Shared deterministic transformations and bounded artifact I/O.
+export func normalize(value, base, cfg) {
+    return url_normalize(value, base, {"query_mode": get_default(cfg, "query_policy", "preserve"), "deny_params": get_default(cfg, "query_deny_param", [])})
+}
+export func origin(url) {return url_components(url)["origin"]}
+export func same_origin(a, b) {return origin(a) == origin(b)}
+export func compact(text) {return trim(regex_replace(text, "[\\s\\x1c-\\x1f]+", " "))}
+export func fingerprint(text) {
+    let cleaned := lower(compact(text))
+    if cleaned == "" {return ""}
+    return sha256(cleaned)
+}
+export func unique(values) {
+    mut seen := {}
+    for value in values {seen[value] = true}
+    return sort(keys(seen))
+}
+export func words(text) {
+    mut values := []
+    for word in regex_split(lower(text), "[\\s\\x1c-\\x1f]+") {if word != "" {values = push(values, word)}}
+    return values
+}
+export func directives(text) {
+    mut values := []
+    for word in split(lower(text), ",") {if trim(word) != "" {values = push(values, trim(word))}}
+    return values
+}
+export func read_json(path) {return json_file_read(path, 268435456)}
+export func save_json(path, value) {json_file_write(path, value, 268435456)}
+export func chunk(path, offset) {return jsonl_read_chunk(path, offset, 64, 268435456)}
+export func write_rows(path, rows) {jsonl_write(path, rows, true, 268435456)}
+export func sorted_rows(rows, fields) {
+    mut groups := {}
+    for row in rows {
+        mut key_parts := []
+        for field in fields {key_parts = push(key_parts, to_string(row[field]))}
+        let key := join(key_parts, decode_text_lossy(bytes([0]), "utf-8", 1))
+        groups[key] = push(get_default(groups, key, []), row)
+    }
+    return flatten(values(groups))
+}
+export func absolute(path) {
+    mut value := path
+    if value == "~"||starts_with(value, "~/")||starts_with(value, "~\\") {
+        mut home_path := env("HOME")
+        if home_path == "" {home_path = env("USERPROFILE")}
+        if home_path == "" {error("cannot expand home directory")}
+        value = home_path + substring(value, 1, len(value))
+    }
+    if starts_with(value, "/")||regex_match(value, "^[A-Za-z]:")||starts_with(value, "\\\\") {return value}
+    return path_join(path_absolute("."), value)
+}
+export func user_agent() {return "Kujo-SiteProbe/" + trim(read_file("VERSION")) + " (+https://github.com/kujolang/siteprobe)"}
+export func safe_text(value) {return regex_replace(to_string(value), "[\\x00-\\x1f\\x7f]", " ")}
+export func report_text(run, findings, max_tokens) {
+    let budget := max_tokens * 4
+    mut result := join(["# SiteProbe Report", "", "## Coverage", "", "- Pages inspected: " + to_string(run["counts"]["pages"]), "- Links recorded: " + to_string(run["counts"]["links"]), "- Findings retained: " + to_string(run["counts"]["findings"]), "", "Full machine evidence remains in the run directory.", ""], "\n")
+    for line in ["Target: " + safe_text(run["target"]), "Run: " + safe_text(run["run_id"]), "", "## Attention", ""] {
+        if byte_length(result + line + "\n") <= budget {result = result + line + "\n"}
+    }
+    mut has_important := false
+    let omitted := "Additional findings omitted by report token budget; see findings.json.\n"
+    for finding in findings {
+        if ! contains(["error", "warning"], finding["severity"]) {continue}
+        has_important = true
+        let line := "- [" + safe_text(finding["severity"]) + "] " + safe_text(finding["check"]) + ": " + safe_text(finding["target"]) + "\n"
+        if byte_length(result + line + omitted) > budget {
+            if byte_length(result + omitted) <= budget {result = result + omitted}
+            break
+        }
+        result = result + line
+    }
+    if ! has_important {
+        let line := "- No error or warning findings.\n"
+        if byte_length(result + line) <= budget {result = result + line}
+    }
+    return result
+}
+
+export func nested_set(object, section, key, value) {
+    mut result := object
+    mut child := result[section]
+    child[key] = value
+    result[section] = child
+    return result
+}
+
+export func entry_exists(path) {
+    if ! path_is_dir(dirname(path)) {return false}
+    return contains(list_dir(dirname(path)), basename(path))
+}
+
+export func diagnostic(message) {eprint(safe_text(message))}
+export func terminal_text(value) {return regex_replace(value, "[\\x00-\\x08\\x0b-\\x1f\\x7f]", " ")}
+
+/// ROBOTS
+
+/// Parse robots groups without network effects. Preserve first matching-group policy.
+export func robots_parse(text) {
+    mut groups := []
+    mut agents := []
+    mut rules := []
+    mut delay := null
+    mut sitemaps := []
+    mut has_rules := false
+    for raw in split(text, "\n") {
+        if raw == ""||raw == "\r" {
+            if has_rules {groups = push(groups, {"agents": agents, "rules": rules, "delay": delay})}
+            agents = []; rules = []; delay = null; has_rules = false
+            continue
+        }
+        let line := trim(split(raw, "#")[0])
+        if line == "" {continue}
+        let colon := index_of(line, ":")
+        if colon < 0 {continue}
+        let name := lower(trim(substring(line, 0, colon)))
+        let value := trim(substring(line, colon + 1, len(line)))
+        if name == "sitemap" {sitemaps = push(sitemaps, value); continue}
+        if name == "user-agent" {
+            if has_rules {groups = push(groups, {"agents": agents, "rules": rules, "delay": delay}); agents = []; rules = []; delay = null; has_rules = false}
+            agents = push(agents, lower(percent_text(value)))
+        } else if len(agents) > 0 {
+            if name == "allow"||name == "disallow" {rules = push(rules, {"path": rule_path(value), "allow": (name == "allow"||value == "")}); has_rules = true}
+            if name == "crawl-delay" {
+                let decoded := percent_text(value)
+                if regex_match(decoded, "^[0-9]+$") {delay = to_float(decoded)}
+                has_rules = true
+            }
+            if name == "request-rate" {has_rules = true}
+        }
+    }
+    if has_rules {groups = push(groups, {"agents": agents, "rules": rules, "delay": delay})}
+    mut selected := {"rules": [], "delay": null}
+    mut wildcard := null
+    let agent := lower(split(user_agent(), "/")[0])
+    for group in groups {
+        for pattern in group["agents"] {
+            if pattern == "*" {if wildcard == null {wildcard = group}}
+            else if contains(agent, pattern) {return {"rules": group["rules"], "delay": group["delay"], "sitemaps": sitemaps}}
+        }
+    }
+    if wildcard != null {selected = wildcard}
+    return {"rules": selected["rules"], "delay": selected["delay"], "sitemaps": sitemaps}
+}
+export func robots_allowed(policy, url) {
+    if policy == null {return true}
+    let parts := url_components(url)
+    mut target := parts["path"]
+    if parts["query"] != "" {target = target + "?" + parts["query"]}
+    for rule in policy["rules"] {
+        if rule["path"] == "*"||starts_with(target, rule["path"]) {return rule["allow"]}
+    }
+    return true
+}
+
+func rule_path(value) {
+    if ! starts_with(value, "/") {return value}
+    let normalized := url_normalize("https://robots.invalid" + value, "", {})
+    if normalized == "" {error("invalid robots rule path")}
+    let parts := url_components(normalized)
+    mut path := parts["path"]
+    if parts["query"] != "" {path = path + "?" + parts["query"]}
+    return path
+}
+
+func percent_text(value) {
+    mut output := ""
+    for part in regex_find_all(value, "(?:%[a-fA-F0-9]{2})+|[^%]+|%") {
+        if starts_with(part, "%")&&len(part) >= 3 {
+            mut raw := []; mut offset := 0
+            while offset < len(part) {
+                let high := index_of("0123456789abcdef", lower(substring(part, offset + 1, offset + 2)))
+                let low := index_of("0123456789abcdef", lower(substring(part, offset + 2, offset + 3)))
+                raw = push(raw, high * 16 + low); offset = offset + 3
+            }
+            output = output + decode_text_lossy(bytes(raw), "utf-8", 5242880)
+        } else {output = output + part}
+    }
+    return output
+}
+
+/// PAGE
+
+export func empty_page(url, depth) {
+    return {"schema": "siteprobe.page/v1", "url": url, "normalized_url": url, "status": 0, "response_status": 0, "redirect_chain": [], "final_url": url, "canonical": "", "indexable": false, "robots_directives": [], "sitemap_member": false, "title": "", "meta_description": "", "headings": {}, "language": "", "content_type": "", "content_fingerprint": "", "word_count": 0, "internal_links": [], "external_links": [], "links": [], "images": [], "missing_alt_count": 0, "open_graph": {}, "social_metadata": {}, "structured_data": [], "pagination": {}, "hreflang": [], "refresh": {}, "http_links": [], "etag": "", "last_modified": "", "not_modified": false, "truncated": {"links": false, "images": false}, "depth": depth, "incoming_link_count": 0, "outgoing_link_count": 0, "error": "", "elapsed_ms": 0}
+}
+func unquote(text) {
+    mut value := trim(text)
+    if len(value) >= 2&&((starts_with(value, "\"")&&ends_with(value, "\""))||(starts_with(value, "'")&&ends_with(value, "'"))) {value = substring(value, 1, len(value) - 1)}
+    return value
+}
+/// Extract observed HTML structure from bounded standards-based tokenizer events.
+export func parse_page_html(body, base, cfg) {
+    mut page := empty_page(base, 0)
+    mut skip := 0
+    mut title_depth := 0
+    mut heading := ""
+    mut heading_parts := []
+    mut link := null
+    mut jsonld := false
+    mut json_parts := []
+    mut text_parts := {}; mut links := {}; mut images := {}
+    let limit := cfg["max_links_per_page"]
+    for event in html_tokens(body, 1000000) {
+        let kind := event["kind"]
+        if kind == "text" {
+            let data := event["text"]
+            if jsonld {json_parts = push(json_parts, data); continue}
+            let clean := compact(data)
+            if clean == ""||skip > 0 {continue}
+            if title_depth > 0 {page["title"] = compact(page["title"] + " " + clean)}
+            if heading != "" {heading_parts = push(heading_parts, clean)}
+            if link != null {link["text"] = link["text"] + " " + clean}
+            text_parts[to_string(1000000 + len(text_parts))] = clean
+            continue
+        }
+        let tag := event["name"]
+        let attrs := event["attrs"]
+        if kind == "start" {
+            if contains(["script", "style", "noscript", "template"], tag) {skip = skip + 1}
+            if tag == "title" {title_depth = title_depth + 1}
+            else if contains(["h1", "h2", "h3", "h4", "h5", "h6"], tag)&&heading == "" {heading = tag; heading_parts = []}
+            else if tag == "html" {page["language"] = get_default(attrs, "lang", "")}
+            else if tag == "meta" {
+                mut name := get_default(attrs, "name", "")
+                if name == "" {name = get_default(attrs, "property", "")}
+                if name == "" {name = get_default(attrs, "http-equiv", "")}
+                name = lower(name)
+                let value := trim(get_default(attrs, "content", ""))
+                if name == "description" {page["meta_description"] = value}
+                if contains(["robots", "googlebot", "bingbot"], name) {page["robots_directives"] = concat(page["robots_directives"], directives(value))}
+                if value != ""&&starts_with(name, "og:") {page = nested_set(page, "open_graph", name, value)}
+                if value != ""&&starts_with(name, "twitter:") {page = nested_set(page, "social_metadata", name, value)}
+                if name == "refresh" {
+                    let segments := split(value, ";")
+                    if regex_match(value, "(?i)^\\s*[0-9]+(?:\\.[0-9]+)?\\s*(?:;\\s*url\\s*=\\s*(.+))?$") {
+                        mut destination := normalize("", base, cfg)
+                        if len(segments) > 1 {
+                            let part := trim(join(slice(segments, 1, len(segments)), ";"))
+                            if regex_match(part, "(?i)^url\\s*=") {destination = normalize(unquote(substring(part, index_of(part, "=") + 1, len(part))), base, cfg)}
+                        }
+                        page["refresh"] = {"delay_seconds": to_float(trim(segments[0])), "url": destination}
+                    }
+                }
+            } else if tag == "link" {
+                let rels := words(get_default(attrs, "rel", ""))
+                let href := normalize(get_default(attrs, "href", ""), base, cfg)
+                if contains(rels, "canonical") {page["canonical"] = href}
+                for rel in ["next", "prev"] {if contains(rels, rel)&&href != "" {page = nested_set(page, "pagination", rel, href)}}
+                if contains(rels, "alternate")&&get_default(attrs, "hreflang", "") != ""&&href != "" {page["hreflang"] = push(page["hreflang"], {"language": lower(attrs["hreflang"]), "url": href})}
+            } else if tag == "a" {
+                if len(links) >= limit {page = nested_set(page, "truncated", "links", true)}
+                else {
+                    let href := normalize(get_default(attrs, "href", ""), base, cfg)
+                    if href != "" {link = {"url": href, "text": "", "rel": get_default(attrs, "rel", "")}}
+                }
+            } else if tag == "img" {
+                if len(images) >= limit {page = nested_set(page, "truncated", "images", true)}
+                else {
+                    let src := normalize(get_default(attrs, "src", ""), base, cfg)
+                    if src != "" {images[to_string(1000000 + len(images))] = {"url": src, "alt": get_default(attrs, "alt", ""), "missing_alt": ! (has_key(attrs, "alt") == 1)}}
+                }
+            } else if tag == "script"&&lower(get_default(attrs, "type", "")) == "application/ld+json" {jsonld = true}
+        }
+        if kind == "end"||get_default(event, "self_closing", false) {
+            if tag == "title"&&title_depth > 0 {title_depth = title_depth - 1}
+            if tag == heading {
+                let content := compact(join(heading_parts, " "))
+                if content != "" {page = nested_set(page, "headings", heading, push(get_default(page["headings"], heading, []), content))}
+                heading = ""; heading_parts = []
+            }
+            if tag == "a"&&link != null {link["text"] = compact(link["text"]); links[to_string(1000000 + len(links))] = link; link = null}
+            if tag == "script"&&jsonld {
+                let raw := trim(join(json_parts, ""))
+                if raw != "" {
+                    mut value := null
+                    try {value = parse_json(raw)} except err {value = {"invalid": true, "raw_fingerprint": fingerprint(raw)}}
+                    page["structured_data"] = push(page["structured_data"], value)
+                }
+                jsonld = false; json_parts = []
+            }
+            if contains(["script", "style", "noscript", "template"], tag)&&skip > 0 {skip = skip - 1}
+        }
+    }
+    // Token count is at most one million, so these seven-digit keys preserve insertion order.
+    page["links"] = values(links); page["images"] = values(images)
+    let text := join(values(text_parts), " ")
+    page["content_fingerprint"] = fingerprint(text)
+    page["word_count"] = len(regex_find_all(text, "[\\p{L}\\p{N}_][\\p{L}\\p{N}_'-]*"))
+    page["outgoing_link_count"] = len(links)
+    for image in page["images"] {if image["missing_alt"] {page["missing_alt_count"] = page["missing_alt_count"] + 1}}
+    mut internal := {}; mut external := {}
+    for item in page["links"] {
+        if same_origin(item["url"], base) {internal[to_string(1000000 + len(internal))] = item}
+        else {external[to_string(1000000 + len(external))] = item}
+    }
+    page["internal_links"] = values(internal); page["external_links"] = values(external)
+    return page
+}
+/// Parse Link header delimiters outside quoted parameters and angle brackets.
+export func http_links(value, base, cfg) {
+    mut parts := []
+    mut current := ""
+    mut quoted := false
+    mut angle := false
+    mut escaped := false
+    for ch in value {
+        if ch == ","&& ! quoted&& ! angle {parts = push(parts, current); current = ""; continue}
+        current = current + ch
+        if ch == "\""&& ! escaped {quoted =  ! quoted}
+        if ! quoted&&ch == "<" {angle = true}
+        if ! quoted&&ch == ">" {angle = false}
+        if ch == "\\"&& ! escaped {escaped = true} else {escaped = false}
+    }
+    parts = push(parts, current)
+    mut links := []
+    for raw in parts {
+        let part := trim(raw)
+        let end := index_of(part, ">")
+        if ! starts_with(part, "<")||end < 0 {continue}
+        let target := normalize(substring(part, 1, end), base, cfg)
+        if target == "" {continue}
+        mut params := {}
+        mut rel := ""
+        for item in quoted_parts(substring(part, end + 1, len(part)), ";") {
+            let equals := index_of(item, "=")
+            if equals < 0 {continue}
+            let name := lower(trim(substring(item, 0, equals)))
+            let content := unquote(substring(item, equals + 1, len(item)))
+            if name == "rel" {rel = content} else {params[name] = content}
+        }
+        links = push(links, {"url": target, "rel": rel, "params": params})
+    }
+    return links
+}
+
+func quoted_parts(value, separator) {
+    mut result := []; mut part := ""; mut quoted := false; mut escaped := false
+    for ch in value {
+        if ch == separator&& ! quoted {result = push(result, part); part = ""; continue}
+        part = part + ch
+        if ch == "\""&& ! escaped {quoted =  ! quoted}
+        if ch == "\\"&& ! escaped {escaped = true} else {escaped = false}
+    }
+    return push(result, part)
+}
+
+/// NETWORK
+
+export func private_reason(url) {
+    let result := http_destination_check(url)
+    if result["ok"] {return ""}
+    let message := result["error"]
+    if contains(lower(message), "private")||contains(lower(message), "non-public")||contains(lower(message), "loopback")||contains(lower(message), "denied") {return message}
+    return ""
+}
+/// GET with policy evaluated before every hop. Retries are bounded product policy.
+export func fetch(url, cfg, extra_headers, maximum, policy, pacer, delay) {
+    return fetch_into(url, cfg, extra_headers, maximum, policy, pacer, delay, null)
+}
+export func fetch_file(url, cfg, maximum, pacer, delay, path) {
+    return fetch_into(url, cfg, {"Accept-Encoding": "gzip"}, maximum, null, pacer, delay, path)
+}
+func fetch_into(url, cfg, extra_headers, maximum, policy, pacer, delay, path) {
+    let allowed_origin := origin(url)
+    mut last_error := ""
+    mut current := url
+    mut redirects := []
+    mut attempt := 0
+    while attempt <= cfg["retries"] {
+        current = url; redirects = []
+        mut retry_after := 0.0
+        mut hop := 0
+        while hop <= 10 {
+            if ! robots_allowed(policy, current) {return {"status": 0, "url": current, "headers": {}, "body": "", "raw": bytes([]), "redirects": redirects, "error": "blocked by robots.txt"}}
+            mut headers := {"User-Agent": cfg["user_agent"], "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5"}
+            for key in keys(extra_headers) {headers[key] = extra_headers[key]}
+            rate_limit_wait(pacer, delay * 1000)
+            mut destination_policy := "deny_private"
+            if cfg["allow_private_network"] {destination_policy = "inherit"}
+            mut response := null
+            if path == null {
+                let result := http_request(current, {"method": "GET", "headers": headers, "timeout": cfg["timeout"], "max_response_bytes": maximum, "pin_dns": true, "redirects": "none", "destination_policy": destination_policy})
+                match result {
+                    case Ok(value): {response = value}
+                    case Err(message): {last_error = to_string(message)}
+                }
+            } else {
+                if path_exists(path) {delete_file(path)}
+                if destination_policy == "inherit" {destination_policy = "default"}
+                try {
+                    response = http_get_file_response(current, path, {"headers": headers, "timeout_ms": to_int(max(1, cfg["timeout"] * 1000)), "max_bytes": maximum, "pin_dns": true, "redirects": "none", "destination_policy": destination_policy})
+                    response["body"] = ""; response["_body_bytes"] = bytes([])
+                } except err {last_error = to_string(err)}
+            }
+            if response == null {break}
+            let status := response["status"]
+            mut response_headers := response["headers"]
+            let header_values := get_default(response, "header_values", {})
+            if (has_key(header_values, "link") == 1) {response_headers["link"] = join(header_values["link"], ", ")}
+            if contains([301, 302, 303, 307, 308], status)&&get_default(response_headers, "location", "") != "" {
+                let destination := normalize(response_headers["location"], current, cfg)
+                mut to := destination
+                if to == "" {to = response_headers["location"]}
+                redirects = push(redirects, {"from": current, "status": status, "to": to})
+                if destination == ""||origin(destination) != allowed_origin {return {"status": 0, "url": current, "headers": response_headers, "body": "", "raw": bytes([]), "redirects": redirects, "error": "cross-origin redirect blocked"}}
+                current = destination; hop = hop + 1; continue
+            }
+            if ! contains([429, 500, 502, 503, 504], status)||attempt >= cfg["retries"] {
+                mut error_text := ""
+                if status >= 400 {error_text = "HTTP " + to_string(status)}
+                return {"status": status, "url": current, "headers": response_headers, "body": response["body"], "raw": response["_body_bytes"], "redirects": redirects, "error": error_text}
+            }
+            last_error = "HTTP " + to_string(status)
+            let retry_header := get_default(response_headers, "retry-after", "0")
+            if regex_match(retry_header, "^[0-9]+(\\.[0-9]+)?$") {retry_after = min(to_float(retry_header), 2.0)}
+            break
+        }
+        if hop > 10 {last_error = "redirect limit exceeded"; break}
+        if attempt < cfg["retries"] {sleep(min(max(0.25 * pow(2, attempt), retry_after), 2.0) * 1000)}
+        attempt = attempt + 1
+    }
+    return {"status": 0, "url": current, "headers": {}, "body": "", "raw": bytes([]), "redirects": redirects, "error": last_error}
+}
+export func decode_body(raw, content_type) {
+    mut charset := "utf-8"
+    for param in split(content_type, ";") {
+        let value := trim(param)
+        if starts_with(lower(value), "charset=") {charset = trim(replace(replace(substring(value, 8, len(value)), "\"", ""), "'", ""))}
+    }
+    return decode_text_lossy(raw, charset, 536870912)
+}
+export func inspect_page(job, cfg, sitemap_urls, policy, pacer, delay) {
+    let started := performance_now()
+    let url := job["url"]
+    let baseline := get_default(job, "baseline", null)
+    mut headers := {}
+    if baseline != null {
+        if get_default(baseline, "etag", "") != "" {headers["If-None-Match"] = baseline["etag"]}
+        if get_default(baseline, "last_modified", "") != "" {headers["If-Modified-Since"] = baseline["last_modified"]}
+    }
+    let response := fetch(url, cfg, headers, 5242880, policy, pacer, delay)
+    mut page := empty_page(url, job["depth"])
+    if response["status"] == 304&&baseline != null {
+        page = baseline
+        page["not_modified"] = true
+    } else {
+        let raw_type := get_default(response["headers"], "content-type", "")
+        let content_type := lower(split(raw_type, ";")[0])
+        if len(response["raw"]) > 0&&(contains(content_type, "html")||looks_like_html(response["raw"])) {
+            page = parse_page_html(decode_body(response["raw"], raw_type), response["url"], cfg)
+        }
+        page["status"] = response["status"]
+        page["content_type"] = content_type
+        page["robots_directives"] = unique(concat(page["robots_directives"], directives(get_default(response["headers"], "x-robots-tag", ""))))
+        page["indexable"] = response["status"] == 200&& ! contains(page["robots_directives"], "noindex")&&contains(["text/html", "application/xhtml+xml", ""], content_type)
+        page["http_links"] = http_links(get_default(response["headers"], "link", ""), response["url"], cfg)
+    }
+    page["url"] = url; page["normalized_url"] = url; page["final_url"] = response["url"]
+    page["depth"] = job["depth"]; page["redirect_chain"] = response["redirects"]
+    page["response_status"] = response["status"]
+    page["sitemap_member"] = (has_key(sitemap_urls, response["url"]) == 1)
+    page["etag"] = get_default(response["headers"], "etag", get_default(page, "etag", ""))
+    page["last_modified"] = get_default(response["headers"], "last-modified", get_default(page, "last_modified", ""))
+    page["error"] = response["error"]
+    page["elapsed_ms"] = to_int(round(performance_now() - started))
+    if get_default(cfg, "deterministic", false) {page["elapsed_ms"] = 0}
+    return page
+}
+
+func looks_like_html(raw) {
+    mut offset := 0
+    while offset < len(raw)&&contains([9, 10, 11, 12, 13, 32], raw[offset]) {offset = offset + 1}
+    return offset < len(raw)&&raw[offset] == 60
+}
+
+/// ARTIFACTS
+
+export func required_files() {return ["run.json", "site.json", "pages.jsonl", "links.json", "redirects.json", "metadata.json", "structured-data.json", "sitemap.json", "robots.json", "findings.json", "report.md"]}
+export func finding(check, target, severity, evidence) {
+    return {"id": "SP-" + upper(substring(sha256(check + decode_text_lossy(bytes([0]), "utf-8", 1) + target), 0, 16)), "check": check, "target": target, "severity": severity, "evidence": evidence}
+}
+/// Analyze sorted JSONL in bounded batches, retaining only aggregate indexes.
+export func analyze(pages_path, updated_path, sitemap, target, link_spool) {
+    mut incoming := {}; mut crawled := {}; mut groups := {}
+    mut titles := {}; mut descriptions := {}; mut structured := []
+    mut page_count := 0; mut link_count := 0; mut crawlable := 0; mut indexable := 0
+    mut offset := 0
+    write_rows(link_spool, [])
+    while true {
+        let block := chunk(pages_path, offset)
+        for page in block["rows"] {
+            let url := page["normalized_url"]
+            crawled[url] = true; page_count = page_count + 1
+            if page["status"] == 200 {crawlable = crawlable + 1}
+            if page["indexable"] {indexable = indexable + 1}
+            for pair in [["duplicate-title", "title"], ["duplicate-description", "meta_description"], ["duplicate-content", "content_fingerprint"]] {
+                let key := lower(trim(page[pair[1]]))
+                if key != "" {
+                    let identity := to_json([pair[0], key])
+                    let previous := get_default(groups, identity, {"urls": []})
+                    groups[identity] = {"check": pair[0], "value": key, "urls": push(previous["urls"], url)}
+                }
+            }
+            if page["title"] != "" {titles[page["title"]] = push(get_default(titles, page["title"], []), url)}
+            if page["meta_description"] != "" {descriptions[page["meta_description"]] = push(get_default(descriptions, page["meta_description"], []), url)}
+            if len(page["structured_data"]) > 0 {structured = push(structured, {"url": url, "items": page["structured_data"]})}
+            mut rows := []
+            for link in page["links"] {
+                let internal := origin(link["url"]) == origin(target)
+                rows = push(rows, {"source": url, "target": link["url"], "text": link["text"], "rel": link["rel"], "internal": internal})
+                link_count = link_count + 1
+                if internal {incoming[link["url"]] = get_default(incoming, link["url"], 0) + 1}
+                if len(rows) == 64 {write_rows(link_spool, rows); rows = []}
+            }
+            if len(rows) > 0 {write_rows(link_spool, rows)}
+        }
+        if block["eof"] {break}
+        offset = block["offset"]
+    }
+    mut findings := []
+    offset = 0
+    write_rows(updated_path, [])
+    while true {
+        let block := chunk(pages_path, offset)
+        mut rows := []
+        for original in block["rows"] {
+            mut page := original
+            let url := page["normalized_url"]
+            page["incoming_link_count"] = get_default(incoming, url, 0)
+            rows = push(rows, page)
+            if page["status"] == 200&&contains(page["content_type"], "html") {
+                if page["title"] == "" {findings = push(findings, finding("missing-title", url, "warning", {}))}
+                if page["meta_description"] == "" {findings = push(findings, finding("missing-description", url, "warning", {}))}
+            }
+            if page["status"] == 0||page["status"] >= 400 {findings = push(findings, finding("broken-url", url, "error", {"status": page["status"], "error": page["error"]}))}
+            if page["canonical"] != ""&&page["canonical"] != page["final_url"] {findings = push(findings, finding("canonical-conflict", url, "warning", {"canonical": page["canonical"], "final_url": page["final_url"]}))}
+            if page["missing_alt_count"] > 0 {findings = push(findings, finding("missing-image-alt", url, "warning", {"count": page["missing_alt_count"]}))}
+            if ! page["indexable"]&&page["status"] == 200 {findings = push(findings, finding("not-indexable", url, "info", {"directives": page["robots_directives"]}))}
+            mut invalid := false
+            for item in page["structured_data"] {if is_dict(item)&&get_default(item, "invalid", false) {invalid = true}}
+            if invalid {findings = push(findings, finding("invalid-structured-data", url, "warning", {}))}
+            if page["truncated"]["links"]||page["truncated"]["images"] {findings = push(findings, finding("page-structure-truncated", url, "info", page["truncated"]))}
+        }
+        write_rows(updated_path, rows)
+        if block["eof"] {break}
+        offset = block["offset"]
+    }
+    for group in values(groups) {
+        let urls := sort(group["urls"])
+        if len(urls) > 1 {findings = push(findings, finding(group["check"], urls[0], "warning", {"urls": urls, "value_fingerprint": fingerprint(group["value"])}))}
+    }
+    for url in sitemap["urls"] {
+        let count := get_default(incoming, url, 0)
+        if ! (has_key(crawled, url) == 1)||(url != target&&count == 0) {findings = push(findings, finding("orphan-candidate", url, "warning", {"sitemap_member": true, "incoming_links": count, "crawled": (has_key(crawled, url) == 1)}))}
+    }
+    return {"page_count": page_count, "link_count": link_count, "crawlable_pages": crawlable, "indexable_pages": indexable, "titles": titles, "descriptions": descriptions, "structured_pages": structured, "findings": sorted_rows(findings, ["severity", "check", "target"])}
+}
+export func jsonl_array(source, schema, name, destination) {
+    jsonl_wrap_array(source, destination, name, {"schema": schema}, 268435456)
+}
+export func signing_key(path) {
+    if path == null||path == "" {return null}
+    let file := absolute(path)
+    if ! path_is_file(file)||path_is_symlink(file) {error("signing key must be a regular file")}
+    if file_size(file) < 32||file_size(file) > 65536 {error("signing key must contain between 32 and 65536 bytes")}
+    let key := read_binary_file_beneath(dirname(file), basename(file), 65536)
+    if len(key) < 32 {error("signing key must contain between 32 and 65536 bytes")}
+    return key
+}
+export func manifest_write(run, key) {
+    mut artifacts := {}
+    for name in sort(list_dir(run)) {
+        let path := run + "/" + name
+        if name != "manifest.json"&&path_is_file(path) {artifacts[name] = regular_file_digest(path, 268435456)}
+    }
+    mut signature := {"algorithm": "none", "value": ""}
+    if key != null {signature = {"algorithm": "hmac-sha256", "value": hmac_sha256(key, to_json(artifacts))}}
+    save_json(run + "/manifest.json", {"schema": "siteprobe.manifest/v1", "digest_algorithm": "sha256", "artifacts": artifacts, "signature": signature})
+}
+export func manifest_verify(run, key) {
+    mut errors := []
+    try {
+        let path := run + "/manifest.json"
+        if ! path_is_file(path)||path_is_symlink(path) {return ["missing or unsafe manifest.json"]}
+        let manifest := read_json(path)
+        if manifest["schema"] != "siteprobe.manifest/v1" {errors = push(errors, "unsupported manifest schema")}
+        if manifest["digest_algorithm"] != "sha256" {errors = push(errors, "unsupported manifest digest algorithm")}
+        let artifacts := manifest["artifacts"]
+        if ! is_dict(artifacts) {return ["manifest artifacts must be an object"]}
+        for name in required_files() {if ! (has_key(artifacts, name) == 1) {errors = push(errors, "manifest missing required artifacts: " + name)}}
+        for name in keys(artifacts) {
+            let path := run + "/" + name
+            if name == ""||contains(name, "/")||contains(name, "\\")||name == "."||name == ".."||path_is_symlink(path)|| ! path_is_file(path) {errors = push(errors, "manifest artifact missing or unsafe: " + name); continue}
+            if file_size(path) > 268435456 {errors = push(errors, "manifest artifact exceeds validation limit: " + name); continue}
+            let digest := regular_file_digest(path, 268435456)
+            if digest["bytes"] != artifacts[name]["bytes"] {errors = push(errors, "manifest byte count mismatch: " + name)}
+            if digest["sha256"] != artifacts[name]["sha256"] {errors = push(errors, "manifest digest mismatch: " + name)}
+        }
+        for name in list_dir(run) {
+            if name == "manifest.json" {continue}
+            let path := run + "/" + name
+            if path_is_symlink(path)|| ! path_is_file(path) {errors = push(errors, "manifest run contains unsafe entries: " + name)}
+            else if ! (has_key(artifacts, name) == 1) {errors = push(errors, "manifest does not cover artifacts: " + name)}
+        }
+        let signature := manifest["signature"]
+        if ! contains(["none", "hmac-sha256"], signature["algorithm"]) {errors = push(errors, "unsupported manifest signature algorithm")}
+        else if signature["algorithm"] == "none"&&signature["value"] != "" {errors = push(errors, "unsigned manifest has a signature value")}
+        else if signature["algorithm"] == "hmac-sha256"&& ! regex_match(signature["value"], "^[a-f0-9]{64}$") {errors = push(errors, "invalid manifest signature value")}
+        if key != null {
+            if signature["algorithm"] != "hmac-sha256" {errors = push(errors, "manifest is not signed with hmac-sha256")}
+            else if ! hmac_sha256_verify(key, to_json(artifacts), signature["value"]) {errors = push(errors, "manifest signature mismatch")}
+        }
+    } except err {errors = push(errors, "invalid manifest: " + to_string(err))}
+    return errors
+}
+func schema_check(value, schema, label) {
+    let result := json_schema_validate(value, schema)
+    if ! result["valid"] {error("schema validation failed for " + label + ": " + to_json(result["errors"]))}
+}
+/// Batch arrays without aggregate constraints, preserving the enclosing schema.
+func schema_batch(value, schema, field, label) {
+    if ! is_dict(value)|| ! (has_key(value, field) == 1)|| ! is_array(value[field]) {schema_check(value, schema, label); return}
+    for keyword in keys(schema["properties"][field]) {
+        if ! contains(["type", "items"], keyword) {error("batch schema needs aggregate validation for " + keyword)}
+    }
+    let items := value[field]
+    if len(items) == 0 {schema_check(value, schema, label); return}
+    mut offset := 0
+    while offset < len(items) {
+        mut part := value
+        part[field] = slice(items, offset, min(offset + 1024, len(items)))
+        schema_check(part, schema, label + " from item " + to_string(offset))
+        offset = offset + 1024
+    }
+}
+/// Validate page schemas incrementally; whole pages.jsonl is never loaded.
+export func validate_run(run) {
+    mut errors := []
+    if ! path_is_dir(run) {return ["run directory not found: " + run]}
+    for name in required_files() {
+        let path := run + "/" + name
+        if entry_exists(path)&&path_is_symlink(path) {errors = push(errors, "symbolic-link artifact rejected: " + name)}
+        else if ! path_is_file(path) {errors = push(errors, "missing " + name)}
+        else if file_size(path) > 268435456 {errors = push(errors, "artifact exceeds validation limit: " + name)}
+    }
+    if len(errors) > 0 {return errors}
+    try {
+        let data := read_json(run + "/run.json")
+        let page_schema := read_json("schemas/page.schema.json")
+        schema_check(data, read_json("schemas/run.schema.json"), "run.json")
+        mut count := 0; mut offset := 0
+        while true {
+            let block := chunk(run + "/pages.jsonl", offset)
+            for page in block["rows"] {schema_batch(page, page_schema, "links", "pages.jsonl"); count = count + 1}
+            if block["eof"] {break}
+            offset = block["offset"]
+        }
+        if count != data["counts"]["pages"] {errors = push(errors, "page count mismatch")}
+        for spec in [["links.json", "links"], ["redirects.json", "redirects"]] {
+            let value := read_json(run + "/" + spec[0])
+            if len(value[spec[1]]) != data["counts"][spec[1]] {errors = push(errors, substring(spec[1], 0, len(spec[1]) - 1) + " count mismatch")}
+        }
+        let findings := read_json(run + "/findings.json")
+        if len(findings["findings"]) != data["counts"]["findings"] {errors = push(errors, "finding count mismatch")}
+        schema_batch(findings, read_json("schemas/findings.schema.json"), "findings", "findings.json")
+        mut ids := {}
+        for finding in findings["findings"] {if (has_key(ids, finding["id"]) == 1) {errors = push(errors, "duplicate finding IDs")}; ids[finding["id"]] = true}
+        mut total := 0
+        for name in list_dir(run) {if path_is_file(run + "/" + name) {total = total + file_size(run + "/" + name)}}
+        if total > data["configuration"]["max_output_bytes"] {errors = push(errors, "run exceeds declared output budget")}
+        if path_exists(run + "/manifest.json") {errors = concat(errors, manifest_verify(run, null)); schema_check(read_json(run + "/manifest.json"), read_json("schemas/manifest.schema.json"), "manifest.json")}
+    } except err {errors = push(errors, to_string(err))}
+    return errors
+}
+export func page_index(run) {
+    mut pages := {}; mut offset := 0
+    while true {
+        let block := chunk(run + "/pages.jsonl", offset)
+        for page in block["rows"] {pages[page["normalized_url"]] = page}
+        if block["eof"] {break}
+        offset = block["offset"]
+    }
+    return pages
+}
+export func compare_runs(old, new) {
+    for path in [old, new] {
+        let errors := validate_run(path)
+        if len(errors) > 0 {return {"schema": "siteprobe.comparison/v1", "errors": errors, "changes": []}}
+    }
+    let before := page_index(old); let after := page_index(new)
+    mut changes := []
+    for url in sort(keys(after)) {if ! (has_key(before, url) == 1) {changes = push(changes, {"type": "NEW URL", "url": url})}}
+    for url in sort(keys(before)) {if ! (has_key(after, url) == 1) {changes = push(changes, {"type": "REMOVED URL", "url": url})}}
+    let fields := [["status", "STATUS CHANGED"], ["canonical", "CANONICAL CHANGED"], ["title", "TITLE CHANGED"], ["indexable", "INDEXABILITY CHANGED"], ["meta_description", "METADATA REGRESSION"], ["content_fingerprint", "CONTENT MATERIALLY CHANGED"]]
+    for url in sort(keys(before)) {
+        if ! (has_key(after, url) == 1) {continue}
+        for pair in fields {
+            let old_value := get_default(before[url], pair[0], null); let new_value := get_default(after[url], pair[0], null)
+            if old_value != new_value {changes = push(changes, {"type": pair[1], "url": url, "before": old_value, "after": new_value})}
+        }
+        if len(get_default(before[url], "structured_data", [])) > 0&&len(get_default(after[url], "structured_data", [])) == 0 {changes = push(changes, {"type": "SCHEMA REGRESSION", "url": url})}
+        let was_broken := before[url]["status"] == 0||before[url]["status"] >= 400
+        let is_broken := after[url]["status"] == 0||after[url]["status"] >= 400
+        if ! was_broken&&is_broken {changes = push(changes, {"type": "LINK BROKEN", "url": url})}
+        if was_broken&& ! is_broken {changes = push(changes, {"type": "LINK RESTORED", "url": url})}
+    }
+    return {"schema": "siteprobe.comparison/v1", "old_run": old, "new_run": new, "changes": changes}
+}
+
+/// CRAWL
+
+export func cleanup_dir(path) {
+    if ! path_is_dir(path) {return}
+    for name in list_dir(path) {
+        let entry := path + "/" + name
+        if path_is_dir(entry)&& ! path_is_symlink(entry) {cleanup_dir(entry)} else {delete_file(entry)}
+    }
+    os_rmdir(path)
+}
+export func discover_sitemaps(target, policy, cfg, pacer, delay, stage) {
+    let source := stage + "/_sitemap.download"
+    mut seeds := slice(policy["sitemaps"], 0, min(20, len(policy["sitemaps"])))
+    if len(seeds) == 0 {seeds = [origin(target) + "/sitemap.xml"]}
+    mut queue := []; mut pending := {}
+    for seed in seeds {
+        let candidate := normalize(seed, "", cfg)
+        if candidate != ""&&same_origin(candidate, target)&& ! (has_key(pending, candidate) == 1) {pending[candidate] = true; queue = push(queue, candidate)}
+    }
+    mut cursor := 0; mut seen := {}; mut urls := {}; mut errors := []
+    while cursor < len(queue)&&len(seen) < 50 {
+        let url := normalize(queue[cursor], "", cfg); cursor = cursor + 1
+        if url == ""||(has_key(seen, url) == 1)||origin(url) != origin(target) {continue}
+        seen[url] = true
+        let response := fetch_file(url, cfg, cfg["max_sitemap_compressed_bytes"], pacer, delay, source)
+        if response["status"] != 200 {
+            mut message := response["error"]
+            if message == "" {message = "HTTP " + to_string(response["status"])}
+            errors = push(errors, {"url": url, "error": message}); continue
+        }
+        try {
+            mut compression := "none"
+            if lower(get_default(response["headers"], "content-encoding", "")) == "gzip"||ends_with(lower(url), ".gz") {compression = "gzip"}
+            let document := xml_file_select(source, {"compression": compression, "max_bytes": cfg["max_sitemap_expanded_bytes"], "element": "loc", "max_matches": 100000})
+            if document["truncated"] {errors = push(errors, {"url": url, "error": "sitemap projection reached the matching-element limit; evidence is incomplete"})}
+            let root := document["root"]
+            for raw in document["values"] {
+                let candidate := normalize(raw, "", cfg)
+                if candidate == "" {continue}
+                if root == "sitemapindex" {
+                    if len(pending) < 50&&same_origin(candidate, target)&& ! (has_key(pending, candidate) == 1) {pending[candidate] = true; queue = push(queue, candidate)}
+                }
+                else if origin(candidate) == origin(target)&&len(urls) < 100000 {urls[candidate] = true}
+            }
+        } except err {errors = push(errors, {"url": url, "error": "invalid sitemap: " + to_string(err)})}
+    }
+    if path_exists(source) {delete_file(source)}
+    return {"schema": "siteprobe.sitemap/v1", "sitemaps": sort(keys(seen)), "urls": sort(keys(urls)), "errors": errors}
+}
+func crawl_into(target, final_out, out, cfg) {
+    mut baseline := {}
+    if cfg["baseline"] != null {
+        let path := absolute(cfg["baseline"])
+        let errors := validate_run(path)
+        if len(errors) > 0 {for message in errors {diagnostic("SiteProbe: invalid baseline: " + message)}; return 2}
+        baseline = page_index(path)
+    }
+    let robots_url := origin(target) + "/robots.txt"
+    let pacer := channel()
+    let robots_response := fetch(robots_url, cfg, {}, 5242880, null, pacer, 0)
+    if cfg["respect_robots"]&& ! contains([200, 404, 410], robots_response["status"]) {diagnostic("SiteProbe: robots policy unavailable or denied (HTTP " + to_string(robots_response["status"]) + "): " + robots_response["error"] + "; no run was published"); return 1}
+    mut robots_text := ""
+    if robots_response["status"] == 200 {robots_text = decode_body(robots_response["raw"], get_default(robots_response["headers"], "content-type", ""))}
+    let policy := robots_parse(robots_text)
+    mut robots_delay := policy["delay"]
+    if robots_delay == null {robots_delay = 0.0}
+    let delay := max(cfg["request_delay"], min(robots_delay, cfg["max_crawl_delay"]))
+    let sitemap := discover_sitemaps(target, policy, cfg, pacer, delay, out)
+    mut sitemap_urls := {}
+    for url in sitemap["urls"] {sitemap_urls[url] = true}
+    mut queue := {"0": {"url": target, "depth": 0}}; mut cursor := 0
+    mut queued := {}; queued[target] = true
+    mut page_count := 0; mut redirects := []
+    mut started := now_utc()
+    let spool := out + "/_pages.unsorted.jsonl"
+    write_rows(spool, [])
+    mut active_policy := null
+    if cfg["respect_robots"] {active_policy = policy}
+    let mapper := func(job) {return inspect_page(job, cfg, sitemap_urls, active_policy, pacer, delay)}
+    while cursor < len(queue)&&page_count < cfg["max_pages"] {
+        mut batch := []
+        while cursor < len(queue)&&len(batch) < cfg["concurrency"]&&page_count + len(batch) < cfg["max_pages"] {
+            mut job := queue[cursor]; cursor = cursor + 1
+            if job["depth"] > cfg["max_depth"] {continue}
+            if ! robots_allowed(active_policy, job["url"]) {
+                mut page := empty_page(job["url"], job["depth"])
+                page["robots_directives"] = ["blocked-by-robots"]
+                page["sitemap_member"] = (has_key(sitemap_urls, job["url"]) == 1)
+                page["error"] = "blocked by robots.txt"
+                write_rows(spool, [page]); page_count = page_count + 1; continue
+            }
+            job["baseline"] = get_default(baseline, job["url"], null)
+            batch = push(batch, job)
+        }
+        if len(batch) == 0 {continue}
+        let results := promise_wait(parallel_map(batch, mapper, cfg["concurrency"]))
+        for page in sorted_rows(results, ["normalized_url"]) {
+            write_rows(spool, [page]); page_count = page_count + 1
+            redirects = concat(redirects, page["redirect_chain"])
+            if page["depth"] >= cfg["max_depth"] {continue}
+            for link in page["internal_links"] {
+                let url := link["url"]
+                if origin(url) == origin(target)&& ! (has_key(queued, url) == 1)&&len(queued) < cfg["max_pages"] * 10 {queued[url] = true; queue[to_string(len(queue))] = {"url": url, "depth": page["depth"] + 1}}
+            }
+        }
+    }
+    jsonl_sort(spool, out + "/pages.jsonl", ["normalized_url"], cfg["sort_buffer_bytes"]); delete_file(spool)
+    let analysis := analyze(out + "/pages.jsonl", out + "/_pages.updated.jsonl", sitemap, target, out + "/_links.unsorted.jsonl")
+    delete_file(out + "/pages.jsonl"); rename_file(out + "/_pages.updated.jsonl", out + "/pages.jsonl")
+    jsonl_sort(out + "/_links.unsorted.jsonl", out + "/_links.sorted.jsonl", ["source", "target", "text", "rel"], cfg["sort_buffer_bytes"])
+    jsonl_array(out + "/_links.sorted.jsonl", "siteprobe.links/v1", "links", out + "/links.json")
+    delete_file(out + "/_links.unsorted.jsonl"); delete_file(out + "/_links.sorted.jsonl")
+    mut completed := now_utc()
+    if cfg["deterministic"] {started = "1970-01-01T00:00:00Z"; completed = started}
+    let findings := analysis["findings"]
+    mut counts := {}
+    for item in findings {counts[item["severity"]] = get_default(counts, item["severity"], 0) + 1}
+    mut configuration := {}
+    for key in ["max_pages", "max_depth", "concurrency", "timeout", "retries", "respect_robots", "allow_private_network", "max_links_per_page", "max_sitemap_compressed_bytes", "max_sitemap_expanded_bytes", "sort_buffer_bytes", "query_policy", "baseline", "max_output_bytes", "max_report_tokens", "deterministic", "fail_on"] {configuration[key] = cfg[key]}
+    configuration["query_deny_params"] = unique(cfg["query_deny_param"])
+    configuration["same_origin"] = true; configuration["offline"] = false; configuration["conditional_fetch"] = cfg["baseline"] != null
+    configuration["request_pacing"] = {"operator_delay_seconds": cfg["request_delay"], "robots_crawl_delay_seconds": robots_delay, "max_crawl_delay_seconds": cfg["max_crawl_delay"], "effective_delay_seconds": delay}
+    let run := {"schema": "siteprobe.run/v1", "run_id": basename(final_out), "started_at": started, "completed_at": completed, "target": target, "configuration": configuration, "counts": {"pages": analysis["page_count"], "links": analysis["link_count"], "redirects": len(redirects), "findings": len(findings), "findings_by_severity": counts}}
+    save_json(out + "/run.json", run)
+    save_json(out + "/site.json", {"schema": "siteprobe.site/v1", "target": target, "origin": origin(target), "robots_url": robots_url, "sitemaps": sitemap["sitemaps"], "crawlable_pages": analysis["crawlable_pages"], "indexable_pages": analysis["indexable_pages"]})
+    save_json(out + "/redirects.json", {"schema": "siteprobe.redirects/v1", "redirects": redirects})
+    save_json(out + "/metadata.json", {"schema": "siteprobe.metadata/v1", "titles": analysis["titles"], "descriptions": analysis["descriptions"]})
+    save_json(out + "/structured-data.json", {"schema": "siteprobe.structured-data/v1", "pages": analysis["structured_pages"]})
+    save_json(out + "/sitemap.json", sitemap)
+    save_json(out + "/robots.json", {"schema": "siteprobe.robots/v1", "url": robots_url, "status": robots_response["status"], "text_fingerprint": fingerprint(robots_text), "error": robots_response["error"], "sitemaps": sitemap["sitemaps"]})
+    save_json(out + "/findings.json", {"schema": "siteprobe.findings/v1", "findings": findings})
+    write_file(out + "/report.md", report_text(run, findings, cfg["max_report_tokens"]))
+    if cfg["baseline"] != null {
+        mut comparison := compare_runs(absolute(cfg["baseline"]), out)
+        comparison["new_run"] = final_out
+        save_json(out + "/comparison.json", comparison)
+        if (has_key(comparison, "errors") == 1) {return 1}
+    }
+    mut key := null
+    try {key = signing_key(cfg["signing_key_file"])} except err {diagnostic("SiteProbe: " + to_string(err)); return 2}
+    manifest_write(out, key)
+    mut total := 0
+    for name in list_dir(out) {total = total + file_size(out + "/" + name)}
+    if total > cfg["max_output_bytes"] {diagnostic("SiteProbe: output budget exceeded; no run was published"); return 1}
+    try {publish_directory_noreplace(out, final_out)} except err {
+        if entry_exists(final_out) {diagnostic("SiteProbe: output path already exists: " + final_out); return 2}
+        error(to_string(err))
+    }
+    if cfg["json"] {print(to_json({"run": final_out, "counts": run["counts"]}))}
+    else {print("SiteProbe crawl complete: " + safe_text(final_out) + "\nPages: " + to_string(page_count) + "  Findings: " + to_string(len(findings)))}
+    let rank := {"none": 99, "error": 2, "warning": 1, "info": 0}
+    for item in findings {if rank[item["severity"]] >= rank[cfg["fail_on"]] {return 1}}
+    return 0
+}
+export func crawl(cfg) {
+    let target := normalize(cfg["url"], "", cfg)
+    if target == "" {diagnostic("SiteProbe: target must be an http(s) URL without credentials"); return 2}
+    if ! cfg["allow_private_network"] {
+        let reason := private_reason(target)
+        if reason != "" {diagnostic("SiteProbe: private network target blocked: " + reason + "; use --allow-private-network for an authorized target"); return 2}
+    }
+    mut output := cfg["out"]
+    if output == null {output = ".siteprobe/" + replace(replace(now_utc(), "-", ""), ":", "")}
+    let final_out := absolute(output)
+    if entry_exists(final_out) {diagnostic("SiteProbe: output path already exists: " + final_out); return 2}
+    create_dir(dirname(final_out))
+    let stage := create_temp_dir(dirname(final_out), ".siteprobe-stage-")
+    mut result := 1
+    try {result = crawl_into(target, final_out, stage, cfg)} except err {
+        cleanup_dir(stage)
+        error(to_string(err))
+    }
+    cleanup_dir(stage)
+    return result
+}
+
+/// CLI
+
+func usage(command) {
+    print("Usage: siteprobe " + command + "\nCommands: crawl inspect validate verify compare report links sitemap doctor version\nCrawl options: --out PATH --max-pages N --max-depth N --concurrency N --timeout SECONDS --retries N\n  --request-delay SECONDS --max-crawl-delay SECONDS --max-links-per-page N\n  --max-sitemap-compressed-bytes N --max-sitemap-expanded-bytes N --sort-buffer-bytes N\n  --max-output-bytes N --max-report-tokens N --query-policy preserve|sort|drop\n  --query-deny-param NAME --respect-robots --ignore-robots --allow-private-network\n  --deterministic --json --baseline PATH --signing-key-file PATH --fail-on none|info|warning|error")
+}
+func invalid(message) {diagnostic("SiteProbe: " + message); exit(2)}
+export func dispatch(argv) {
+    if len(argv) == 0 {usage("COMMAND"); return 2}
+    let command := argv[0]
+    if contains(["--help", "-h"], command) {usage("COMMAND"); return 0}
+    if ! contains(["crawl", "inspect", "validate", "verify", "compare", "report", "links", "sitemap", "doctor", "version"], command) {invalid("unknown command: " + command)}
+    mut cfg := {"out": null, "max_pages": 100, "max_depth": 4, "concurrency": 4, "timeout": 15.0, "retries": 2, "request_delay": 0.0, "max_crawl_delay": 10.0, "max_links_per_page": 10000, "max_sitemap_compressed_bytes": 5242880, "max_sitemap_expanded_bytes": 20971520, "sort_buffer_bytes": 8388608, "max_output_bytes": 104857600, "max_report_tokens": 2000, "query_policy": "preserve", "query_deny_param": [], "offline": false, "deterministic": false, "respect_robots": true, "same_origin": true, "allow_private_network": false, "json": false, "baseline": null, "signing_key_file": null, "metrics_file": null, "fail_on": "none"}
+    if command == "inspect" {cfg["retries"] = 0}
+    let flags := ["offline", "deterministic", "respect_robots", "ignore_robots", "same_origin", "allow_private_network", "json"]
+    let integers := ["max_pages", "max_depth", "concurrency", "retries", "max_links_per_page", "max_sitemap_compressed_bytes", "max_sitemap_expanded_bytes", "sort_buffer_bytes", "max_output_bytes", "max_report_tokens"]
+    let floats := ["timeout", "request_delay", "max_crawl_delay"]
+    mut positional := []; mut cursor := 1; mut options := true
+    while cursor < len(argv) {
+        let arg := argv[cursor]; cursor = cursor + 1
+        if options&&contains(["-h", "--help"], arg) {usage(command); return 0}
+        if options&&arg == "--" {options = false; continue}
+        if options&&starts_with(arg, "-") {
+            let pair := split(arg, "=")
+            let name := replace(substring(pair[0], 2, len(pair[0])), "-", "_")
+            if ! starts_with(arg, "--")||( ! (has_key(cfg, name) == 1)&&name != "ignore_robots") {invalid("unrecognized argument: " + arg)}
+            if command == "inspect"&& ! contains(["timeout", "retries", "max_links_per_page", "query_policy", "query_deny_param", "allow_private_network"], name) {invalid("unsupported inspect option: " + arg)}
+            if command != "crawl"&&command != "inspect"&& ! (command == "verify"&&name == "signing_key_file") {invalid("unsupported option: " + arg)}
+            if contains(flags, name) {
+                if len(pair) != 1 {invalid("flag does not take a value: " + arg)}
+                if name == "ignore_robots" {cfg["respect_robots"] = false} else {cfg[name] = true}
+                continue
+            }
+            mut value := ""
+            if len(pair) > 1 {value = join(slice(pair, 1, len(pair)), "=")}
+            else {if cursor >= len(argv) {invalid("missing value for " + arg)}; value = argv[cursor]; cursor = cursor + 1}
+            if contains(integers, name) {
+                if ! regex_match(value, "^[+-]?[0-9]+$") {invalid("expected integer for " + arg)}
+                try {cfg[name] = to_int(value)} except err {invalid("integer bounds exceeded for " + arg)}
+            } else if contains(floats, name) {
+                if ! regex_match(value, "^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+)?$") {invalid("bounds exceeded (values must be finite numbers)")}
+                cfg[name] = to_float(value)
+            } else if name == "query_deny_param" {cfg[name] = push(cfg[name], lower(trim(value)))}
+            else {cfg[name] = value}
+        } else {positional = push(positional, arg)}
+    }
+    mut expected := 1
+    if contains(["doctor", "version"], command) {expected = 0}
+    if command == "compare" {expected = 2}
+    if len(positional) != expected {invalid("wrong number of arguments for " + command)}
+    if command == "version" {print(to_json({"name": "siteprobe", "version": trim(read_file("VERSION")), "contract": "siteprobe.run/v1"})); return 0}
+    if command == "doctor" {
+        mut writable := false
+        mut doctor_error := ""
+        try {let probe := create_temp_dir(".", ".siteprobe-doctor-"); os_rmdir(probe); writable = true} except err {writable = false; doctor_error = to_string(err)}
+        print(to_json({"ok": writable, "error": doctor_error, "python": null, "implementation": "kujo", "kujo_entrypoint": "src/main.kujo", "network_credentials_required": false, "same_origin_default": true, "respect_robots_default": true, "private_network_default": "blocked"})); if ! writable {return 1}; return 0
+    }
+    if contains(["crawl", "inspect"], command) {
+        cfg["url"] = positional[0]
+        cfg["user_agent"] = user_agent()
+        for spec in [["timeout", 0, 120], ["retries", 0, 5], ["max_links_per_page", 1, 100000], ["max_pages", 1, 10000], ["max_depth", 0, 20], ["concurrency", 1, 32], ["request_delay", 0, 60], ["max_crawl_delay", 0, 60], ["max_sitemap_compressed_bytes", 1024, 536870912], ["max_sitemap_expanded_bytes", 1024, 536870912], ["sort_buffer_bytes", 65536, 536870912], ["max_output_bytes", 1024, 9007199254740991], ["max_report_tokens", 64, 9007199254740991]] {
+            if ! (cfg[spec[0]] >= spec[1]&&cfg[spec[0]] <= spec[2]) {invalid("bounds exceeded: " + spec[0])}
+        }
+        if cfg["timeout"] <= 0 {invalid("bounds exceeded: timeout")}
+        if ! contains(["preserve", "sort", "drop"], cfg["query_policy"])|| ! contains(["none", "info", "warning", "error"], cfg["fail_on"]) {invalid("invalid choice")}
+        if cfg["offline"] {invalid("crawl requires network access; use validate/compare/report in offline mode")}
+        if command == "inspect" {
+            let url := normalize(positional[0], "", cfg)
+            if url == "" {invalid("invalid URL")}
+            if ! cfg["allow_private_network"]&&private_reason(url) != "" {invalid("private network target blocked; use --allow-private-network for an authorized target")}
+            print(to_json_pretty(inspect_page({"url": url, "depth": 0, "baseline": null}, cfg, {}, null, channel(), 0))); return 0
+        }
+        let started := performance_now(); let cpu := process_usage()["cpu_seconds"]
+        let result := crawl(cfg)
+        if cfg["metrics_file"] != null {
+            mut metrics := process_usage()
+            metrics["schema"] = "siteprobe.process-metrics/v1"; metrics["wall_seconds"] = (performance_now() - started) / 1000.0
+            if cpu != null {metrics["cpu_seconds"] = metrics["cpu_seconds"] - cpu}
+            write_file_atomic(cfg["metrics_file"], to_json_pretty(metrics) + "\n", true)
+        }
+        return result
+    }
+    let run := absolute(positional[0])
+    if command == "compare" {let comparison := compare_runs(run, absolute(positional[1])); print(to_json_pretty(comparison)); if (has_key(comparison, "errors") == 1) {return 1}; return 0}
+    mut errors := []
+    if command == "verify" {
+        mut key := null
+        try {key = signing_key(cfg["signing_key_file"])} except err {invalid(to_string(err))}
+        errors = manifest_verify(run, key)
+    } else {errors = validate_run(run)}
+    if len(errors) > 0 {for message in errors {diagnostic("ERROR: " + message)}; return 1}
+    if command == "verify" {print("Verified SiteProbe manifest: " + safe_text(run) + "/manifest.json")}
+    else if command == "validate" {print("Valid SiteProbe run: " + safe_text(run))}
+    else if command == "report" {print(trim_end(terminal_text(text_file_read(run + "/report.md", 268435456))))}
+    else {print(to_json_pretty(read_json(run + "/" + command + ".json")))}
+    return 0
+}

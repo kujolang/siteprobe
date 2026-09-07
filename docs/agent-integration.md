@@ -27,8 +27,9 @@ baseline promotion live in [`examples/`](../examples/README.md).
 
 `--deterministic` sets per-page `elapsed_ms` to zero; ordinary runs preserve
 observed timing. Treat report token counts as a four-bytes-per-token estimate,
-not a model-tokenizer measurement. Large CLI output that exceeds the launcher
-transport limit returns nonzero; consume the preserved run artifacts directly.
-The current Kujo schema gate uses whole-file reads and rejects artifacts above
-8 MiB even when legacy structural validation accepts them. See the audit before
-using large runs as CI baselines.
+not a model-tokenizer measurement. Native commands write complete requested JSON
+straight to stdout; use artifact paths for efficient handoffs. Validation reads
+pages incrementally and accepts artifacts up to the documented 256 MiB per-file
+limit. Large array schemas are checked in bounded batches without weakening
+required fields or uniqueness checks. See [the audit](audits/repository-hardening.md)
+for native compatibility and large-artifact regression evidence.

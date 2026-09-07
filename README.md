@@ -4,10 +4,8 @@
 [![CI](https://github.com/kujolang/siteprobe/actions/workflows/validate.yml/badge.svg)](https://github.com/kujolang/siteprobe/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
-SiteProbe is a deterministic, read-only website-intelligence crawler launched by
-[Kujo](https://github.com/kujolang/kujo). The current crawl implementation is Python;
-the requested complete Kujo migration is **not complete**. See the
-[repository audit](docs/audits/repository-hardening.md). It turns a bounded same-origin crawl
+SiteProbe is a deterministic, read-only website-intelligence crawler written in
+[Kujo](https://github.com/kujolang/kujo). It turns a bounded same-origin crawl
 into stable JSON, JSONL, and Markdown artifacts that people, CI systems, and AI
 agents can validate and compare without replaying network traffic.
 
@@ -25,18 +23,14 @@ information system.
 
 ## Requirements
 
-- Kujo 1.0.1 or newer, including the compatibility fixes pinned in
-  [`KUJO_REVISION`](KUJO_REVISION)
-- Python 3.10 or newer
+- The Kujo runtime revision pinned in [`KUJO_REVISION`](KUJO_REVISION), including
+  the bounded web-data primitives used by this native implementation.
+- Python 3.10+ is required only for repository tests and fixture benchmarks.
 
-Set `KUJO_BIN` when the Kujo runtime is not available at the adjacent development
-path `../kujo/target/release/kujo`.
-On systems where Python is not named `python3`, set `SITEPROBE_PYTHON` to the
-Python 3 executable; the Windows launchers discover `python.exe` automatically.
+Set `KUJO_BIN` when the runtime is not at `../kujo/target/release/kujo`.
 
 ```bash
 export KUJO_BIN=/absolute/path/to/kujo
-export SITEPROBE_PYTHON=/absolute/path/to/python3
 ./siteprobe doctor
 ```
 
@@ -146,19 +140,18 @@ checks and Kujo's native Draft 2020-12 subset validator.
 
 ## Architecture and Kujo boundary
 
-`src/main.kujo` launches the legacy Python product and applies Kujo schema
-validation to `validate`. `src/siteprobe.py` owns crawling, URL policy, network
-transport, parsers, analysis, comparison, manifests, and artifact production.
-It is **not** a narrow protocol adapter. Kujo owns validation orchestration,
-packaging, documentation generation, and the integration examples.
+`src/main.kujo` dispatches the native CLI into `src/siteprobe.kujo`. The core keeps
+explicit function boundaries and labeled sections for CLI, crawl, network, robots,
+page extraction, artifacts, and shared transformations. One module avoids the
+measured cost of copying captured environments across frequent module calls.
+Kujo owns crawl policy, per-hop robots checks, retries, extraction, analysis,
+comparison, manifests, reporting, and publication. Rust runtime primitives provide
+bounded I/O, HTTP/DNS, HTML tokenization, URL parsing, XML projection, cryptography,
+and scheduling mechanisms. No product command starts Python or another process.
 
-A full migration must preserve DNS pinning, tolerant HTML parsing, URL/IDNA
-normalization, robots behavior, bounded sorting, signatures, concurrency, and
-large artifacts. The pinned Kujo runtime lacks several necessary primitives;
-the newer inspected runtime has pinned HTTP and bounded XML, but no equivalent
-HTML/URL parser and an 8 MiB whole-file read limit. The audit records the exact
-runtime revisions and a reproducible size-limit failure. Runtime work outside
-this repository requires the requested scope decision.
+`tests/legacy/siteprobe.py` is a frozen compatibility oracle, never a runtime
+fallback. The native migration and its measured verification evidence are recorded
+in [the repository audit](docs/audits/repository-hardening.md).
 
 ## Development
 
@@ -168,13 +161,14 @@ ${KUJO_BIN:-../kujo/target/release/kujo} run scripts/benchmark.kujo -- --pages 1
 ${KUJO_BIN:-../kujo/target/release/kujo} run scripts/generate_docs.kujo -- ${KUJO_BIN:-../kujo/target/release/kujo}
 ```
 
-The validation gate compiles the Python implementation and fixtures, runs the full
+The validation gate checks the Python test fixtures and frozen oracle, runs the full
 adversarial fixture suite through Kujo, checks and lints Kujo sources, verifies
 Kujo formatting, parses every JSON Schema, and checks the Git diff. CI builds
 Kujo from the revision pinned in `KUJO_REVISION` and runs the same gate on
-Linux, macOS, and Windows. See the committed [10,000-page benchmark](docs/benchmark-10000.json),
-[Kujo API reference](docs/generated/kujo-api.md), and
-[artifact contract reference](docs/generated/artifact-contracts.md).
+Linux, macOS, and Windows. See the historical Python [10,000-page baseline](docs/benchmark-10000.json),
+the native [audit measurements](docs/audits/repository-hardening.md),
+the [Kujo API reference](docs/generated/kujo-api.md), and
+the [artifact contract reference](docs/generated/artifact-contracts.md).
 
 ## Install and release artifacts
 

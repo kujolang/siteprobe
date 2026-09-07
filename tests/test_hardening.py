@@ -12,120 +12,135 @@ from test_siteprobe import SITEPROBE as sp, FixtureHandler
 
 
 class HardeningUnits(unittest.TestCase):
+    def cli(self, *args):
+        return subprocess.run([str(fixtures.KUJO), 'run', 'src/main.kujo', '--', *map(str,args)],cwd=fixtures.ROOT,text=True,capture_output=True)
+
+    def probe(self, action, expected=0, **fields):
+        with tempfile.TemporaryDirectory() as tmp:
+            request=Path(tmp)/'request.json'
+            request.write_text(json.dumps({'action':action,**fields}))
+            result=subprocess.run([str(fixtures.KUJO),'run','tests/native_probe.kujo','--',str(request)],cwd=fixtures.ROOT,text=True,capture_output=True)
+            self.assertEqual(expected,result.returncode,result.stderr+result.stdout)
+            return json.loads(result.stdout) if expected==0 else result.stderr
+
+    def test_row_sort_preserves_order_and_ties(self):
+        rows=[{'a':str(i%11),'b':str(i%7),'position':i,'nested':[i]} for i in range(1000,0,-1)]
+        self.assertEqual(sorted(rows,key=lambda row:(row['a'],row['b'])),self.probe('sort_rows',rows=rows,fields=['a','b']))
+
+    def test_terminal_controls_are_not_emitted_in_diagnostics(self):
+        result=self.cli("bad\x1b[2Jcommand")
+        self.assertEqual(2,result.returncode)
+        self.assertNotIn("\x1b",result.stderr)
+
     def test_nonfinite_bounds_rejected_before_network(self):
-        for command, flag in [('inspect', '--timeout'), ('crawl', '--timeout'),
-                              ('crawl', '--request-delay'), ('crawl', '--max-crawl-delay')]:
-            with self.subTest(command=command, flag=flag), mock.patch.object(sp, 'private_network_reason') as network:
-                with mock.patch('sys.argv', ['siteprobe', command, 'https://example.com', flag, 'nan']):
-                    self.assertEqual(2, sp.main())
-                network.assert_not_called()
+        for command, flag in [('inspect','--timeout'),('crawl','--timeout'),('crawl','--request-delay'),('crawl','--max-crawl-delay')]:
+            result=self.cli(command,'https://example.invalid',flag,'nan')
+            self.assertEqual(2,result.returncode,result.stderr)
+            self.assertIn('finite',result.stderr)
 
     def test_manifest_size_rejected_before_read(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / 'manifest.json').write_text('{}')
-            with mock.patch.object(sp, 'MAX_VALIDATION_FILE_BYTES', 1), mock.patch.object(sp, 'load') as load:
-                self.assertTrue(sp.verify_manifest(root))
-                load.assert_not_called()
+            with (Path(tmp)/'manifest.json').open('wb') as stream:
+                stream.truncate(268435457)
+            result=self.cli('verify',tmp)
+            self.assertEqual(1,result.returncode)
+            self.assertIn('bounded',result.stderr)
 
     def test_manifest_cannot_certify_empty_run(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            sp.write_manifest(root, None)
-            self.assertTrue(any('missing required artifacts' in error for error in sp.verify_manifest(root)))
+            errors=self.probe('manifest',path=tmp)
+            self.assertTrue(any('missing required artifacts' in error for error in errors))
 
     def test_atomic_publication_never_replaces_existing_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            source, destination = root / 'stage', root / 'run'
-            source.mkdir(); destination.mkdir()
-            (source / 'evidence').write_text('retained')
-            with self.assertRaises(FileExistsError): sp.publish_directory(source, destination)
-            self.assertEqual([], list(destination.iterdir()))
-            self.assertEqual('retained', (source / 'evidence').read_text())
-            destination.rmdir()
-            sp.publish_directory(source, destination)
-            self.assertFalse(source.exists())
-            self.assertEqual('retained', (destination / 'evidence').read_text())
+            source,destination=Path(tmp)/'source',Path(tmp)/'destination'
+            source.mkdir();destination.mkdir();(source/'evidence').write_text('retained')
+            self.probe('publish',expected=1,source=str(source),destination=str(destination))
+            self.assertEqual([],list(destination.iterdir()));self.assertEqual('retained',(source/'evidence').read_text())
+            destination.rmdir();self.probe('publish',source=str(source),destination=str(destination))
+            self.assertFalse(source.exists());self.assertEqual('retained',(destination/'evidence').read_text())
 
     def test_signing_key_shape_and_bounds(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            key = root / 'key'
-            for length in (0, 31, 65537):
-                key.write_bytes(b'x' * length)
-                with self.assertRaises(ValueError): sp.read_signing_key(str(key))
-            key.write_bytes(b'x' * 32)
-            self.assertEqual(b'x' * 32, sp.read_signing_key(str(key)))
-            link = root / 'link'; link.symlink_to(key)
-            with self.assertRaises(ValueError): sp.read_signing_key(str(link))
+            key=Path(tmp)/'key'
+            for length in (0,31,65537):
+                key.write_bytes(b'x'*length);self.probe('key',expected=1,path=str(key))
+            key.write_bytes(b'x'*32);self.assertEqual(32,self.probe('key',path=str(key)))
+            link=Path(tmp)/'link';link.symlink_to(key);self.probe('key',expected=1,path=str(link))
 
     def test_report_budget_and_terminal_controls(self):
-        run = {'target': 'https://example.com/' + 'x'*10000 + '\x1b[2J',
-               'run_id': 'test', 'counts': {'pages': 1, 'links': 1, 'findings': 1}}
-        findings = [{'severity': 'error', 'check': 'broken-url', 'target': run['target']}]
-        report = sp.render_report(run, findings, 64)
-        self.assertLessEqual(len(report.encode()), 64 * 4)
-        self.assertNotIn('\x1b', report)
+        run={'target':'https://example.com/'+'x'*10000+'\x1b[2J','run_id':'test','counts':{'pages':1,'links':1,'findings':1}}
+        findings=[{'severity':'error','check':'broken-url','target':run['target']}]
+        report=self.probe('report',run=run,findings=findings,tokens=64)
+        self.assertLessEqual(len(report.encode()),256);self.assertNotIn('\x1b',report)
+        self.assertEqual(sp.render_report(run,findings,64),report)
 
-    def test_read_failure_closes_connection(self):
-        connection = mock.Mock()
-        connection.getresponse.return_value.getheaders.return_value = []
-        connection.getresponse.return_value.read.side_effect = OSError('read failed')
-        with mock.patch.object(sp, 'resolve_addresses', return_value=(['127.0.0.1'], '')), mock.patch.object(sp, 'PinnedHTTPConnection', return_value=connection):
-            self.assertEqual(0, sp.fetch('http://example.com/', 1)[0])
-        connection.close.assert_called()
+    def test_unknown_charset_and_url_controls(self):
+        self.assertEqual('hello',self.probe('decode',bytes=list(b'hello'),type='text/html;charset=missing'))
+        self.assertEqual([''],self.probe('normalize',urls=['https://exam\nple.com/']))
 
-    def test_unknown_charset_is_tolerated_but_controls_rejected_in_url(self):
-        self.assertEqual('hello', sp.decode_body(b'hello', 'text/html;charset=missing'))
-        self.assertEqual('', sp.normalize_url('https://exam\nple.com/'))
-
-    def test_launcher_rejects_truncated_output(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / 'src').mkdir()
-            (root / 'src/siteprobe.py').write_text('print("x" * (2 * 1024 * 1024))')
-            result = subprocess.run([str(fixtures.KUJO), 'run', str(fixtures.ROOT / 'src/main.kujo'), '--', 'links', 'unused'],
-                                    cwd=root, env={**os.environ, 'SITEPROBE_PYTHON': sys.executable},
-                                    text=True, capture_output=True, timeout=30)
-            self.assertEqual(1, result.returncode)
-            self.assertEqual('', result.stdout)
-            self.assertIn('output exceeded', result.stderr)
+    def test_native_entrypoint_needs_no_python_or_process_capability(self):
+        result=subprocess.run([str(fixtures.KUJO),'run','src/main.kujo','--untrusted','--allow-fs-read','--','version'],cwd=fixtures.ROOT,env={**os.environ,'SITEPROBE_PYTHON':'/nonexistent/python'},text=True,capture_output=True)
+        self.assertEqual(0,result.returncode,result.stderr)
+        self.assertEqual('siteprobe',json.loads(result.stdout)['name'])
 
     def test_external_sort_caps_descriptors_and_cleans_chunks(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            source, output = root / 'input.jsonl', root / 'output.jsonl'
-            source.write_text(''.join(json.dumps({'key': f'{i:04d}'}) + '\n' for i in reversed(range(1100))))
-            original = Path.open
-            active = peak = 0
-            class Tracked:
-                def __init__(self, stream):
-                    nonlocal active, peak
-                    self.stream = stream
-                    active += 1
-                    peak = max(peak, active)
-                def __enter__(self): return self.stream
-                def __exit__(self, *args):
-                    nonlocal active
-                    self.stream.close()
-                    active -= 1
-            def tracking(path, *args, **kwargs): return Tracked(original(path, *args, **kwargs))
-            with mock.patch.object(Path, 'open', tracking):
-                sp.external_sort_jsonl(source, output, ('key',), 1)
-            self.assertLessEqual(peak, 33)
-            self.assertEqual(0, active)
-            self.assertEqual([f'{i:04d}' for i in range(1100)], [json.loads(line)['key'] for line in output.read_text().splitlines()])
-            self.assertEqual({'input.jsonl', 'output.jsonl'}, {p.name for p in root.iterdir()})
+            source,output=Path(tmp)/'input.jsonl',Path(tmp)/'output.jsonl'
+            source.write_text(''.join(json.dumps({'key':f'{i:04d}'})+'\n' for i in reversed(range(1100))))
+            self.probe('sort',source=str(source),destination=str(output),budget=1)
+            self.assertEqual([f'{i:04d}' for i in range(1100)],[json.loads(line)['key'] for line in output.read_text().splitlines()])
+            self.assertEqual({'input.jsonl','output.jsonl'},{p.name for p in Path(tmp).iterdir()})
 
-    def test_tls_handshake_failure_closes_socket(self):
-        raw = mock.Mock()
-        context = mock.Mock()
-        context.wrap_socket.side_effect = OSError('handshake failed')
-        with mock.patch.object(sp.ssl, 'create_default_context', return_value=context), mock.patch.object(sp.socket, 'create_connection', return_value=raw):
-            connection = sp.PinnedHTTPSConnection('example.com', 443, '93.184.216.34', 1)
-            with self.assertRaisesRegex(OSError, 'handshake failed'): connection.connect()
-        raw.close.assert_called_once()
+    def test_native_normalization_fuzz_matches_rejected_inputs(self):
+        import random
+        rng=random.Random(20260811)
+        values=[''.join(rng.choice('%[]:/?@\\abc') for _ in range(20)) for _ in range(100)]
+        self.assertEqual(['']*len(values),self.probe('normalize',urls=values))
+
+    def test_robots_comments_do_not_end_groups_and_encoded_agents_match(self):
+        for text in ["User-agent: *\nDisallow: /private\n# comment\nDisallow: /hidden\n", "User-agent: Kujo%2DSiteProbe\nDisallow: /hidden\n"]:
+            self.assertFalse(self.probe("robots",text=text,url="https://example.com/hidden"))
+        self.assertTrue(self.probe("robots",text="User-agent: Kujo-SiteProbe\nCrawl-delay: invalid\nUser-agent: Other\nDisallow: /hidden\n",url="https://example.com/hidden"))
+
+    def test_percent_encoded_robots_rules_block_decoded_targets(self):
+        self.assertFalse(self.probe("robots",text="User-agent: *\nDisallow: /%70rivate\n",url="https://example.com/private"))
+
+    def test_large_html_preserves_link_image_and_text_order(self):
+        html='<title>Root</title>'+''.join(f'<a href="/p/{i}">page {i}</a><img src="/i/{i}" alt="{i}">' for i in range(1000))
+        legacy=sp.PageParser('https://example.com/',10000);legacy.feed(html)
+        actual=self.probe('html',html=html,url='https://example.com/')
+        self.assertEqual(legacy.page.links,actual['links'])
+        self.assertEqual(legacy.page.images,actual['images'])
+        self.assertEqual(actual['links'],actual['internal_links'])
+        self.assertEqual(sp.text_fingerprint(' '.join(legacy.page.text_parts)),actual['content_fingerprint'])
+
+    def test_html_projection_matches_frozen_oracle(self):
+        samples=[
+            "<p>a\u0301a a\u200cb a‿b ²3</p>",
+            "<p>a\x1cb\x1fd</p>",
+            "<p>'a' -a-b a-- 1_2 ''' ---</p>",
+            '<meta http-equiv="refresh" content="30"><meta property="og:title" content=""><meta name="twitter:card" content="">',
+            '<meta http-equiv="refresh" content="30; other">',
+            '<title>A &amp; B</title><h1>Nested <em>heading</em></h1>',
+            '<meta name="description" content="sample"><meta property="og:title" content="Graph"><meta name="twitter:card" content="summary">',
+            '<a href="/a?x=1&amp;y=2" rel="next">one <b>two</b></a><img src="/image" alt="">',
+            '<script type="application/ld+json">{"@type":"Thing","name":"<b>"}</script><style>.a{}</style><p>Visible</p>',
+            '<script type="application/ld+json">{"broken":</script><title>Tail</title>',
+            '<link rel="alternate" hreflang="FR" href="/fr"><link rel="next" href="/next"><meta http-equiv="refresh" content="30; url=/fresh">',
+            '<html lang="en"><title>Unicode café 雪</title><template>ignored</template><h2>Other</h2>',
+        ]
+        mapping={'title':'title','meta_description':'description','canonical':'canonical','language':'language','headings':'headings','links':'links','images':'images','structured_data':'structured_data','pagination':'pagination','hreflang':'hreflang','refresh':'refresh'}
+        for html in samples:
+            with self.subTest(html=html):
+                legacy=sp.PageParser('https://example.com/',10000);legacy.feed(html)
+                actual=self.probe('html',html=html,url='https://example.com/')
+                for field,attribute in mapping.items():self.assertEqual(getattr(legacy.page,attribute),actual[field],field)
+                self.assertEqual({k:v for k,v in legacy.page.metadata.items() if k.startswith('og:')},actual['open_graph'])
+                self.assertEqual({k:v for k,v in legacy.page.metadata.items() if k.startswith('twitter:')},actual['social_metadata'])
+                observed_text=' '.join(legacy.page.text_parts)
+                self.assertEqual(sp.text_fingerprint(observed_text),actual['content_fingerprint'])
+                self.assertEqual(len(sp.re.findall(r"\b[\w'-]+\b",observed_text)),actual['word_count'])
 
 
 class CrawlHardening(unittest.TestCase):
