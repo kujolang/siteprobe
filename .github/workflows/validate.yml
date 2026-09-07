@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: kujolang/kujo
-          ref: d6c7f360d980ddcd4bace5c7698da54eade452bd
+          ref: 2be1f04b89dbecd591ef1af0d68974c05586900e
           path: kujo
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
