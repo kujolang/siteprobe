@@ -35,7 +35,7 @@ func main() {
         print("KUJO_REVISION must be a 40-character commit pinned by validation and release workflows")
         exit(1)
     }
-    run_step([python, "-m", "py_compile", "src/siteprobe.py", "tests/test_siteprobe.py", "scripts/benchmark_fixture.py"], 30000)
+    run_step([python, "-m", "py_compile", "src/siteprobe.py", "tests/test_siteprobe.py", "tests/test_hardening.py", "scripts/benchmark_fixture.py"], 30000)
     run_step([kujo, "check", "src/main.kujo"], 30000)
     run_step([kujo, "check", "scripts/validate.kujo"], 30000)
     run_step([kujo, "check", "scripts/benchmark.kujo"], 30000)

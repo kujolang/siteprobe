@@ -1,6 +1,6 @@
 python := env("SITEPROBE_PYTHON")
 if python == "" {python = "python3"}
-result := spawn_process([python, "tests/test_siteprobe.py"], {"timeout_ms": 120000})
+result := spawn_process([python, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"], {"timeout_ms": 120000})
 if result.stdout != "" {print(trim_end(result.stdout))}
 if result.stderr != "" {print(trim_end(result.stderr))}
 exit(result.exitcode)

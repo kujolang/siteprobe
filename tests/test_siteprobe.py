@@ -12,6 +12,9 @@ import threading
 import time
 import unittest
 import importlib.util
+import io
+from contextlib import redirect_stdout, redirect_stderr
+from unittest import mock
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -26,14 +29,17 @@ SPEC.loader.exec_module(SITEPROBE)
 
 
 class FixtureHandler(BaseHTTPRequestHandler):
+    paths = []
     methods = []
     request_times = []
     flaky_hits = 0
+    robots_status = 200
     crawl_delay = 0
     def log_message(self, *_args):
         pass
 
     def do_GET(self):
+        type(self).paths.append(self.path)
         type(self).methods.append("GET")
         type(self).request_times.append(time.monotonic())
         port = self.server.server_port
@@ -53,9 +59,15 @@ class FixtureHandler(BaseHTTPRequestHandler):
             "/etag": (200, "text/html", '<title>ETag</title><a href="/etag-next">next</a>'),
             "/etag-next": (200, "text/html", '<title>ETag next</title>'),
         }
+        if self.path == "/robots.txt" and type(self).robots_status != 200:
+            self.send_response(type(self).robots_status); self.end_headers(); return
         if self.path == "/sitemap.xml.gz":
             raw = gzip.compress(routes["/sitemap.xml"][2].encode())
             self.send_response(200); self.send_header("Content-Type", "application/gzip"); self.send_header("Content-Length", str(len(raw))); self.end_headers(); self.wfile.write(raw); return
+        if self.path == "/blocked-links":
+            routes[self.path] = (200, "text/html", '<title>Blocked</title><a href="/private/a">a</a><a href="/private/b">b</a><a href="/private/c">c</a>')
+        if self.path == "/private-redirect":
+            self.send_response(302); self.send_header("Location", "/private"); self.end_headers(); return
         if self.path == "/redirect":
             self.send_response(302); self.send_header("Location", "/duplicate"); self.end_headers(); return
         if self.path == "/cross-origin-redirect":
@@ -94,6 +106,19 @@ class SiteProbeTests(unittest.TestCase):
 
     def run_cli(self, *args, expected=0):
         result = subprocess.run([sys.executable, str(CLI), *map(str, args)], cwd=ROOT, text=True, capture_output=True)
+        self.assertEqual(expected, result.returncode, result.stderr + result.stdout)
+        return result
+
+    def run_cli_in_process(self, *args, expected=0):
+        # Exercise the same parser and dispatch without a fresh interpreter for
+        # each deterministic fuzz sample. Subprocess CLI smoke tests stay above.
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with mock.patch.object(sys, 'argv', ['siteprobe', *map(str, args)]), redirect_stdout(stdout), redirect_stderr(stderr):
+            try:
+                rc = SITEPROBE.main()
+            except SystemExit as exc:
+                rc = exc.code
+        result = subprocess.CompletedProcess(args, rc, stdout.getvalue(), stderr.getvalue())
         self.assertEqual(expected, result.returncode, result.stderr + result.stdout)
         return result
 
@@ -168,8 +193,9 @@ class SiteProbeTests(unittest.TestCase):
         rng = random.Random(20260811)
         malformed = ["", "ftp://example.com", "http://[::1", "http://example.com:99999", "https://u:p@example.com"]
         malformed.extend("".join(rng.choice("%[]:/?@\\abc") for _ in range(20)) for _ in range(100))
-        for value in malformed:
-            result = self.run_cli("inspect", value, expected=2)
+        for index, value in enumerate(malformed):
+            runner = self.run_cli if index < 5 else self.run_cli_in_process
+            result = runner("inspect", value, expected=2)
             self.assertNotIn("Traceback", result.stderr)
         page = json.loads(self.run_cli("inspect", self.base + "flaky", "--timeout", "1", "--allow-private-network").stdout)
         self.assertIn(page["status"], {200, 429})
