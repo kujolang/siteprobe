@@ -1,0 +1,38 @@
+check passed: src/main.kujo
+check passed: scripts/validate.kujo
+check passed: scripts/benchmark.kujo
+check passed: scripts/release.kujo
+check passed: scripts/generate_docs.kujo
+check passed: scripts/generate_contract_docs.kujo
+check passed: tests/siteprobe_tests.kujo
+already formatted
+already formatted
+already formatted
+already formatted
+already formatted
+already formatted
+already formatted
+check passed: examples/contentgraph.kujo
+already formatted
+check passed: examples/eval.kujo
+already formatted
+check passed: examples/runledger.kujo
+already formatted
+check passed: examples/ci_baseline.kujo
+already formatted
+.........SiteProbe: bounds exceeded (values must be finite)
+SiteProbe: bounds exceeded (values must be finite)
+SiteProbe: bounds exceeded (values must be finite)
+SiteProbe: bounds exceeded (values must be finite)
+...............
+----------------------------------------------------------------------
+Ran 24 tests in 38.167s
+
+OK
+lockfile written	kujo.lock
+no dependencies declared
+lockfile verified	kujo.lock
+no dependencies declared
+publish preview	siteprobe	0.2.0	dependencies=0
+generated SiteProbe reference documentation
+SiteProbe validation passed.

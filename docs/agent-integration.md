@@ -24,3 +24,11 @@ page fields rather than inferred recommendations.
 
 Executable integration examples for ContentGraph, Eval, RunLedger, and CI
 baseline promotion live in [`examples/`](../examples/README.md).
+
+`--deterministic` sets per-page `elapsed_ms` to zero; ordinary runs preserve
+observed timing. Treat report token counts as a four-bytes-per-token estimate,
+not a model-tokenizer measurement. Large CLI output that exceeds the launcher
+transport limit returns nonzero; consume the preserved run artifacts directly.
+The current Kujo schema gate uses whole-file reads and rejects artifacts above
+8 MiB even when legacy structural validation accepts them. See the audit before
+using large runs as CI baselines.

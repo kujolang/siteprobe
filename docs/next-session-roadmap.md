@@ -22,7 +22,7 @@ artifact contract.
 
 ## P2 — Distribution and ecosystem
 
-- [x] Complete the Kujo-native replacement audit. Kujo now owns schema gates, workflows, integration examples, documentation, packaging, and checksums. The dependency-free Python adapter remains only for the combined DNS-pinned connection and tolerant HTML/XML parsing surface that Kujo 1.0.1 does not expose; removing it now would weaken the production contract, so the conditional replacement trigger has not fired.
+- [ ] Complete the Kujo-native implementation (reopened; historical assessment follows). Kujo now owns schema gates, workflows, integration examples, documentation, packaging, and checksums. The dependency-free Python adapter remains only for the combined DNS-pinned connection and tolerant HTML/XML parsing surface that Kujo 1.0.1 does not expose; removing it now would weaken the production contract, so the conditional replacement trigger has not fired.
 - [x] Add cross-platform launchers and qualification for Linux, macOS, and Windows.
 - [x] Publish a versioned install path and checksum-verified release artifacts through the Kujo package workflow.
 - [x] Add first-party examples for ContentGraph, Eval, RunLedger, and CI baseline promotion.
@@ -35,5 +35,7 @@ artifact contract.
 - Security-sensitive behavior has explicit negative tests and documented operator controls.
 - Any schema-breaking change ships under a new schema identifier with migration notes.
 
-Status: complete. All unconditional work and the Kujo-capability replacement
-audit are implemented; the artifact contract remains backward compatible.
+Status: reopened by the September 2026 audit. The Python implementation owns
+product behavior, not only transport/parsing. The native migration remains
+incomplete; the earlier replacement conclusion above is historical and is
+superseded by [the current audit](audits/repository-hardening.md).

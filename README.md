@@ -3,10 +3,11 @@
 [![Version](https://img.shields.io/badge/version-0.2.0-black)](VERSION)
 [![CI](https://github.com/kujolang/siteprobe/actions/workflows/validate.yml/badge.svg)](https://github.com/kujolang/siteprobe/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
-[![Built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
 
-SiteProbe is a deterministic, read-only website-intelligence crawler built with
-[Kujo](https://github.com/kujolang/kujo). It turns a bounded same-origin crawl
+SiteProbe is a deterministic, read-only website-intelligence crawler launched by
+[Kujo](https://github.com/kujolang/kujo). The current crawl implementation is Python;
+the requested complete Kujo migration is **not complete**. See the
+[repository audit](docs/audits/repository-hardening.md). It turns a bounded same-origin crawl
 into stable JSON, JSONL, and Markdown artifacts that people, CI systems, and AI
 agents can validate and compare without replaying network traffic.
 
@@ -59,6 +60,9 @@ errors:
   --json
 ```
 
+On Linux, publication requires libc `renameat2` support; macOS uses `renamex_np`
+and Windows uses no-replace rename. Unsupported systems fail closed.
+
 Output paths are immutable: SiteProbe refuses any path that already exists. A
 run is staged next to its destination and published atomically only after its
 output budget and optional baseline validation pass.
@@ -97,7 +101,7 @@ controls include:
 | `--query-policy` | `preserve` | Preserve, sort, or drop query parameters. |
 | `--query-deny-param` | none | Remove a named parameter; repeat for multiple names. |
 | `--max-output-bytes` | `104857600` | Bound the complete published run. |
-| `--max-report-tokens` | `2000` | Bound the approximate report size. |
+| `--max-report-tokens` | `2000` | Bound report UTF-8 bytes to four times this approximate token budget. |
 | `--fail-on` | `none` | Return non-zero for `info`, `warning`, or `error` findings at and above the threshold. |
 | `--signing-key-file` | none | Sign the run manifest with HMAC-SHA-256 key material from a file. |
 | `--allow-private-network` | off | Explicitly authorize loopback or private-network targets. |
@@ -142,19 +146,19 @@ checks and Kujo's native Draft 2020-12 subset validator.
 
 ## Architecture and Kujo boundary
 
-`src/main.kujo` is the product entrypoint; `scripts/validate.kujo` and
-`scripts/benchmark.kujo` own the verification and benchmark workflows.
-`src/siteprobe.py` is a narrow, dependency-free protocol adapter for pinned DNS
-connections and tolerant HTML/XML parsing. Kujo owns product dispatch, native
-schema validation, tests, benchmarks, documentation generation, release
-packaging, checksums, and integrations. A replacement audit confirmed that
-Kujo 1.0.1 still lacks the combined pinned-connection and tolerant streaming
-parser surface needed to remove the adapter without weakening the contract.
+`src/main.kujo` launches the legacy Python product and applies Kujo schema
+validation to `validate`. `src/siteprobe.py` owns crawling, URL policy, network
+transport, parsers, analysis, comparison, manifests, and artifact production.
+It is **not** a narrow protocol adapter. Kujo owns validation orchestration,
+packaging, documentation generation, and the integration examples.
 
-```text
-siteprobe launcher -> Kujo entrypoint -> bounded protocol adapter -> versioned artifacts
-                                      -> validation / comparison / reports
-```
+A full migration must preserve DNS pinning, tolerant HTML parsing, URL/IDNA
+normalization, robots behavior, bounded sorting, signatures, concurrency, and
+large artifacts. The pinned Kujo runtime lacks several necessary primitives;
+the newer inspected runtime has pinned HTTP and bounded XML, but no equivalent
+HTML/URL parser and an 8 MiB whole-file read limit. The audit records the exact
+runtime revisions and a reproducible size-limit failure. Runtime work outside
+this repository requires the requested scope decision.
 
 ## Development
 
@@ -164,11 +168,11 @@ ${KUJO_BIN:-../kujo/target/release/kujo} run scripts/benchmark.kujo -- --pages 1
 ${KUJO_BIN:-../kujo/target/release/kujo} run scripts/generate_docs.kujo -- ${KUJO_BIN:-../kujo/target/release/kujo}
 ```
 
-The validation gate compiles the Python adapter and fixtures, runs the full
+The validation gate compiles the Python implementation and fixtures, runs the full
 adversarial fixture suite through Kujo, checks and lints Kujo sources, verifies
 Kujo formatting, parses every JSON Schema, and checks the Git diff. CI builds
 Kujo from the revision pinned in `KUJO_REVISION` and runs the same gate on
-Windows. See the committed [10,000-page benchmark](docs/benchmark-10000.json),
+Linux, macOS, and Windows. See the committed [10,000-page benchmark](docs/benchmark-10000.json),
 [Kujo API reference](docs/generated/kujo-api.md), and
 [artifact contract reference](docs/generated/artifact-contracts.md).
 

@@ -1,0 +1,96 @@
+..FSiteProbe: private network target blocked: <MagicMock name='private_network_reason()' id='4375293824'>; use --allow-private-network for an authorized target
+SiteProbe: private network target blocked: <MagicMock name='private_network_reason()' id='4382287824'>; use --allow-private-network for an authorized target
+SiteProbe: private network target blocked: <MagicMock name='private_network_reason()' id='4382390496'>; use --allow-private-network for an authorized target
+SiteProbe: private network target blocked: <MagicMock name='private_network_reason()' id='4382490000'>; use --allow-private-network for an authorized target
+FFF
+======================================================================
+FAIL: test_manifest_size_rejected_before_read (test_hardening.HardeningUnits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-baseline-sm8wxovm/tests/test_hardening.py", line 27, in test_manifest_size_rejected_before_read
+    load.assert_not_called()
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/unittest/mock.py", line 880, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'load' to not have been called. Called 1 times.
+Calls: [call(PosixPath('/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/tmpknts4osl/manifest.json')),
+ call().get('schema'),
+ call().get().__ne__('siteprobe.manifest/v1'),
+ call().get('digest_algorithm'),
+ call().get().__ne__('sha256'),
+ call().get('artifacts')].
+
+======================================================================
+FAIL: test_nonfinite_bounds_rejected_before_network (test_hardening.HardeningUnits) (command='inspect', flag='--timeout')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-baseline-sm8wxovm/tests/test_hardening.py", line 19, in test_nonfinite_bounds_rejected_before_network
+    network.assert_not_called()
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/unittest/mock.py", line 880, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'private_network_reason' to not have been called. Called 1 times.
+Calls: [call('https://example.com/'), call().__bool__(), call().__str__()].
+
+======================================================================
+FAIL: test_nonfinite_bounds_rejected_before_network (test_hardening.HardeningUnits) (command='crawl', flag='--timeout')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-baseline-sm8wxovm/tests/test_hardening.py", line 19, in test_nonfinite_bounds_rejected_before_network
+    network.assert_not_called()
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/unittest/mock.py", line 880, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'private_network_reason' to not have been called. Called 1 times.
+Calls: [call('https://example.com/'), call().__bool__(), call().__str__()].
+
+======================================================================
+FAIL: test_nonfinite_bounds_rejected_before_network (test_hardening.HardeningUnits) (command='crawl', flag='--request-delay')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-baseline-sm8wxovm/tests/test_hardening.py", line 19, in test_nonfinite_bounds_rejected_before_network
+    network.assert_not_called()
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/unittest/mock.py", line 880, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'private_network_reason' to not have been called. Called 1 times.
+Calls: [call('https://example.com/'), call().__bool__(), call().__str__()].
+
+======================================================================
+FAIL: test_nonfinite_bounds_rejected_before_network (test_hardening.HardeningUnits) (command='crawl', flag='--max-crawl-delay')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-baseline-sm8wxovm/tests/test_hardening.py", line 19, in test_nonfinite_bounds_rejected_before_network
+    network.assert_not_called()
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/unittest/mock.py", line 880, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'private_network_reason' to not have been called. Called 1 times.
+Calls: [call('https://example.com/'), call().__bool__(), call().__str__()].
+
+======================================================================
+FAIL: test_read_failure_closes_connection (test_hardening.HardeningUnits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-baseline-sm8wxovm/tests/test_hardening.py", line 43, in test_read_failure_closes_connection
+    connection.close.assert_called()
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/unittest/mock.py", line 888, in assert_called
+    raise AssertionError(msg)
+AssertionError: Expected 'close' to have been called.
+
+======================================================================
+FAIL: test_report_budget_and_terminal_controls (test_hardening.HardeningUnits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-baseline-sm8wxovm/tests/test_hardening.py", line 34, in test_report_budget_and_terminal_controls
+    self.assertLessEqual(len(report.encode()), 64 * 4)
+AssertionError: 20256 not less than or equal to 256
+
+======================================================================
+FAIL: test_unknown_charset_is_tolerated_but_controls_rejected_in_url (test_hardening.HardeningUnits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-baseline-sm8wxovm/tests/test_hardening.py", line 47, in test_unknown_charset_is_tolerated_but_controls_rejected_in_url
+    self.assertEqual('', sp.normalize_url('https://exam\nple.com/'))
+AssertionError: '' != 'https://example.com/'
++ https://example.com/
+
+----------------------------------------------------------------------
+Ran 7 tests in 4.076s
+
+FAILED (failures=8)

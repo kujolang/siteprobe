@@ -1,0 +1,43 @@
+check passed: src/main.kujo
+check passed: scripts/validate.kujo
+check passed: scripts/benchmark.kujo
+check passed: scripts/release.kujo
+check passed: scripts/generate_docs.kujo
+check passed: scripts/generate_contract_docs.kujo
+check passed: tests/siteprobe_tests.kujo
+already formatted
+already formatted
+already formatted
+already formatted
+already formatted
+already formatted
+already formatted
+check passed: examples/contentgraph.kujo
+already formatted
+check passed: examples/eval.kujo
+already formatted
+check passed: examples/runledger.kujo
+already formatted
+check passed: examples/ci_baseline.kujo
+already formatted
+test_deterministic_semantic_rerun_and_output_budget (__main__.SiteProbeTests) ... ok
+test_fail_on_and_cross_artifact_validation (__main__.SiteProbeTests) ... ok
+test_full_fixture_contract_and_compare (__main__.SiteProbeTests) ... ok
+test_fuzz_urls_redirects_retries_cycles_and_read_only_boundary (__main__.SiteProbeTests) ... ok
+test_gzip_expansion_limit (__main__.SiteProbeTests) ... ok
+test_inspect_and_doctor (__main__.SiteProbeTests) ... ok
+test_rejects_credentials_and_bad_bounds (__main__.SiteProbeTests) ... ok
+test_signed_manifest_query_policy_pacing_and_conditional_fetch (__main__.SiteProbeTests) ... ok
+test_validation_rejects_symbolic_link_artifacts (__main__.SiteProbeTests) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 109.345s
+
+OK
+lockfile written	kujo.lock
+no dependencies declared
+lockfile verified	kujo.lock
+no dependencies declared
+publish preview	siteprobe	0.2.0	dependencies=0
+generated SiteProbe reference documentation
+SiteProbe validation passed.

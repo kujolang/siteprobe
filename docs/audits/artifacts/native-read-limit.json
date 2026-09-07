@@ -1,0 +1,7 @@
+{
+  "runtime": "kujo 1.3.1",
+  "file_bytes": 8400000,
+  "exitcode": 1,
+  "stdout": "Error { line: 0, message: Cannot read file '/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/tmpkuc841gf/oversized.jsonl': exceeds maximum read size (8400000 bytes > 8388608 bytes), stack: [] }\n",
+  "stderr": ""
+}

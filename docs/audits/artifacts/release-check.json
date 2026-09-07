@@ -1,0 +1,17 @@
+{
+  "command": [
+    "../kujo/target/release/kujo",
+    "run",
+    "scripts/release.kujo",
+    "--",
+    "../kujo/target/release/kujo",
+    "audit-macos",
+    "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/siteprobe-release-anq9kir5"
+  ],
+  "exitcode": 0,
+  "sha256_verified": true,
+  "regression_tests_packaged": true,
+  "repeat_exitcode": 2,
+  "archive_bytes": 55075,
+  "files": 47
+}

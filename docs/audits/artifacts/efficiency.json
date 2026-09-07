@@ -1,0 +1,15 @@
+{
+  "report_budget_tokens": 64,
+  "report_budget_bytes": 256,
+  "report_before_bytes": 20256,
+  "report_after_bytes": 246,
+  "report_before_has_escape": true,
+  "report_after_has_escape": false,
+  "sort_chunks_tested": 1100,
+  "merge_open_file_upper_bound": 33,
+  "fuzz_subprocesses_removed": 100,
+  "baseline_test_count": 9,
+  "baseline_test_seconds": 109.345,
+  "final_test_count": 24,
+  "final_test_seconds": 38.167
+}

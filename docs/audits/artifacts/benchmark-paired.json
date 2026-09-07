@@ -1,0 +1,163 @@
+{
+  "schema": "siteprobe.audit-paired-benchmark/v1",
+  "pages": 200,
+  "trials": 3,
+  "before_sha": "a7ecdb1cd6db998c58e8def42279071f01c39d18",
+  "after_sha": "4a39969ab8b94e6250ec447eb4a90e2792acbe53",
+  "summary_medians": [
+    {
+      "concurrency": 1,
+      "variant": "before",
+      "wall_seconds": 1.188096,
+      "cpu_seconds": 0.7736,
+      "peak_rss_bytes": 26157056,
+      "output_bytes": 333584
+    },
+    {
+      "concurrency": 1,
+      "variant": "after",
+      "wall_seconds": 1.06737,
+      "cpu_seconds": 0.74887,
+      "peak_rss_bytes": 26677248,
+      "output_bytes": 333580
+    },
+    {
+      "concurrency": 4,
+      "variant": "before",
+      "wall_seconds": 0.858466,
+      "cpu_seconds": 0.829891,
+      "peak_rss_bytes": 26300416,
+      "output_bytes": 333615
+    },
+    {
+      "concurrency": 4,
+      "variant": "after",
+      "wall_seconds": 0.712991,
+      "cpu_seconds": 0.722256,
+      "peak_rss_bytes": 26763264,
+      "output_bytes": 333602
+    }
+  ],
+  "measurements": [
+    {
+      "cpu_seconds": 0.7736,
+      "peak_rss_bytes": 26157056,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 1.126844,
+      "variant": "before",
+      "trial": 0,
+      "concurrency": 1,
+      "output_bytes": 333583
+    },
+    {
+      "cpu_seconds": 0.745138,
+      "peak_rss_bytes": 26656768,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 1.06737,
+      "variant": "after",
+      "trial": 0,
+      "concurrency": 1,
+      "output_bytes": 333580
+    },
+    {
+      "cpu_seconds": 0.983765,
+      "peak_rss_bytes": 26677248,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 1.39764,
+      "variant": "after",
+      "trial": 1,
+      "concurrency": 1,
+      "output_bytes": 333581
+    },
+    {
+      "cpu_seconds": 0.845196,
+      "peak_rss_bytes": 26185728,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 1.398392,
+      "variant": "before",
+      "trial": 1,
+      "concurrency": 1,
+      "output_bytes": 333586
+    },
+    {
+      "cpu_seconds": 0.757425,
+      "peak_rss_bytes": 26136576,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 1.188096,
+      "variant": "before",
+      "trial": 2,
+      "concurrency": 1,
+      "output_bytes": 333584
+    },
+    {
+      "cpu_seconds": 0.74887,
+      "peak_rss_bytes": 26689536,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 1.066062,
+      "variant": "after",
+      "trial": 2,
+      "concurrency": 1,
+      "output_bytes": 333580
+    },
+    {
+      "cpu_seconds": 0.81373,
+      "peak_rss_bytes": 26243072,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 0.858466,
+      "variant": "before",
+      "trial": 0,
+      "concurrency": 4,
+      "output_bytes": 333615
+    },
+    {
+      "cpu_seconds": 0.684579,
+      "peak_rss_bytes": 26755072,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 0.677252,
+      "variant": "after",
+      "trial": 0,
+      "concurrency": 4,
+      "output_bytes": 333589
+    },
+    {
+      "cpu_seconds": 0.722256,
+      "peak_rss_bytes": 26763264,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 0.712991,
+      "variant": "after",
+      "trial": 1,
+      "concurrency": 4,
+      "output_bytes": 333602
+    },
+    {
+      "cpu_seconds": 0.829891,
+      "peak_rss_bytes": 26300416,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 0.850878,
+      "variant": "before",
+      "trial": 1,
+      "concurrency": 4,
+      "output_bytes": 333614
+    },
+    {
+      "cpu_seconds": 0.944677,
+      "peak_rss_bytes": 26447872,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 1.066582,
+      "variant": "before",
+      "trial": 2,
+      "concurrency": 4,
+      "output_bytes": 333649
+    },
+    {
+      "cpu_seconds": 0.846872,
+      "peak_rss_bytes": 26992640,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 0.996911,
+      "variant": "after",
+      "trial": 2,
+      "concurrency": 4,
+      "output_bytes": 333627
+    }
+  ]
+}

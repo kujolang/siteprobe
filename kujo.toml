@@ -2,7 +2,7 @@
 name = "siteprobe"
 version = "0.2.0"
 entry = "src/main.kujo"
-description = "Deterministic, bounded website intelligence built with Kujo"
+description = "Deterministic, bounded website intelligence with Kujo validation"
 
 [dependencies]
 

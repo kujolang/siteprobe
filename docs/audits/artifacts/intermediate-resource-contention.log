@@ -1,0 +1,87 @@
+.EE..E..SiteProbe: bounds exceeded (values must be finite)
+SiteProbe: bounds exceeded (values must be finite)
+SiteProbe: bounds exceeded (values must be finite)
+SiteProbe: bounds exceeded (values must be finite)
+.....
+======================================================================
+ERROR: test_deterministic_pages_and_native_stderr (test_hardening.CrawlHardening)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_hardening.py", line 148, in test_deterministic_pages_and_native_stderr
+    self.run_cli('crawl', self.base, '--out', run, '--max-pages', 4,
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_siteprobe.py", line 108, in run_cli
+    result = subprocess.run([sys.executable, str(CLI), *map(str, args)], cwd=ROOT, text=True, capture_output=True)
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 501, in run
+    with Popen(*popenargs, **kwargs) as process:
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 969, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 1778, in _execute_child
+    self.pid = _posixsubprocess.fork_exec(
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+======================================================================
+ERROR: test_redirect_cannot_bypass_robots (test_hardening.CrawlHardening)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_hardening.py", line 137, in test_redirect_cannot_bypass_robots
+    self.run_cli('crawl', self.base + 'private-redirect', '--out', run,
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_siteprobe.py", line 108, in run_cli
+    result = subprocess.run([sys.executable, str(CLI), *map(str, args)], cwd=ROOT, text=True, capture_output=True)
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 501, in run
+    with Popen(*popenargs, **kwargs) as process:
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 969, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 1778, in _execute_child
+    self.pid = _posixsubprocess.fork_exec(
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+======================================================================
+ERROR: test_unavailable_robots_fails_closed (test_hardening.CrawlHardening) (status=403)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_hardening.py", line 163, in test_unavailable_robots_fails_closed
+    result = self.run_cli('crawl', self.base, '--out', run, '--retries', 0,
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_siteprobe.py", line 108, in run_cli
+    result = subprocess.run([sys.executable, str(CLI), *map(str, args)], cwd=ROOT, text=True, capture_output=True)
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 501, in run
+    with Popen(*popenargs, **kwargs) as process:
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 969, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 1778, in _execute_child
+    self.pid = _posixsubprocess.fork_exec(
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+======================================================================
+ERROR: test_unavailable_robots_fails_closed (test_hardening.CrawlHardening) (status=503)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_hardening.py", line 163, in test_unavailable_robots_fails_closed
+    result = self.run_cli('crawl', self.base, '--out', run, '--retries', 0,
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_siteprobe.py", line 108, in run_cli
+    result = subprocess.run([sys.executable, str(CLI), *map(str, args)], cwd=ROOT, text=True, capture_output=True)
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 501, in run
+    with Popen(*popenargs, **kwargs) as process:
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 969, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 1778, in _execute_child
+    self.pid = _posixsubprocess.fork_exec(
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+======================================================================
+ERROR: test_launcher_rejects_truncated_output (test_hardening.HardeningUnits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/tests/test_hardening.py", line 76, in test_launcher_rejects_truncated_output
+    result = subprocess.run([str(fixtures.KUJO), 'run', str(fixtures.ROOT / 'src/main.kujo'), '--', 'links', 'unused'],
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 501, in run
+    with Popen(*popenargs, **kwargs) as process:
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 969, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/subprocess.py", line 1778, in _execute_child
+    self.pid = _posixsubprocess.fork_exec(
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+----------------------------------------------------------------------
+Ran 14 tests in 8.162s
+
+FAILED (errors=5)
