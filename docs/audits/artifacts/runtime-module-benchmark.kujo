@@ -1,0 +1,9 @@
+from docs.audits.artifacts.module_call_target import increment
+func main() {
+    mut checksum := 0
+    let start := performance_now()
+    let cpu := process_usage()["cpu_seconds"]
+    for index in range(0, 1000) {checksum = checksum + increment(index)}
+    print(to_json({"checksum": checksum, "wall_seconds": (performance_now() - start) / 1000, "cpu_seconds": process_usage()["cpu_seconds"] - cpu}))
+}
+main()

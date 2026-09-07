@@ -1,0 +1,586 @@
+{
+  "summary": {
+    "targets": 72,
+    "passed": 2569,
+    "failed": 0,
+    "ignored": 15
+  },
+  "targets": [
+    {
+      "target": "Running unittests src/lib.rs (target/debug/deps/kujo-940e6a046e853806)",
+      "result": {
+        "passed": 854,
+        "failed": 0,
+        "ignored": 7
+      }
+    },
+    {
+      "target": "Running unittests src/main.rs (target/debug/deps/kujo-79a95dd0f860feed)",
+      "result": {
+        "passed": 887,
+        "failed": 0,
+        "ignored": 7
+      }
+    },
+    {
+      "target": "Running tests/agent_project_contracts.rs (target/debug/deps/agent_project_contracts-8406404acd7611a6)",
+      "result": {
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/ai_replay_hermeticity_contract.rs (target/debug/deps/ai_replay_hermeticity_contract-1ee9d18d1ed2a5e2)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/architecture_docs_contract.rs (target/debug/deps/architecture_docs_contract-8ba8cba1bf38cbf5)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/benchmark_publication_policy_contract.rs (target/debug/deps/benchmark_publication_policy_contract-e50123a613136233)",
+      "result": {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/binary_size_baseline_contract.rs (target/debug/deps/binary_size_baseline_contract-29fca093193df610)",
+      "result": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/cargo_package_identity_contract.rs (target/debug/deps/cargo_package_identity_contract-d6a95938e9f5d6bc)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/cli_contracts.rs (target/debug/deps/cli_contracts-98f94389a2fa6621)",
+      "result": {
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/cli_json_contracts.rs (target/debug/deps/cli_json_contracts-038ee2b76430fa92)",
+      "result": {
+        "passed": 19,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/diagnostics_contract.rs (target/debug/deps/diagnostics_contract-2c2a3a0be5c0de96)",
+      "result": {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/diagnostics_golden.rs (target/debug/deps/diagnostics_golden-ac4a960ca8f3c86e)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/docgen_universal.rs (target/debug/deps/docgen_universal-e968c58e8879eefb)",
+      "result": {
+        "passed": 55,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/docs_examples.rs (target/debug/deps/docs_examples-63271eec50bb3d86)",
+      "result": {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/docs_policy_consistency_contract.rs (target/debug/deps/docs_policy_consistency_contract-9e606ba918ddb670)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/editor_adapter_contracts.rs (target/debug/deps/editor_adapter_contracts-42e208bdfdad8bba)",
+      "result": {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/editor_launch_matrix_contract.rs (target/debug/deps/editor_launch_matrix_contract-5e2185e6f7bd51fc)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/enterprise_verify_contract.rs (target/debug/deps/enterprise_verify_contract-c459aadbf5cdaf89)",
+      "result": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/fuzz_repro_contract.rs (target/debug/deps/fuzz_repro_contract-6d987d4d527961dc)",
+      "result": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/generated_artifact_freshness_contract.rs (target/debug/deps/generated_artifact_freshness_contract-bc510844b0e39ae4)",
+      "result": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/http_pinning_proxy_contract.rs (target/debug/deps/http_pinning_proxy_contract-81e44196ae610446)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/http_route_callback_closure.rs (target/debug/deps/http_route_callback_closure-b7fbb758c26f546a)",
+      "result": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/http_route_upload.rs (target/debug/deps/http_route_upload-71af9e4307ebdf98)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/image_conversion_integration.rs (target/debug/deps/image_conversion_integration-09f6cba0fddc5e41)",
+      "result": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/imported_vm_callback.rs (target/debug/deps/imported_vm_callback-1cb22dda9741e1b8)",
+      "result": {
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/interpreter_flag_dependency_map_contract.rs (target/debug/deps/interpreter_flag_dependency_map_contract-1efdb415425a52cb)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/interpreter_tests.rs (target/debug/deps/interpreter_tests-d73710028de91ea9)",
+      "result": {
+        "passed": 263,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/jit_execution_contract.rs (target/debug/deps/jit_execution_contract-59f6012d8e7f3e33)",
+      "result": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/jit_safety_contract_checker.rs (target/debug/deps/jit_safety_contract_checker-bc2f016a8658221b)",
+      "result": {
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/language_spec_contracts.rs (target/debug/deps/language_spec_contracts-45dfa12d17522c6a)",
+      "result": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/lsp_conformance_harness.rs (target/debug/deps/lsp_conformance_harness-1f218826754841b6)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/lsp_external_clients_smoke.rs (target/debug/deps/lsp_external_clients_smoke-3d519883df7a709f)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/lsp_latency_guardrails.rs (target/debug/deps/lsp_latency_guardrails-97e4c3a3126fb80e)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/lsp_reliability_track.rs (target/debug/deps/lsp_reliability_track-59fd5cbc694cf9c1)",
+      "result": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/markdown_unchecked_contract.rs (target/debug/deps/markdown_unchecked_contract-713d266ab3875b80)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/native_api_security_boundaries.rs (target/debug/deps/native_api_security_boundaries-dc348d948a88fd7f)",
+      "result": {
+        "passed": 86,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/native_json.rs (target/debug/deps/native_json-8bcd54f7a512d631)",
+      "result": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/optional_typing_v1_contract.rs (target/debug/deps/optional_typing_v1_contract-5fc001fe677ab099)",
+      "result": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/package_module_workflow_integration.rs (target/debug/deps/package_module_workflow_integration-15b5fce93e4f9c8b)",
+      "result": {
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/package_registry_boundary_docs_contract.rs (target/debug/deps/package_registry_boundary_docs_contract-8d4bd0ee37e88575)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/parser_diagnostics_contract.rs (target/debug/deps/parser_diagnostics_contract-ed53cde1dea035d6)",
+      "result": {
+        "passed": 27,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/parser_precedence.rs (target/debug/deps/parser_precedence-6e865fda5d0864aa)",
+      "result": {
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/parser_type_annotation_regressions.rs (target/debug/deps/parser_type_annotation_regressions-a0fdea76208c3e6d)",
+      "result": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/pre_v1_master_checklist_contract.rs (target/debug/deps/pre_v1_master_checklist_contract-739e50df56db41c6)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/pre_v1_unresolved_inventory_contract.rs (target/debug/deps/pre_v1_unresolved_inventory_contract-17325787d9a43e93)",
+      "result": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/readme_contracts.rs (target/debug/deps/readme_contracts-8146e96724efabd8)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/release_candidate_gate_contract.rs (target/debug/deps/release_candidate_gate_contract-850873d415f92c9c)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/release_dependency_advisory_contract.rs (target/debug/deps/release_dependency_advisory_contract-ac323ca0754c53b8)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/release_process_docs_contract.rs (target/debug/deps/release_process_docs_contract-277c185b63e9b61c)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/repo_gate_example_contract.rs (target/debug/deps/repo_gate_example_contract-2f4a893f906aac5f)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/repo_hygiene_contract.rs (target/debug/deps/repo_hygiene_contract-3cd401ac0264fa36)",
+      "result": {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/runtime_path_matrix_contract.rs (target/debug/deps/runtime_path_matrix_contract-cfb86e8e363081dd)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/runtime_security.rs (target/debug/deps/runtime_security-dab109136e25e015)",
+      "result": {
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/security_posture_docs_contract.rs (target/debug/deps/security_posture_docs_contract-2b53b4b2d30eb6c0)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/serve_command_integration.rs (target/debug/deps/serve_command_integration-06fcf4b38c852076)",
+      "result": {
+        "passed": 31,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/stdlib_reference_contract.rs (target/debug/deps/stdlib_reference_contract-dc9bdc2b74992cab)",
+      "result": {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/stdlib_reference_policy_contract.rs (target/debug/deps/stdlib_reference_policy_contract-fa7a568b05b0a702)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/tree_sitter_kujo_assets.rs (target/debug/deps/tree_sitter_kujo_assets-7afeab203d3f3843)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/unsafe_inventory_contract.rs (target/debug/deps/unsafe_inventory_contract-835a9cf1f015abd6)",
+      "result": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/unsafe_safety_gate_contract.rs (target/debug/deps/unsafe_safety_gate_contract-d7d9e9c6506e9059)",
+      "result": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/v1_code_todo_triage_contract.rs (target/debug/deps/v1_code_todo_triage_contract-af3a9dde1c2c2bcf)",
+      "result": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/v1_maturity_boundary_alignment_contract.rs (target/debug/deps/v1_maturity_boundary_alignment_contract-b1518ab5504015a0)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/v1_scope_docs_alignment.rs (target/debug/deps/v1_scope_docs_alignment-e93080c7e5b93199)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/vm_external_project_smoke.rs (target/debug/deps/vm_external_project_smoke-92ca3e8e946dd24e)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/vm_import_heavy_cache_lookup_contract.rs (target/debug/deps/vm_import_heavy_cache_lookup_contract-c3093e76fde7da0c)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/vm_import_heavy_perf_comparison_contract.rs (target/debug/deps/vm_import_heavy_perf_comparison_contract-abadd3a7a5a288db)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/vm_interpreter_migration_playbook_contract.rs (target/debug/deps/vm_interpreter_migration_playbook_contract-1026a7b666ba2645)",
+      "result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/vm_interpreter_parity_surfaces.rs (target/debug/deps/vm_interpreter_parity_surfaces-e53d571df4df5944)",
+      "result": {
+        "passed": 110,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/vm_runtime_diff_harness_contract.rs (target/debug/deps/vm_runtime_diff_harness_contract-686115da9598c5a0)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/vm_runtime_mismatch_baseline_contract.rs (target/debug/deps/vm_runtime_mismatch_baseline_contract-b20a0c60e5a6379f)",
+      "result": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Running tests/vm_runtime_mismatch_inventory_contract.rs (target/debug/deps/vm_runtime_mismatch_inventory_contract-b5e66f07ddf714a5)",
+      "result": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "target": "Doc-tests kujo",
+      "result": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 1
+      }
+    }
+  ]
+}

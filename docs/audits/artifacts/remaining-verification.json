@@ -1,0 +1,1920 @@
+{
+  "schema": "siteprobe.audit-verification/v1",
+  "siteprobe_implementation": "83e9bf2f54d9d608052a7981390de6ec899e58fa",
+  "kujo_production_pin": "2be1f04b89dbecd591ef1af0d68974c05586900e",
+  "kujo_followup_tip": "5dcbfcda2e48c2fe56dd2a4ecdb2d5947e18ff59",
+  "local_rust": {
+    "command": "cargo test --locked --no-fail-fast -- --test-threads=1",
+    "result": "passed",
+    "targets": 72,
+    "passed": 2569,
+    "failed": 0,
+    "ignored": 15
+  },
+  "local_non_jit": {
+    "command": "cargo test --locked --no-default-features --features runtime-archive,runtime-image --test vm_interpreter_parity_surfaces -- --test-threads=1",
+    "result": "passed",
+    "passed": 110
+  },
+  "hosted": [
+    {
+      "repository": "kujolang/kujo",
+      "run_id": 34118964919,
+      "revision": "2be1f04b89dbecd591ef1af0d68974c05586900e",
+      "result": "success"
+    },
+    {
+      "repository": "kujolang/siteprobe",
+      "run_id": 34119233850,
+      "revision": "83e9bf2f54d9d608052a7981390de6ec899e58fa",
+      "result": "success",
+      "platforms": [
+        "Linux",
+        "macOS",
+        "Windows"
+      ],
+      "artifact_ids": [
+        10017772091,
+        10017734455,
+        10017816830
+      ]
+    },
+    {
+      "repository": "kujolang/kujo",
+      "run_id": 34120679077,
+      "revision": "5dcbfcda2e48c2fe56dd2a4ecdb2d5947e18ff59",
+      "result": "success",
+      "checks": [
+        "fmt",
+        "clippy",
+        "parity with and without JIT",
+        "minimal release gate",
+        "full release gate"
+      ]
+    }
+  ],
+  "log_hashes": [
+    {
+      "path": "/tmp/siteprobe-remaining-complete-all-tests.log",
+      "sha256": "80b45b8acd565cd4174abc6f3717c84b40daaf1b5b00c8f900bf80e63d394ceb",
+      "bytes": 232366
+    },
+    {
+      "path": "/tmp/siteprobe-remaining-exception-tests.log",
+      "sha256": "3aecf4e6822c6af0a467a7629246c783fc715ee69a9064644ea7588bbe0a11dc",
+      "bytes": 9335
+    },
+    {
+      "path": "/tmp/siteprobe-remaining-kujo-fixtures.log",
+      "sha256": "7331ff8f398657b64fdf23b1c9d46e353de95296db0a2f8c86c919108ff44b4e",
+      "bytes": 6997
+    },
+    {
+      "path": "/tmp/siteprobe-remaining-no-jit-parity.log",
+      "sha256": "14e0d4d1a5639f3c50fe4611cce7aa00a77e2b230e7be9e522cf404dfd4af76c",
+      "bytes": 14880
+    },
+    {
+      "path": "/tmp/siteprobe-final-hosted-kujo-gate.log",
+      "sha256": "62ccc56660ca8710e2cb2119382ef10106254923eb1342dd5a1e873eb7a572df",
+      "bytes": 589459
+    },
+    {
+      "path": "/tmp/siteprobe-final-nonjit-hosted.log",
+      "sha256": "def2c16e0aabd8e588f593342899001d3e0c20dc4f50ad3253604b1532833bc4",
+      "bytes": 138812
+    },
+    {
+      "path": "/tmp/siteprobe-final-5d-hosted-gate.log",
+      "sha256": "44cdcfb121ce60b310459f95d3824556e9978f80cb55f851c7d993c5fe1425a7",
+      "bytes": 589488
+    },
+    {
+      "path": "/tmp/siteprobe-final-release-build.log",
+      "sha256": "0bddecf51d420ea534d56137e4b36ef35e2fbd7a0d7f75a6c39de30e9ad21f49",
+      "bytes": 813
+    },
+    {
+      "path": "/tmp/siteprobe-final-local-validation.log",
+      "sha256": "d8e6ad19f3408bbe1cf56b05de4e324d50e10b516928df0358596ce9fb741afb",
+      "bytes": 5488
+    }
+  ],
+  "platform_receipt_counts": {
+    "linux": 47,
+    "macos": 47,
+    "windows": 47
+  },
+  "platform_commands": {
+    "linux": [
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "json.tool",
+          "schemas/manifest.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "package-publish",
+          "--manifest",
+          "kujo.toml"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "json.tool",
+          "schemas/page.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "json.tool",
+          "schemas/run.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "run",
+          "scripts/generate_docs.kujo",
+          "--",
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "json.tool",
+          "schemas/findings.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "package-install",
+          "--manifest",
+          "kujo.toml"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "package-install",
+          "--manifest",
+          "kujo.toml",
+          "--frozen"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "run",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "py_compile",
+          "tests/legacy/siteprobe.py",
+          "tests/test_siteprobe.py",
+          "tests/test_hardening.py",
+          "tests/test_native_contracts.py",
+          "scripts/benchmark_fixture.py"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/home/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      }
+    ],
+    "macos": [
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "run",
+          "scripts/generate_docs.kujo",
+          "--",
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "json.tool",
+          "schemas/manifest.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "package-install",
+          "--manifest",
+          "kujo.toml"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "package-install",
+          "--manifest",
+          "kujo.toml",
+          "--frozen"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "json.tool",
+          "schemas/page.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "json.tool",
+          "schemas/run.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "json.tool",
+          "schemas/findings.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "run",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "package-publish",
+          "--manifest",
+          "kujo.toml"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "lint",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "check",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "/Users/runner/work/siteprobe/siteprobe/siteprobe/../kujo/target/release/kujo",
+          "format",
+          "--check",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "python3",
+          "-m",
+          "py_compile",
+          "tests/legacy/siteprobe.py",
+          "tests/test_siteprobe.py",
+          "tests/test_hardening.py",
+          "tests/test_native_contracts.py",
+          "scripts/benchmark_fixture.py"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      }
+    ],
+    "windows": [
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "package-publish",
+          "--manifest",
+          "kujo.toml"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "-m",
+          "json.tool",
+          "schemas/page.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "run",
+          "scripts/generate_docs.kujo",
+          "--",
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "examples/runledger.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "scripts/validate.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "scripts/benchmark.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "examples/contentgraph.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "scripts/release.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "src/siteprobe.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "package-install",
+          "--manifest",
+          "kujo.toml",
+          "--frozen"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "run",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "examples/eval.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "-m",
+          "json.tool",
+          "schemas/run.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "scripts/generate_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "package-install",
+          "--manifest",
+          "kujo.toml"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "-m",
+          "py_compile",
+          "tests/legacy/siteprobe.py",
+          "tests/test_siteprobe.py",
+          "tests/test_hardening.py",
+          "tests/test_native_contracts.py",
+          "scripts/benchmark_fixture.py"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "check",
+          "scripts/generate_contract_docs.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "-m",
+          "json.tool",
+          "schemas/findings.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "examples/ci_baseline.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "lint",
+          "tests/siteprobe_tests.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "D:\\a\\siteprobe\\siteprobe\\siteprobe\\..\\kujo\\target\\release\\kujo.exe",
+          "format",
+          "--check",
+          "src/main.kujo"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      },
+      {
+        "cancelled": false,
+        "command": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+          "-m",
+          "json.tool",
+          "schemas/manifest.schema.json"
+        ],
+        "exitcode": 0,
+        "stderr_truncated": false,
+        "stdout_truncated": false,
+        "timed_out": false
+      }
+    ]
+  },
+  "kujo_source_trees": {
+    "2be1f04b89dbecd591ef1af0d68974c05586900e": "076190a3a8aebde084ff3106faf9545eef0235f7",
+    "5dcbfcda2e48c2fe56dd2a4ecdb2d5947e18ff59": "076190a3a8aebde084ff3106faf9545eef0235f7"
+  },
+  "local_release": {
+    "command": "cargo build --release --locked",
+    "result": "passed",
+    "build_seconds": 1758,
+    "reported_duration": "29m 18s",
+    "binary_sha256": "319087dd77b69568d80657651c6153513e79ca97a3b76783aa257587b5a436c2",
+    "binary_bytes": 31222216,
+    "source_tree": "076190a3a8aebde084ff3106faf9545eef0235f7",
+    "doctor": {
+      "error": "",
+      "implementation": "kujo",
+      "kujo_entrypoint": "src/main.kujo",
+      "network_credentials_required": false,
+      "ok": true,
+      "private_network_default": "blocked",
+      "python": null,
+      "respect_robots_default": true,
+      "same_origin_default": true
+    },
+    "exception_scope_stdout": "99\n"
+  },
+  "local_release_validation": {
+    "command": "KUJO_BIN=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo SITEPROBE_PYTHON=/Library/Frameworks/Python.framework/Versions/3.10/bin/python3 bash scripts/validate.sh",
+    "result": "passed",
+    "tests": 36,
+    "test_seconds": 33.837
+  }
+}

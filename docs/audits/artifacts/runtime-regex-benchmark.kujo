@@ -1,0 +1,10 @@
+func main() {
+    mut checksum := 0
+    let start := performance_now()
+    let cpu := process_usage()["cpu_seconds"]
+    for index in range(0, 1000) {
+        checksum = checksum + len(regex_find_all("café _word ²3 a-b", "[\\p{L}\\p{N}_][\\p{L}\\p{N}_'-]*"))
+    }
+    print(to_json({"checksum": checksum, "wall_seconds": (performance_now() - start) / 1000, "cpu_seconds": process_usage()["cpu_seconds"] - cpu}))
+}
+main()
