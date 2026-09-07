@@ -1,0 +1,18 @@
+from src.siteprobe import analyze, empty_page
+let argv := args()
+let directory := argv[0]
+create_dir(directory)
+let source := directory + "/pages.jsonl"
+func prepare_page(index, source) {
+    mut page := empty_page("https://example.com/" + to_string(index), 0)
+    page["status"] = 200
+    page["title"] = "Title " + to_string(index)
+    page["meta_description"] = "Description " + to_string(index)
+    page["content_fingerprint"] = sha256(to_string(index))
+    jsonl_write(source, [page], true, 268435456)
+}
+for index in range(0, 1000) {prepare_page(index, source)}
+let start := performance_now()
+let cpu := process_usage()["cpu_seconds"]
+let result := analyze(source, directory + "/updated.jsonl", {"urls": []}, "https://example.com/", directory + "/links.jsonl")
+print(to_json({"pages": 1000, "wall_seconds": (performance_now() - start) / 1000.0, "cpu_seconds": process_usage()["cpu_seconds"] - cpu, "result_sha256": sha256(to_json(result)), "pages_sha256": regular_file_digest(directory + "/updated.jsonl", 268435456)["sha256"]}))

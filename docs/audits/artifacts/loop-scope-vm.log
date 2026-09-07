@@ -1,0 +1,7 @@
+1
+[KUJOVM001] [vm] Runtime Error: Cannot reassign immutable let binding: path
+  --> 0:0
+
+Call stack:
+  0 at main
+

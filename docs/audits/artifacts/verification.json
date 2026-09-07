@@ -1,0 +1,252 @@
+{
+  "siteprobe_checks": [
+    {
+      "command": "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m py_compile tests/legacy/siteprobe.py tests/test_siteprobe.py tests/test_hardening.py tests/test_native_contracts.py scripts/benchmark_fixture.py",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check src/siteprobe.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check src/siteprobe.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint src/siteprobe.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check src/main.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check src/main.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint src/main.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check src/main.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/validate.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/benchmark.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/release.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/generate_docs.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/generate_contract_docs.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check tests/siteprobe_tests.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check src/main.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/validate.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/benchmark.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/release.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/generate_docs.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/generate_contract_docs.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check tests/siteprobe_tests.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint src/main.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/validate.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/benchmark.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/release.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/generate_docs.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/generate_contract_docs.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint tests/siteprobe_tests.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check examples/contentgraph.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check examples/contentgraph.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint examples/contentgraph.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check examples/eval.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check examples/eval.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint examples/eval.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check examples/runledger.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check examples/runledger.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint examples/runledger.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check examples/ci_baseline.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check examples/ci_baseline.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint examples/ci_baseline.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo run tests/siteprobe_tests.kujo",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo package-install --manifest kujo.toml",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo package-install --manifest kujo.toml --frozen",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo package-publish --manifest kujo.toml",
+      "passed": true
+    },
+    {
+      "command": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo run scripts/generate_docs.kujo -- /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo",
+      "passed": true
+    },
+    {
+      "command": "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m json.tool schemas/run.schema.json",
+      "passed": true
+    },
+    {
+      "command": "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m json.tool schemas/page.schema.json",
+      "passed": true
+    },
+    {
+      "command": "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m json.tool schemas/findings.schema.json",
+      "passed": true
+    },
+    {
+      "command": "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m json.tool schemas/manifest.schema.json",
+      "passed": true
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "runtime_logs": [
+    {
+      "path": "/tmp/siteprobe-kujo-final-tests.log",
+      "bytes": 233426,
+      "sha256": "b50d24f7b434664c9f8f2baa9bf633c506c7a467fcd8015add0a3f77871feefa"
+    },
+    {
+      "path": "/tmp/siteprobe-kujo-inventory-final-tests.log",
+      "bytes": 2203,
+      "sha256": "50fecd7b9aab74082c09a4a4891d5523209c13fd6620c88376c7746e80e99df6"
+    },
+    {
+      "path": "/tmp/siteprobe-kujo-pacer-final-tests.log",
+      "bytes": 2301,
+      "sha256": "a1632ddeb40126315695f9d27845677eaa2b38a0bbfbb4c5f2e577f4262adaed"
+    },
+    {
+      "path": "/tmp/siteprobe-kujo-clippy-final.log",
+      "bytes": 845,
+      "sha256": "87fbc34fb56ceb5217cb8663d62271e6350f9e978a5c5a5c537496527dbabbfb"
+    },
+    {
+      "path": "/tmp/siteprobe-kujo-fmt-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/siteprobe-kujo-release-final.log",
+      "bytes": 813,
+      "sha256": "2bc1ed42cde6c52de3d2cb22c299765dcb089548f90d59a000529ef84c2a4ef1"
+    },
+    {
+      "path": "/tmp/siteprobe-kujo-dependency-audit.json",
+      "bytes": 375,
+      "sha256": "5465a2d14b0bc971b3658b976e63b207ba52401bd42364277d7b17d2257e69fe"
+    }
+  ],
+  "runtime_broad_test_run": {
+    "passed": 2554,
+    "failed_inventory_tests_before_fixes": 3,
+    "ignored_existing": 15,
+    "failed_targets_rerun_passed": true
+  },
+  "native_boundary_tests": 10,
+  "native_tests": 35,
+  "native_test_seconds": 35.658,
+  "siteprobe_implementation_sha": "84e5f2a9f509c833097072a515e02a0a82936e2e",
+  "kujo_runtime_sha": "76760c43b8cc88ac8a4c3fa800802a517c61ed3d"
+}

@@ -1,0 +1,18 @@
+{
+  "fixture": "1000 links in one HTML page, release runtime; one sample each",
+  "before": {
+    "wall_seconds": 2.076216116,
+    "exit_code": 0
+  },
+  "after": {
+    "wall_seconds": 1.254514133,
+    "exit_code": 0
+  },
+  "semantic_output_identical": true,
+  "output_sha256": "f7ade5f664d2524d9e4e3751d383fddd4c2fc92f277f6bdf8e4639577cc7d1d7",
+  "reproduce": [
+    "Create JSON request with action=html, url=https://example.com/, html=<title>Root</title> followed by 1000 anchors <a href=\"/p/I\">page I</a>, I=0..999.",
+    "In a disposable checkout reverse html-buffers-optimization.patch, run the release Kujo runtime on tests/native_probe.kujo -- request.json, recording monotonic wall time and stdout.",
+    "Reapply the patch and run the same request; compare parsed JSON and output SHA-256."
+  ]
+}

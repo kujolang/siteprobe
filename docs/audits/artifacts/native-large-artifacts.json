@@ -1,0 +1,10 @@
+{
+  "pages_jsonl_bytes": 11187780,
+  "pages": 800,
+  "findings": 20000,
+  "links": 10000,
+  "links_stdout_bytes": 3608944,
+  "validate": "passed",
+  "compare": "passed",
+  "complete_stdout": "passed"
+}

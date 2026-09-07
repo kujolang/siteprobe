@@ -1,0 +1,51 @@
+PASS /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m py_compile tests/legacy/siteprobe.py tests/test_siteprobe.py tests/test_hardening.py tests/test_native_contracts.py scripts/benchmark_fixture.py
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check src/siteprobe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check src/siteprobe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint src/siteprobe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/validate.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/benchmark.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/generate_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/validate.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/benchmark.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/generate_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/validate.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/benchmark.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/generate_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check examples/contentgraph.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check examples/contentgraph.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint examples/contentgraph.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check examples/eval.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check examples/eval.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint examples/eval.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check examples/runledger.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check examples/runledger.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint examples/runledger.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo check examples/ci_baseline.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo format --check examples/ci_baseline.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo lint examples/ci_baseline.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo run tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo package-install --manifest kujo.toml
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo package-install --manifest kujo.toml --frozen
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo package-publish --manifest kujo.toml
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo run scripts/generate_docs.kujo -- /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo
+PASS /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m json.tool schemas/run.schema.json
+PASS /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m json.tool schemas/page.schema.json
+PASS /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m json.tool schemas/findings.schema.json
+PASS /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m json.tool schemas/manifest.schema.json
+PASS git diff --check
+SiteProbe validation passed.

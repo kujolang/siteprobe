@@ -1,0 +1,7 @@
+func main() {
+    for item in [1, 2] {
+        let path := to_string(item)
+        print(path)
+    }
+}
+main()

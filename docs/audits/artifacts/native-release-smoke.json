@@ -1,0 +1,17 @@
+{
+  "archive": "siteprobe-0.2.0-macos-native-final.zip",
+  "sha256": "aa8a492dcacbeff76a68e8b9455490287fe725e276c32c780ffcada0976e6b16",
+  "doctor": {
+    "error": "",
+    "implementation": "kujo",
+    "kujo_entrypoint": "src/main.kujo",
+    "network_credentials_required": false,
+    "ok": true,
+    "private_network_default": "blocked",
+    "python": null,
+    "respect_robots_default": true,
+    "same_origin_default": true
+  },
+  "exit_code": 0,
+  "production_python_files": 0
+}

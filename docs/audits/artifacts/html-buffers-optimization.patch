@@ -1,0 +1,74 @@
+--- a/src/siteprobe.kujo
++++ b/src/siteprobe.kujo
+@@ -200,7 +200,7 @@
+     mut link := null
+     mut jsonld := false
+     mut json_parts := []
+-    mut text_parts := []
++    mut text_parts := {}; mut links := {}; mut images := {}
+     let limit := cfg["max_links_per_page"]
+     for event in html_tokens(body, 1000000) {
+         let kind := event["kind"]
+@@ -212,7 +212,7 @@
+             if title_depth > 0 {page["title"] = compact(page["title"] + " " + clean)}
+             if heading != "" {heading_parts = push(heading_parts, clean)}
+             if link != null {link["text"] = link["text"] + " " + clean}
+-            text_parts = push(text_parts, clean)
++            text_parts[to_string(1000000 + len(text_parts))] = clean
+             continue
+         }
+         let tag := event["name"]
+@@ -250,16 +250,16 @@
+                 for rel in ["next", "prev"] {if contains(rels, rel)&&href != "" {page = nested_set(page, "pagination", rel, href)}}
+                 if contains(rels, "alternate")&&get_default(attrs, "hreflang", "") != ""&&href != "" {page["hreflang"] = push(page["hreflang"], {"language": lower(attrs["hreflang"]), "url": href})}
+             } else if tag == "a" {
+-                if len(page["links"]) >= limit {page = nested_set(page, "truncated", "links", true)}
++                if len(links) >= limit {page = nested_set(page, "truncated", "links", true)}
+                 else {
+                     let href := normalize(get_default(attrs, "href", ""), base, cfg)
+                     if href != "" {link = {"url": href, "text": "", "rel": get_default(attrs, "rel", "")}}
+                 }
+             } else if tag == "img" {
+-                if len(page["images"]) >= limit {page = nested_set(page, "truncated", "images", true)}
++                if len(images) >= limit {page = nested_set(page, "truncated", "images", true)}
+                 else {
+                     let src := normalize(get_default(attrs, "src", ""), base, cfg)
+-                    if src != "" {page["images"] = push(page["images"], {"url": src, "alt": get_default(attrs, "alt", ""), "missing_alt": ! (has_key(attrs, "alt") == 1)})}
++                    if src != "" {images[to_string(1000000 + len(images))] = {"url": src, "alt": get_default(attrs, "alt", ""), "missing_alt": ! (has_key(attrs, "alt") == 1)}}
+                 }
+             } else if tag == "script"&&lower(get_default(attrs, "type", "")) == "application/ld+json" {jsonld = true}
+         }
+@@ -270,7 +270,7 @@
+                 if content != "" {page = nested_set(page, "headings", heading, push(get_default(page["headings"], heading, []), content))}
+                 heading = ""; heading_parts = []
+             }
+-            if tag == "a"&&link != null {link["text"] = compact(link["text"]); page["links"] = push(page["links"], link); link = null}
++            if tag == "a"&&link != null {link["text"] = compact(link["text"]); links[to_string(1000000 + len(links))] = link; link = null}
+             if tag == "script"&&jsonld {
+                 let raw := trim(join(json_parts, ""))
+                 if raw != "" {
+@@ -283,15 +283,19 @@
+             if contains(["script", "style", "noscript", "template"], tag)&&skip > 0 {skip = skip - 1}
+         }
+     }
+-    let text := join(text_parts, " ")
++    // Token count is at most one million, so these seven-digit keys preserve insertion order.
++    page["links"] = values(links); page["images"] = values(images)
++    let text := join(values(text_parts), " ")
+     page["content_fingerprint"] = fingerprint(text)
+     page["word_count"] = len(regex_find_all(text, "[\\p{L}\\p{N}_][\\p{L}\\p{N}_'-]*"))
+-    page["outgoing_link_count"] = len(page["links"])
++    page["outgoing_link_count"] = len(links)
+     for image in page["images"] {if image["missing_alt"] {page["missing_alt_count"] = page["missing_alt_count"] + 1}}
++    mut internal := {}; mut external := {}
+     for item in page["links"] {
+-        if same_origin(item["url"], base) {page["internal_links"] = push(page["internal_links"], item)}
+-        else {page["external_links"] = push(page["external_links"], item)}
+-    }
++        if same_origin(item["url"], base) {internal[to_string(1000000 + len(internal))] = item}
++        else {external[to_string(1000000 + len(external))] = item}
++    }
++    page["internal_links"] = values(internal); page["external_links"] = values(external)
+     return page
+ }
+ /// Parse Link header delimiters outside quoted parameters and angle brackets.

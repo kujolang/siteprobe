@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-09-07T06:54:53Z",
+  "pages": 200,
+  "platform": "Darwin",
+  "results": [
+    {
+      "concurrency": 4,
+      "cpu_seconds": 0.917563,
+      "output_bytes": 333612,
+      "pages": 200,
+      "pages_per_second": 184.176,
+      "peak_rss_bytes": 26931200,
+      "schema": "siteprobe.process-metrics/v1",
+      "wall_seconds": 1.085918
+    }
+  ],
+  "schema": "siteprobe.benchmark/v2"
+}

@@ -1,0 +1,39 @@
+--- a/src/siteprobe.kujo
++++ b/src/siteprobe.kujo
+@@ -483,7 +483,7 @@
+ }
+ /// Analyze sorted JSONL in bounded batches, retaining only aggregate indexes.
+ export func analyze(pages_path, updated_path, sitemap, target, link_spool) {
+-    mut incoming := {}; mut crawled := {}; mut groups := {"duplicate-title": {}, "duplicate-description": {}, "duplicate-content": {}}
++    mut incoming := {}; mut crawled := {}; mut groups := {}
+     mut titles := {}; mut descriptions := {}; mut structured := []
+     mut page_count := 0; mut link_count := 0; mut crawlable := 0; mut indexable := 0
+     mut offset := 0
+@@ -497,7 +497,11 @@
+             if page["indexable"] {indexable = indexable + 1}
+             for pair in [["duplicate-title", "title"], ["duplicate-description", "meta_description"], ["duplicate-content", "content_fingerprint"]] {
+                 let key := lower(trim(page[pair[1]]))
+-                if key != "" {groups = nested_set(groups, pair[0], key, push(get_default(groups[pair[0]], key, []), url))}
++                if key != "" {
++                    let identity := to_json([pair[0], key])
++                    let previous := get_default(groups, identity, {"urls": []})
++                    groups[identity] = {"check": pair[0], "value": key, "urls": push(previous["urls"], url)}
++                }
+             }
+             if page["title"] != "" {titles[page["title"]] = push(get_default(titles, page["title"], []), url)}
+             if page["meta_description"] != "" {descriptions[page["meta_description"]] = push(get_default(descriptions, page["meta_description"], []), url)}
+@@ -543,11 +547,9 @@
+         if block["eof"] {break}
+         offset = block["offset"]
+     }
+-    for check in keys(groups) {
+-        for value in keys(groups[check]) {
+-            let urls := sort(groups[check][value])
+-            if len(urls) > 1 {findings = push(findings, finding(check, urls[0], "warning", {"urls": urls, "value_fingerprint": fingerprint(value)}))}
+-        }
++    for group in values(groups) {
++        let urls := sort(group["urls"])
++        if len(urls) > 1 {findings = push(findings, finding(group["check"], urls[0], "warning", {"urls": urls, "value_fingerprint": fingerprint(group["value"])}))}
+     }
+     for url in sitemap["urls"] {
+         let count := get_default(incoming, url, 0)

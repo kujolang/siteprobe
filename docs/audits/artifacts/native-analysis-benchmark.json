@@ -1,0 +1,22 @@
+{
+  "before": {
+    "cpu_seconds": 4.133619000000001,
+    "pages": 1000,
+    "pages_sha256": "f34c959bb0de9ff320e564992065b1bd61cddb017f00b355d08772cdfdf97989",
+    "result_sha256": "08b02bccd75ceea58f3c1c7b5f140ccbdd9be78722f6caba43993e5f248a5a5c",
+    "wall_seconds": 4.236110414999999
+  },
+  "source_before_sha256": "5410715a52c86e46aa79fba2f18a3a7f4fc9aff47920571a70d054fd8f9e863b",
+  "after": {
+    "cpu_seconds": 3.389716,
+    "pages": 1000,
+    "pages_sha256": "f34c959bb0de9ff320e564992065b1bd61cddb017f00b355d08772cdfdf97989",
+    "result_sha256": "08b02bccd75ceea58f3c1c7b5f140ccbdd9be78722f6caba43993e5f248a5a5c",
+    "wall_seconds": 3.44936221
+  },
+  "source_after_sha256": "8dfff6098facd7bcebe19236fc82718781eb3466979a217de9e94a56db658ec6",
+  "runtime_profile": "debug",
+  "samples_per_version": 1,
+  "fixture": "analysis-benchmark.kujo; 1000 pages with unique duplicate-group keys",
+  "output_equivalent": true
+}
