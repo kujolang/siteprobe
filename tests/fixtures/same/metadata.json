@@ -1,0 +1,23 @@
+{
+  "descriptions": {
+    "Shared description": [
+      "http://127.0.0.1:56602/",
+      "http://127.0.0.1:56602/duplicate",
+      "http://127.0.0.1:56602/redirect"
+    ]
+  },
+  "schema": "siteprobe.metadata/v1",
+  "titles": {
+    "Home": [
+      "http://127.0.0.1:56602/",
+      "http://127.0.0.1:56602/duplicate",
+      "http://127.0.0.1:56602/redirect"
+    ],
+    "Noindex": [
+      "http://127.0.0.1:56602/noindex"
+    ],
+    "Not found": [
+      "http://127.0.0.1:56602/broken"
+    ]
+  }
+}

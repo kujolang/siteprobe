@@ -1,0 +1,29 @@
+from tests.support import runtime, require, equal, process, cleanup
+func main() {
+    let argv := args()
+    require(len(argv) == 2, "usage: kujo run scripts/verify_release.kujo -- <dist> <kujo-runtime>")
+    let dist := path_absolute(argv[0]); let kujo := path_absolute(argv[1]); let expected := trim(read_file("VERSION"))
+    mut archives := []; for name in list_dir(dist) {if ends_with(name, ".zip") {archives = push(archives, name)}}
+    require(len(archives) > 0, "No release archives found")
+    for name in sort(archives) {
+        let archive := dist + "/" + name
+        equal(sha256_file(archive) + "  " + name, trim(read_file(archive + ".sha256")), "archive checksum " + name)
+        let root := path_absolute(create_temp_dir(dist, ".verify-"))
+        try {
+            # Native extraction rejects traversal, symlinks and bounded-expansion violations.
+            unzip(archive, root)
+            for required in ["src/siteprobe.kujo", "docs/audits/repository-hardening.md", "docs/release-qualification-" + expected + ".md", ".github/workflows/validate.yml", "tests/siteprobe_tests.kujo"] {require(path_is_file(root + "/" + required), "missing package entry " + required)}
+            require( ! path_exists(root + "/src/siteprobe.py"), "unexpected non-Kujo product source")
+            equal(expected, trim(read_file(root + "/VERSION")), "extracted version")
+            for command in ["doctor", "version"] {
+                let result := process([kujo, "run", "src/main.kujo", "--", command], 0, {"timeout_ms": 30000, "cwd": root})
+                let receipt := parse_json(result.stdout)
+                if command == "doctor" {equal(true, receipt["ok"], "extracted doctor"); equal("kujo", receipt["implementation"], "native implementation"); equal(null, receipt["python"], "legacy doctor field")}
+                else {equal(expected, receipt["version"], "extracted CLI version"); equal("siteprobe.run/v1", receipt["contract"], "extracted contract")}
+            }
+            cleanup(root)
+        } except err {cleanup(root); error(to_string(err))}
+        print("PASS " + name + " checksum, extracted native doctor and version")
+    }
+}
+try {main()} except err {eprint(to_string(err)); exit(1)}

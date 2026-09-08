@@ -1,0 +1,31 @@
+{
+  "pages": [
+    {
+      "items": [
+        {
+          "@type": "WebSite"
+        }
+      ],
+      "url": "http://127.0.0.1:56602/"
+    },
+    {
+      "items": [
+        {
+          "invalid": true,
+          "raw_fingerprint": "80216967918172c414065ee096341fad4d00bcb845dd1aec3488920a24fe3c16"
+        }
+      ],
+      "url": "http://127.0.0.1:56602/duplicate"
+    },
+    {
+      "items": [
+        {
+          "invalid": true,
+          "raw_fingerprint": "80216967918172c414065ee096341fad4d00bcb845dd1aec3488920a24fe3c16"
+        }
+      ],
+      "url": "http://127.0.0.1:56602/redirect"
+    }
+  ],
+  "schema": "siteprobe.structured-data/v1"
+}

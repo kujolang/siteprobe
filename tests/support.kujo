@@ -1,0 +1,39 @@
+export func equal(expected, actual, label) {if expected != actual {error(label + ": expected " + substring(to_json(expected), 0, 1500) + "; actual " + substring(to_json(actual), 0, 1500))}}
+export func require(value, label) {if value {return}; error(label)}
+export func runtime() {let configured := env("KUJO_BIN"); if configured != "" {return path_absolute(configured)}; mut suffix := ""; if env("OS") == "Windows_NT" {suffix = ".exe"}; return path_absolute("../kujo/target/release/kujo" + suffix)}
+export func process(command, expected, options) {
+    mut isolated := options
+    isolated["env_deny"] = push(get_default(options, "env_deny", []), "KUJO_SCRIPT_ARGS")
+    let result := spawn_process(command, isolated)
+    require( ! result.timed_out&& ! result.cancelled&& ! result.stdout_truncated&& ! result.stderr_truncated, "incomplete process evidence: " + to_json(command))
+    equal(expected, result.exitcode, "process " + to_json(command) + "\n" + result.stderr + "\n" + substring(result.stdout, 0, 1500))
+    return result
+}
+export func cli(arguments, expected) {
+    mut command := [runtime(), "run", "src/main.kujo", "--"]
+    for argument in arguments {command = push(command, to_string(argument))}
+    return process(command, expected, {"timeout_ms": 30000, "max_output_bytes": 16777216})
+}
+export func read_json(path) {return json_file_read(path, 268435456)}
+export func put_json(path, data) {write_file(path, to_json(data), true)}
+export func rows(path) {mut offset := 0; mut result := []; loop {let block := jsonl_read_chunk(path, offset, 64, 268435456); for row in block["rows"] {result = push(result, row)}; if block["eof"] {break}; offset = block["offset"]}; return result}
+export func probe(ctx, request, expected) {
+    let path := ctx["dir"] + "/request.json"; put_json(path, request)
+    let result := process([runtime(), "run", "tests/native_probe.kujo", "--", path], expected, {"timeout_ms": 30000, "max_output_bytes": 16777216})
+    if expected != 0 {return result.stderr}; return parse_json(result.stdout)
+}
+export func cleanup(path) {
+    for name in list_dir(path) {let entry := path + "/" + name; if path_is_dir(entry)&& ! path_is_symlink(entry) {cleanup(entry)} else {delete_file(entry)}}
+    os_rmdir(path)
+}
+export func make_link(target, path) {
+    # Kujo has no symlink-creation primitive at the qualified revision.
+    if env("OS") == "Windows_NT" {
+        let script := "$ErrorActionPreference='Stop'; New-Item -ItemType SymbolicLink -Path $env:SITEPROBE_LINK_PATH -Target $env:SITEPROBE_LINK_TARGET | Out-Null"
+        process(["pwsh", "-NoProfile", "-Command", script], 0, {"timeout_ms": 10000, "env": {"SITEPROBE_LINK_PATH": path, "SITEPROBE_LINK_TARGET": target}})
+    } else {process(["ln", "-s", target, path], 0, {"timeout_ms": 10000})}
+    require(path_is_symlink(path), "fixture symlink must exist")
+}
+export func repeat_text(text, count) {mut result := ""; mut block := text; mut remaining := count; while remaining > 0 {if remaining % 2 == 1 {result = result + block}; remaining = to_int(floor(remaining / 2)); if remaining > 0 {block = block + block}}; return result}
+
+export func includes(value, part) {if contains(value, part) {return true}; return false}

@@ -1,0 +1,52 @@
+from tests.support import includes, equal, require, runtime, process, cli, read_json, put_json, rows, probe, make_link, repeat_text
+export func test_row_sort_preserves_order_and_ties(ctx) {
+    mut input := []; mut expected := []
+    for i in range(0, 1000) {let n := 1000 - i; input = push(input, {"a": to_string(n % 11), "b": to_string(n % 7), "position": n, "nested": [n]})}
+    # Independent reference: bucket traversal in lexicographic order, original tie order.
+    for a in ["0", "1", "10", "2", "3", "4", "5", "6", "7", "8", "9"] {for b in ["0", "1", "2", "3", "4", "5", "6"] {for row in input {if row["a"] == a&&row["b"] == b {expected = push(expected, row)}}}}
+    equal(expected, probe(ctx, {"action": "sort_rows", "rows": input, "fields": ["a", "b"]}, 0), "stable row sorting")
+}
+export func test_terminal_controls_are_not_emitted_in_diagnostics(ctx) {let r := cli(["bad" + decode_text_lossy(bytes([27]), "utf-8", 1) + "[2Jcommand"], 2); require( ! includes(r.stderr, decode_text_lossy(bytes([27]), "utf-8", 1)), "terminal escape leaked")}
+export func test_nonfinite_bounds_rejected_before_network(ctx) {for pair in [["inspect", "--timeout"], ["crawl", "--timeout"], ["crawl", "--request-delay"], ["crawl", "--max-crawl-delay"]] {require(includes(cli([pair[0], "https://example.invalid", pair[1], "nan"], 2).stderr, "finite"), "nonfinite bounds")}}
+export func test_manifest_size_rejected_before_read(ctx) {let path := ctx["dir"] + "/manifest.json"; write_file(path, ""); io_truncate(path, 268435457); require(includes(cli(["verify", ctx["dir"]], 1).stderr, "bounded"), "manifest size before read")}
+export func test_manifest_cannot_certify_empty_run(ctx) {let result := probe(ctx, {"action": "manifest", "path": ctx["dir"]}, 0); require(includes(to_json(result), "missing required artifacts"), "empty manifest")}
+export func test_atomic_publication_never_replaces_existing_directory(ctx) {
+    let source := ctx["dir"] + "/source"; let dest := ctx["dir"] + "/destination"; create_dir(source); create_dir(dest); write_file(source + "/evidence", "retained")
+    probe(ctx, {"action": "publish", "source": source, "destination": dest}, 1)
+    equal([], list_dir(dest), "destination preserved"); equal("retained", read_file(source + "/evidence"), "source preserved")
+    os_rmdir(dest); probe(ctx, {"action": "publish", "source": source, "destination": dest}, 0); require( ! path_exists(source), "source moved"); equal("retained", read_file(dest + "/evidence"), "publication")
+}
+export func test_signing_key_shape_and_bounds(ctx) {
+    let key := ctx["dir"] + "/key"
+    for size in [0, 31, 65537] {write_file(key, repeat_text("x", size), true); probe(ctx, {"action": "key", "path": key}, 1)}
+    write_file(key, repeat_text("x", 32), true); equal(32, probe(ctx, {"action": "key", "path": key}, 0), "valid signing key")
+    make_link(key, ctx["dir"] + "/link"); probe(ctx, {"action": "key", "path": ctx["dir"] + "/link"}, 1)
+}
+export func test_report_budget_and_terminal_controls(ctx) {mut request := read_json("tests/fixtures/report-oracle.json"); request["action"] = "report"; let result := probe(ctx, request, 0); equal(request["expected"], result, "frozen report"); require(byte_length(result) <= 256&& ! includes(result, decode_text_lossy(bytes([27]), "utf-8", 1)), "report budget and controls")}
+export func test_unknown_charset_and_url_controls(ctx) {equal("hello", probe(ctx, {"action": "decode", "bytes": [104, 101, 108, 108, 111], "type": "text/html;charset=missing"}, 0), "unknown charset"); equal([""], probe(ctx, {"action": "normalize", "urls": ["https://exam\nple.com/"]}, 0), "URL controls")}
+export func test_native_entrypoint_without_process_capability(ctx) {let r := process([runtime(), "run", "src/main.kujo", "--untrusted", "--allow-fs-read", "--", "version"], 0, {"timeout_ms": 10000}); equal("siteprobe", parse_json(r.stdout)["name"], "restricted version")
+    let script := ctx["dir"] + "/arguments.kujo"; write_file(script, "print(to_json(args()))\n")
+    env_set("KUJO_SCRIPT_ARGS", "parent-only")
+    let child := process([runtime(), "run", script], 0, {"timeout_ms": 10000})
+    equal([], parse_json(child.stdout), "child arguments isolated")}
+export func test_external_sort_caps_descriptors_and_cleans_chunks(ctx) {
+    let input := ctx["dir"] + "/input.jsonl"; let output := ctx["dir"] + "/output.jsonl"; mut data := []; mut expected := []
+    for i in range(0, 1100) {let key := substring("0000" + to_string(i), len("0000" + to_string(i)) - 4, len("0000" + to_string(i))); expected = push(expected, {"key": key})}
+    for i in range(0, 1100) {data = push(data, expected[1099 - i])}; jsonl_write(input, data, false, 268435456)
+    probe(ctx, {"action": "sort", "source": input, "destination": output, "budget": 1}, 0); equal(expected, rows(output), "external sort order")
+    delete_file(ctx["dir"] + "/request.json"); equal(["input.jsonl", "output.jsonl"], sort(list_dir(ctx["dir"])), "sort temporary cleanup")
+}
+export func test_native_normalization_fuzz_matches_rejected_inputs(ctx) {let values := read_json("tests/fixtures/malformed-urls.json"); let result := probe(ctx, {"action": "normalize", "urls": values}, 0); equal(["https://xn--bcher-kva.example/a", "http://[::1]/"], probe(ctx, {"action":"normalize", "urls":["HTTPS://BÜCHER.example:443//a", "http://[::1]:80"]}, 0), "normalized authority"); equal(100, len(result), "fuzz cases"); for value in result {equal("", value, "malformed URL rejected")}}
+export func test_robots_comments_and_encoded_agents(ctx) {
+    for text in ["User-agent: *\nDisallow: /private\n# comment\nDisallow: /hidden\n", "User-agent: Kujo%2DSiteProbe\nDisallow: /hidden\n"] {equal(false, probe(ctx, {"action": "robots", "text": text, "url": "https://example.com/hidden"}, 0), "robots groups")}
+    equal(true, probe(ctx, {"action": "robots", "text": "User-agent: Kujo-SiteProbe\nCrawl-delay: invalid\nUser-agent: Other\nDisallow: /hidden\n", "url": "https://example.com/hidden"}, 0), "robots agent isolation")
+}
+export func test_percent_encoded_robots_rules(ctx) {equal(false, probe(ctx, {"action": "robots", "text": "User-agent: *\nDisallow: /%70rivate\n", "url": "https://example.com/private"}, 0), "encoded rule")}
+func check_html(ctx, sample) {let actual := probe(ctx, {"action": "html", "html": sample["html"], "url": "https://example.com/"}, 0); for key in keys(sample["expected"]) {equal(sample["expected"][key], actual[key], "HTML projection " + key)}; return actual}
+export func test_large_html_preserves_order(ctx) {let samples := read_json("tests/fixtures/html-oracle.json"); let actual := check_html(ctx, samples[12]); equal(actual["links"], actual["internal_links"], "ordered internal links"); equal(1000, len(actual["links"]), "all large HTML links")}
+export func test_html_projection_matches_frozen_oracle(ctx) {let samples := read_json("tests/fixtures/html-oracle.json"); for i in range(0, 12) {check_html(ctx, samples[i])}}
+export func test_gzip_expansion_limit(ctx) {
+    let path := ctx["dir"] + "/large.xml.gz"; io_write_bytes(path, gzip_compress(decode_base64(encode_base64("<urlset>" + repeat_text("x", 8192) + "</urlset>"))))
+    let script := ctx["dir"] + "/limit.kujo"; write_file(script, "xml_file_select(args()[0], {\"compression\":\"gzip\",\"max_bytes\":1024,\"max_matches\":10,\"element\":\"loc\"})\n")
+    let result := spawn_process([runtime(), "run", script, "--", path], {"timeout_ms": 10000}); require(result.exitcode != 0&&includes(lower(result.stderr), "exceed"), "native gzip expansion bounded")
+}

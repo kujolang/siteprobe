@@ -1,0 +1,80 @@
+from tests.fixture_server import fixture_request
+from tests.support import includes, equal, require, runtime, process, cli, read_json, put_json, rows, make_link
+func run_path(ctx, name) {return ctx["dir"] + "/" + name}
+func crawl(ctx, suffix, name, options, expected) {mut argv := ["crawl", ctx["base"] + suffix, "--out", run_path(ctx, name), "--allow-private-network"]; for option in options {argv = push(argv, to_string(option))}; return cli(argv, expected)}
+func reset(ctx, cfg) {fixture_request(ctx["port"], "reset", cfg)}
+func state(ctx) {return fixture_request(ctx["port"], "state", {})}
+export func test_full_fixture_contract_and_compare(ctx) {
+    crawl(ctx, "", "run1", ["--max-pages", 20, "--max-depth", 3, "--json"], 0); let first := run_path(ctx, "run1")
+    cli(["validate", first], 0); mut data := read_json(first + "/run.json"); equal("siteprobe.run/v1", data["schema"], "run schema"); require(data["counts"]["pages"] >= 5, "fixture coverage")
+    mut checks := []; for finding in read_json(first + "/findings.json")["findings"] {checks = push(checks, finding["check"])}
+    for check in ["broken-url", "duplicate-title", "duplicate-description", "not-indexable", "missing-image-alt", "orphan-candidate"] {require(includes(checks, check), check)}
+    for page in rows(first + "/pages.jsonl") {require( ! (ends_with(page["normalized_url"], "/private")&&page["status"] == 200), "robots private page")}
+    crawl(ctx, "", "run2", ["--max-pages", 4, "--max-depth", 1], 0); let second := run_path(ctx, "run2")
+    require(len(parse_json(cli(["compare", first, second], 0).stdout)["changes"]) > 0, "comparison differences")
+    for example in ["contentgraph", "runledger"] {let r := process([runtime(), "run", "examples/" + example + ".kujo", "--", first], 0, {"timeout_ms": 10000}); require(starts_with(parse_json(r.stdout)["schema"], "siteprobe."), "integration schema")}
+    process([runtime(), "run", "examples/eval.kujo", "--", first], 1, {"timeout_ms": 10000})
+    process([runtime(), "run", "examples/ci_baseline.kujo", "--", first, second, runtime()], 0, {"timeout_ms": 10000})
+    mut pages := rows(second + "/pages.jsonl"); mut first_page := pages[0]; first_page["status"] = "not-an-integer"; pages[0] = first_page; delete_file(second + "/pages.jsonl"); jsonl_write(second + "/pages.jsonl", pages, false, 268435456); delete_file(second + "/manifest.json")
+    require(includes(cli(["validate", second], 1).stderr, "schema validation failed"), "schema type rejected")
+}
+export func test_inspect_and_doctor(ctx) {
+    equal(true, parse_json(cli(["doctor"], 0).stdout)["ok"], "doctor")
+    require(includes(cli(["inspect", ctx["base"]], 2).stderr, "private network target blocked"), "private default")
+    let page := parse_json(cli(["inspect", ctx["base"], "--allow-private-network"], 0).stdout)
+    equal(200, page["status"], "inspect status"); equal("Home", page["title"], "title"); equal("fr", page["hreflang"][0]["language"], "hreflang"); require(ends_with(page["refresh"]["url"], "/fresh"), "refresh"); equal("alternate", page["http_links"][0]["rel"], "Link headers"); equal(2, len(page["http_links"]), "repeated Link headers")
+    let blocked := parse_json(cli(["inspect", ctx["base"] + "cross-origin-redirect", "--allow-private-network"], 0).stdout); equal(0, blocked["status"], "cross-origin status"); equal("cross-origin redirect blocked", blocked["error"], "cross-origin reason"); require(len(blocked["redirect_chain"]) > 0, "redirect evidence")
+    let nested := parse_json(cli(["inspect", ctx["base"] + "nested", "--allow-private-network"], 0).stdout); equal("Nested title", nested["title"], "nested title"); equal(["Useful heading"], nested["headings"]["h1"], "nested heading")
+    let capped := parse_json(cli(["inspect", ctx["base"] + "many", "--allow-private-network", "--max-links-per-page", 2], 0).stdout); equal(2, capped["outgoing_link_count"], "link cap"); equal(true, capped["truncated"]["links"], "link truncation evidence")
+}
+export func test_rejects_credentials_and_bad_bounds(ctx) {
+    for argv in [["crawl", "https://user:pass@example.com"], ["crawl", ctx["base"], "--max-pages", 10001], ["crawl", ctx["base"], "--offline"], ["crawl", "http://example.com:99999/"], ["crawl", ctx["base"]]] {cli(argv, 2)}
+}
+export func test_fuzz_redirects_retries_cycles_and_read_only(ctx) {
+    for value in ["", "ftp://example.com", "http://[::1", "http://example.com:99999", "https://u:p@example.com"] {require( ! includes(cli(["inspect", value], 2).stderr, "Traceback"), "actionable malformed URL error")}
+    let flaky := parse_json(cli(["inspect", ctx["base"] + "flaky", "--timeout", 1, "--allow-private-network"], 0).stdout); require(includes([200, 429], flaky["status"]), "flaky inspect")
+    reset(ctx, {}); crawl(ctx, "flaky", "retry", ["--max-pages", 1, "--retries", 2], 0); equal(200, rows(run_path(ctx, "retry") + "/pages.jsonl")[0]["status"], "retry recovered")
+    let slow := parse_json(cli(["inspect", ctx["base"] + "slow", "--timeout", 0.05, "--allow-private-network"], 0).stdout); equal(0, slow["status"], "timeout")
+    crawl(ctx, "", "cycle", ["--max-pages", 20, "--max-depth", 20, "--retries", 2, "--max-report-tokens", 64], 0)
+    mut pages := rows(run_path(ctx, "cycle") + "/pages.jsonl"); mut seen := {}; for page in pages {require(has_key(seen, page["normalized_url"]) == 0, "cycle deduplication"); seen[page["normalized_url"]] = true}
+    require(includes(to_json(read_json(run_path(ctx, "cycle") + "/findings.json")), "invalid-structured-data"), "malformed JSON-LD")
+    crawl(ctx, "", "cycle", [], 2); for method in state(ctx)["methods"] {equal("GET", method, "read-only crawl")}
+}
+export func test_deterministic_semantic_rerun_and_output_budget(ctx) {
+    for name in ["same", "same-copy"] {crawl(ctx, "", name, ["--max-pages", 8, "--deterministic"], 0)}
+    for name in ["site.json", "links.json", "metadata.json", "structured-data.json", "sitemap.json", "robots.json", "findings.json"] {equal(sha256_file(run_path(ctx, "same") + "/" + name), sha256_file(run_path(ctx, "same-copy") + "/" + name), "deterministic " + name)}
+    crawl(ctx, "", "tiny", ["--max-output-bytes", 1024], 1); require( ! path_exists(run_path(ctx, "tiny")), "partial output not published")
+}
+export func test_fail_on_and_cross_artifact_validation(ctx) {
+    crawl(ctx, "", "gated", ["--max-pages", 8, "--fail-on", "error"], 1); let run := run_path(ctx, "gated"); cli(["validate", run], 0)
+    mut data := read_json(run + "/run.json"); mut counts := data["counts"]; counts["links"] = counts["links"] + 1; data["counts"] = counts; put_json(run + "/run.json", data)
+    require(includes(cli(["validate", run], 1).stderr, "link count mismatch"), "cross artifact counts")
+}
+export func test_validation_rejects_symbolic_link_artifacts(ctx) {
+    crawl(ctx, "", "run", ["--max-pages", 1], 0); let run := run_path(ctx, "run"); delete_file(run + "/report.md"); make_link(run + "/run.json", run + "/report.md")
+    require(includes(cli(["validate", run], 1).stderr, "symbolic-link artifact rejected"), "symlink artifact")
+    crawl(ctx, "", "unsafe", ["--max-pages", 1], 0); create_dir(run_path(ctx, "unsafe") + "/unexpected"); require(includes(cli(["verify", run_path(ctx, "unsafe")], 1).stderr, "unsafe entries"), "unexpected directory")
+}
+export func test_signed_manifest_query_pacing_and_conditional(ctx) {
+    let key := run_path(ctx, "key"); write_file(key, "siteprobe-test-signing-key-material-32-bytes")
+    crawl(ctx, "queries", "signed", ["--max-pages", 2, "--query-policy", "sort", "--query-deny-param", "utm_source", "--signing-key-file", key], 0); let signed := run_path(ctx, "signed"); cli(["verify", signed, "--signing-key-file", key], 0)
+    require(includes(to_json(read_json(signed + "/links.json")), "/next?a=1&b=2"), "query policy")
+    write_file(signed + "/report.md", "tampered", true); require(includes(cli(["verify", signed, "--signing-key-file", key], 1).stderr, "manifest"), "tamper rejected")
+    mut manifest := read_json(signed + "/manifest.json"); manifest["digest_algorithm"] = "md5"; put_json(signed + "/manifest.json", manifest); require(includes(cli(["verify", signed], 1).stderr, "digest algorithm"), "algorithm validation")
+    reset(ctx, {"crawl_delay": 1}); crawl(ctx, "etag", "paced", ["--max-pages", 2, "--max-depth", 1, "--max-crawl-delay", 0.04], 0)
+    let times := state(ctx)["times"]; mut paced := false; for i in range(2, len(times)) {if times[i] - times[i - 1] >= 30 {paced = true}}; require(paced, "measured origin pacing")
+    let pacing := read_json(run_path(ctx, "paced") + "/run.json")["configuration"]["request_pacing"]; equal(1, pacing["robots_crawl_delay_seconds"], "robots delay"); equal(0.04, pacing["effective_delay_seconds"], "bounded delay")
+    reset(ctx, {}); crawl(ctx, "etag", "conditional", ["--max-pages", 2, "--max-depth", 1, "--baseline", run_path(ctx, "paced")], 0)
+    mut pages := rows(run_path(ctx, "conditional") + "/pages.jsonl"); require(len(pages) > 0, "conditional pages"); for page in pages {equal(true, page["not_modified"], "conditional reuse"); equal(304, page["response_status"], "conditional status")}
+}
+export func test_blocked_pages_do_not_exceed_budget(ctx) {crawl(ctx, "blocked-links", "run", ["--max-pages", 2], 0); equal(2, read_json(run_path(ctx, "run") + "/run.json")["counts"]["pages"], "blocked page budget")}
+export func test_redirect_cannot_bypass_robots(ctx) {crawl(ctx, "private-redirect", "run", ["--max-pages", 1], 0); require( ! includes(state(ctx)["paths"], "/private"), "robots redirect fetched"); let page := rows(run_path(ctx, "run") + "/pages.jsonl")[0]; equal(0, page["status"], "blocked redirect status"); require(includes(page["error"], "robots"), "blocked redirect evidence")}
+export func test_deterministic_pages_and_native_stderr(ctx) {for name in ["first", "second"] {crawl(ctx, "", name, ["--max-pages", 4, "--deterministic"], 0)}; equal(sha256_file(run_path(ctx, "first") + "/pages.jsonl"), sha256_file(run_path(ctx, "second") + "/pages.jsonl"), "deterministic page bytes"); let r := cli(["inspect", ctx["base"]], 2); equal("", r.stdout, "error stdout"); require(includes(r.stderr, "private network target blocked"), "error stderr")}
+export func test_unavailable_robots_fails_closed(ctx) {for status in [403, 503] {reset(ctx, {"robots_status": status}); let r := crawl(ctx, "", to_string(status), ["--retries", 0], 1); require(includes(r.stderr, "robots policy unavailable or denied"), "robots fail closed"); equal(["/robots.txt"], state(ctx)["paths"], "no page requests after denied robots"); require( ! path_exists(run_path(ctx, to_string(status))), "no output on denied robots")}}
+export func test_sitemap_queue_retains_fifty_unique_maps(ctx) {
+    reset(ctx, {"wide_sitemap": true}); crawl(ctx, "", "bounded", ["--max-pages", 1], 0)
+    mut expected := [ctx["base"] + "sitemap-index.xml"]; mut paths := []; for i in range(0, 49) {expected = push(expected, ctx["base"] + "map-" + to_string(i) + ".xml"); paths = push(paths, "/map-" + to_string(i) + ".xml")}
+    equal(sort(expected), read_json(run_path(ctx, "bounded") + "/sitemap.json")["sitemaps"], "unique eligible maps")
+    mut observed := []; for path in state(ctx)["paths"] {if starts_with(path, "/map-") {observed = push(observed, path)}}; equal(paths, observed, "first fifty map queue order")
+}
+export func test_crawl_fetches_configured_batch_concurrently(ctx) {crawl(ctx, "parallel-root", "parallel", ["--max-pages", 4, "--concurrency", 3, "--retries", 0, "--timeout", 5], 0); mut pages := rows(run_path(ctx, "parallel") + "/pages.jsonl"); equal(4, len(pages), "parallel batch count"); for page in pages {equal(200, page["status"], "three socket barrier")}}

@@ -1,0 +1,13 @@
+{
+  "errors": [],
+  "schema": "siteprobe.sitemap/v1",
+  "sitemaps": [
+    "http://127.0.0.1:56602/sitemap-index.xml",
+    "http://127.0.0.1:56602/sitemap.xml.gz"
+  ],
+  "urls": [
+    "http://127.0.0.1:56602/",
+    "http://127.0.0.1:56602/noindex",
+    "http://127.0.0.1:56602/orphan"
+  ]
+}

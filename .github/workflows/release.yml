@@ -29,9 +29,6 @@ jobs:
           ref: 2be1f04b89dbecd591ef1af0d68974c05586900e
           path: kujo
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: kujo
@@ -64,7 +61,7 @@ jobs:
       - name: Verify extracted source package
         shell: bash
         working-directory: siteprobe
-        run: python scripts/verify_release.py dist ../kujo/target/release/kujo${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: ../kujo/target/release/kujo${{ runner.os == 'Windows' && '.exe' || '' }} run scripts/verify_release.kujo -- dist ../kujo/target/release/kujo${{ runner.os == 'Windows' && '.exe' || '' }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}

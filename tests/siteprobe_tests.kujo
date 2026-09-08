@@ -1,10 +1,74 @@
-python := env("SITEPROBE_PYTHON")
-if python == "" {python = "python3"}
-result := spawn_process([python, "-X", "utf8", "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"], {"timeout_ms": 120000})
-if result.stdout != "" {print(trim_end(result.stdout))}
-if result.stderr != "" {print(trim_end(result.stderr))}
-if result.timed_out||result.cancelled||result.stdout_truncated||result.stderr_truncated {
-    eprint("SiteProbe test execution did not produce complete evidence")
-    exit(1)
+from tests.contract_tests import test_full_run_matches_oracle_and_signatures, test_artifacts_larger_than_eight_mib, test_untrusted_native_primitives_denied, test_large_jsonl_and_secondary_capabilities, test_native_crawl_without_process_or_proxy
+from tests.crawl_tests import test_full_fixture_contract_and_compare, test_inspect_and_doctor, test_rejects_credentials_and_bad_bounds, test_fuzz_redirects_retries_cycles_and_read_only, test_deterministic_semantic_rerun_and_output_budget, test_fail_on_and_cross_artifact_validation, test_validation_rejects_symbolic_link_artifacts, test_signed_manifest_query_pacing_and_conditional, test_blocked_pages_do_not_exceed_budget, test_redirect_cannot_bypass_robots, test_deterministic_pages_and_native_stderr, test_unavailable_robots_fails_closed, test_sitemap_queue_retains_fifty_unique_maps, test_crawl_fetches_configured_batch_concurrently
+from tests.fixture_server import fixture_start, fixture_request, fixture_stop
+from tests.support import includes, runtime, cleanup, put_json
+from tests.unit_tests import test_row_sort_preserves_order_and_ties, test_terminal_controls_are_not_emitted_in_diagnostics, test_nonfinite_bounds_rejected_before_network, test_manifest_size_rejected_before_read, test_manifest_cannot_certify_empty_run, test_atomic_publication_never_replaces_existing_directory, test_signing_key_shape_and_bounds, test_report_budget_and_terminal_controls, test_unknown_charset_and_url_controls, test_native_entrypoint_without_process_capability, test_external_sort_caps_descriptors_and_cleans_chunks, test_native_normalization_fuzz_matches_rejected_inputs, test_robots_comments_and_encoded_agents, test_percent_encoded_robots_rules, test_large_html_preserves_order, test_html_projection_matches_frozen_oracle, test_gzip_expansion_limit
+func main() {
+    create_dir(".siteprobe/verification")
+    env_set("KUJO_BIN", runtime())
+    let server := fixture_start({})
+    mut results := []
+    mut failed := 0
+    let selected := args()
+    let tests := [
+    ["test_row_sort_preserves_order_and_ties", test_row_sort_preserves_order_and_ties],
+    ["test_terminal_controls_are_not_emitted_in_diagnostics", test_terminal_controls_are_not_emitted_in_diagnostics],
+    ["test_nonfinite_bounds_rejected_before_network", test_nonfinite_bounds_rejected_before_network],
+    ["test_manifest_size_rejected_before_read", test_manifest_size_rejected_before_read],
+    ["test_manifest_cannot_certify_empty_run", test_manifest_cannot_certify_empty_run],
+    ["test_atomic_publication_never_replaces_existing_directory", test_atomic_publication_never_replaces_existing_directory],
+    ["test_signing_key_shape_and_bounds", test_signing_key_shape_and_bounds],
+    ["test_report_budget_and_terminal_controls", test_report_budget_and_terminal_controls],
+    ["test_unknown_charset_and_url_controls", test_unknown_charset_and_url_controls],
+    ["test_native_entrypoint_without_process_capability", test_native_entrypoint_without_process_capability],
+    ["test_external_sort_caps_descriptors_and_cleans_chunks", test_external_sort_caps_descriptors_and_cleans_chunks],
+    ["test_native_normalization_fuzz_matches_rejected_inputs", test_native_normalization_fuzz_matches_rejected_inputs],
+    ["test_robots_comments_and_encoded_agents", test_robots_comments_and_encoded_agents],
+    ["test_percent_encoded_robots_rules", test_percent_encoded_robots_rules],
+    ["test_large_html_preserves_order", test_large_html_preserves_order],
+    ["test_html_projection_matches_frozen_oracle", test_html_projection_matches_frozen_oracle],
+    ["test_gzip_expansion_limit", test_gzip_expansion_limit],
+    ["test_full_fixture_contract_and_compare", test_full_fixture_contract_and_compare],
+    ["test_inspect_and_doctor", test_inspect_and_doctor],
+    ["test_rejects_credentials_and_bad_bounds", test_rejects_credentials_and_bad_bounds],
+    ["test_fuzz_redirects_retries_cycles_and_read_only", test_fuzz_redirects_retries_cycles_and_read_only],
+    ["test_deterministic_semantic_rerun_and_output_budget", test_deterministic_semantic_rerun_and_output_budget],
+    ["test_fail_on_and_cross_artifact_validation", test_fail_on_and_cross_artifact_validation],
+    ["test_validation_rejects_symbolic_link_artifacts", test_validation_rejects_symbolic_link_artifacts],
+    ["test_signed_manifest_query_pacing_and_conditional", test_signed_manifest_query_pacing_and_conditional],
+    ["test_blocked_pages_do_not_exceed_budget", test_blocked_pages_do_not_exceed_budget],
+    ["test_redirect_cannot_bypass_robots", test_redirect_cannot_bypass_robots],
+    ["test_deterministic_pages_and_native_stderr", test_deterministic_pages_and_native_stderr],
+    ["test_unavailable_robots_fails_closed", test_unavailable_robots_fails_closed],
+    ["test_sitemap_queue_retains_fifty_unique_maps", test_sitemap_queue_retains_fifty_unique_maps],
+    ["test_crawl_fetches_configured_batch_concurrently", test_crawl_fetches_configured_batch_concurrently],
+    ["test_full_run_matches_oracle_and_signatures", test_full_run_matches_oracle_and_signatures],
+    ["test_artifacts_larger_than_eight_mib", test_artifacts_larger_than_eight_mib],
+    ["test_untrusted_native_primitives_denied", test_untrusted_native_primitives_denied],
+    ["test_large_jsonl_and_secondary_capabilities", test_large_jsonl_and_secondary_capabilities],
+    ["test_native_crawl_without_process_or_proxy", test_native_crawl_without_process_or_proxy]
+    ]
+    for entry in tests {
+        if len(selected) > 0&& ! includes(entry[0], selected[0]) {continue}
+        let directory := path_absolute(create_temp_dir(".siteprobe/verification", "test-"))
+        let ctx := {"dir": directory, "base": server["base"], "port": server["port"]}
+        let started := performance_now()
+        try {
+            fixture_request(server["port"], "reset", {})
+            entry[1](ctx)
+            cleanup(directory)
+            results = push(results, {"name": entry[0], "status": "passed", "milliseconds": performance_now() - started})
+            print("PASS " + entry[0])
+        } except err {
+            failed = failed + 1
+            results = push(results, {"name": entry[0], "status": "failed", "error": to_string(err), "evidence": directory})
+            eprint("FAIL " + entry[0] + ": " + to_string(err) + "; evidence " + directory)
+        }
+    }
+    fixture_stop(server)
+    if len(results) == 0 {eprint("No tests matched"); exit(2)}
+    put_json(".siteprobe/verification/native-tests.json", {"schema": "siteprobe.tests/v1", "tests": results, "failed": failed})
+    print(to_string(len(results)) + " native Kujo tests; " + to_string(failed) + " failed")
+    if failed > 0 {exit(1)}
 }
-exit(result.exitcode)
+main()

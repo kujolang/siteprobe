@@ -1,0 +1,67 @@
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check src/siteprobe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check src/siteprobe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint src/siteprobe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check scripts/validate.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check scripts/benchmark.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check scripts/release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check scripts/generate_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check scripts/validate.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check scripts/benchmark.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check scripts/release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check scripts/generate_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint src/main.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint scripts/validate.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint scripts/benchmark.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint scripts/release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint scripts/generate_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check examples/contentgraph.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check examples/contentgraph.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint examples/contentgraph.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check examples/eval.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check examples/eval.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint examples/eval.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check examples/runledger.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check examples/runledger.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint examples/runledger.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check examples/ci_baseline.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check examples/ci_baseline.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint examples/ci_baseline.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check tests/support.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check tests/support.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint tests/support.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check tests/fixture_server.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check tests/fixture_server.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint tests/fixture_server.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check tests/unit_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check tests/unit_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint tests/unit_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check tests/crawl_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check tests/crawl_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint tests/crawl_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check tests/contract_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check tests/contract_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint tests/contract_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check tests/native_probe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check tests/native_probe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint tests/native_probe.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo check scripts/verify_release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo format --check scripts/verify_release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo lint scripts/verify_release.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo run tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo package-install --manifest kujo.toml
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo package-install --manifest kujo.toml --frozen
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo package-publish --manifest kujo.toml
+PASS /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo run scripts/generate_docs.kujo -- /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/../kujo/target/release/kujo
+PASS git diff --check
+SiteProbe validation passed.

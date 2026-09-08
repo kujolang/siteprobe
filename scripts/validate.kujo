@@ -1,3 +1,11 @@
+func check_maintenance(directory) {
+    for name in list_dir(directory) {
+        let path := directory + "/" + name
+        if ends_with(name, ".py") {error("Maintenance code must be Kujo: " + path)}
+        if path_is_dir(path)&& ! path_is_symlink(path) {check_maintenance(path)}
+    }
+}
+
 func check_source(kujo, source) {
     if ends_with(source, ".py") {eprint("Production source must be Kujo: " + source); exit(1)}
     if ends_with(source, ".kujo") {
@@ -11,7 +19,7 @@ func check_source(kujo, source) {
 }
 
 func run_step(command, timeout_ms) {
-    let result := spawn_process(command, {"timeout_ms": timeout_ms, "max_output_bytes": 4194304})
+    let result := spawn_process(command, {"timeout_ms": timeout_ms, "max_output_bytes": 4194304, "env_deny": ["KUJO_SCRIPT_ARGS"]})
     create_dir(".siteprobe/verification")
     let receipt := ".siteprobe/verification/" + substring(sha256(to_json(command)), 0, 16)
     write_file(receipt + ".stdout.log", result.stdout, true)
@@ -45,8 +53,7 @@ func main() {
         exit(2)
     }
     kujo := to_string(argv[0])
-    python := env("SITEPROBE_PYTHON")
-    if python == "" {python = "python3"}
+    env_set("KUJO_BIN", path_absolute(kujo))
     version := trim(safe_read("VERSION"))
     manifest := parse_toml(safe_read("kujo.toml"))
     lock := parse_toml(safe_read("kujo.lock"))
@@ -59,7 +66,8 @@ func main() {
         print("KUJO_REVISION must be a 40-character commit pinned by validation and release workflows")
         exit(1)
     }
-    run_step([python, "-m", "py_compile", "tests/legacy/siteprobe.py", "tests/test_siteprobe.py", "tests/test_hardening.py", "tests/test_native_contracts.py", "scripts/benchmark_fixture.py", "scripts/verify_release.py"], 30000)
+    for directory in ["scripts", "tests"] {check_maintenance(directory)}
+    for schema in list_dir("schemas") {if ends_with(schema, ".json") {json_file_read("schemas/" + schema, 1048576)}}
     for source in list_dir("src") {check_source(kujo, source)}
     run_step([kujo, "check", "src/main.kujo"], 30000)
     run_step([kujo, "check", "scripts/validate.kujo"], 30000)
@@ -88,15 +96,12 @@ func main() {
         run_step([kujo, "format", "--check", file], 30000)
         run_step([kujo, "lint", file], 30000)
     }
+    for source in ["tests/support.kujo", "tests/fixture_server.kujo", "tests/unit_tests.kujo", "tests/crawl_tests.kujo", "tests/contract_tests.kujo", "tests/native_probe.kujo", "scripts/verify_release.kujo"] {for operation in ["check", "format", "lint"] {if operation == "format" {run_step([kujo, operation, "--check", source], 30000)} else {run_step([kujo, operation, source], 30000)}}}
     run_step([kujo, "run", "tests/siteprobe_tests.kujo"], 120000)
     run_step([kujo, "package-install", "--manifest", "kujo.toml"], 30000)
     run_step([kujo, "package-install", "--manifest", "kujo.toml", "--frozen"], 30000)
     run_step([kujo, "package-publish", "--manifest", "kujo.toml"], 30000)
     run_step([kujo, "run", "scripts/generate_docs.kujo", "--", kujo], 120000)
-    run_quiet([python, "-m", "json.tool", "schemas/run.schema.json"], 30000)
-    run_quiet([python, "-m", "json.tool", "schemas/page.schema.json"], 30000)
-    run_quiet([python, "-m", "json.tool", "schemas/findings.schema.json"], 30000)
-    run_quiet([python, "-m", "json.tool", "schemas/manifest.schema.json"], 30000)
     run_step(["git", "diff", "--check"], 30000)
     print("SiteProbe validation passed.")
 }

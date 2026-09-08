@@ -1,0 +1,13 @@
+{
+  "schema": "siteprobe.links/v1",
+  "links": [
+    {"internal": true, "rel": "", "source": "http://127.0.0.1:56602/", "target": "http://127.0.0.1:56602/broken", "text": "Broken"},
+    {"internal": true, "rel": "", "source": "http://127.0.0.1:56602/", "target": "http://127.0.0.1:56602/duplicate", "text": "Duplicate"},
+    {"internal": true, "rel": "", "source": "http://127.0.0.1:56602/", "target": "http://127.0.0.1:56602/redirect", "text": "Redirect"},
+    {"internal": false, "rel": "", "source": "http://127.0.0.1:56602/", "target": "https://example.net/", "text": "External"},
+    {"internal": true, "rel": "", "source": "http://127.0.0.1:56602/duplicate", "target": "http://127.0.0.1:56602/", "text": "Cycle"},
+    {"internal": true, "rel": "", "source": "http://127.0.0.1:56602/duplicate", "target": "http://127.0.0.1:56602/noindex", "text": "Noindex"},
+    {"internal": true, "rel": "", "source": "http://127.0.0.1:56602/redirect", "target": "http://127.0.0.1:56602/", "text": "Cycle"},
+    {"internal": true, "rel": "", "source": "http://127.0.0.1:56602/redirect", "target": "http://127.0.0.1:56602/noindex", "text": "Noindex"}
+  ]
+}

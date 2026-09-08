@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "from": "http://127.0.0.1:56602/redirect",
+      "status": 302,
+      "to": "http://127.0.0.1:56602/duplicate"
+    }
+  ],
+  "schema": "siteprobe.redirects/v1"
+}

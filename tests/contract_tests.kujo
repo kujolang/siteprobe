@@ -1,0 +1,71 @@
+from tests.support import includes, equal, require, runtime, process, cli, read_json, put_json, rows, repeat_text
+export func test_full_run_matches_oracle_and_signatures(ctx) {
+    let provenance := read_json("tests/fixtures/oracle-provenance.json")
+    for name in keys(provenance["files"]) {equal(provenance["files"][name], sha256_file("tests/fixtures/" + name), "immutable oracle " + name)}
+    let original := "tests/fixtures/same"; let key := path_absolute("tests/fixtures/oracle-key.txt")
+    cli(["validate", original], 0); cli(["verify", original, "--signing-key-file", key], 0)
+    let native := ctx["dir"] + "/same"; let metrics := ctx["dir"] + "/metrics.json"; write_file(metrics, "previous measurement")
+    cli(["crawl", ctx["base"], "--out", native, "--max-pages", 20, "--max-depth", 3, "--deterministic", "--allow-private-network", "--signing-key-file", key, "--metrics-file", metrics], 0)
+    equal("siteprobe.process-metrics/v1", read_json(metrics)["schema"], "metrics replacement")
+    # Rebase only dynamic fixture URLs and the documented URL-derived finding IDs.
+    mut substitutions := {}
+    let robots_text := replace(read_json("tests/fixtures/routes.json")["/robots.txt"][2], "{{BASE}}", ctx["base"])
+    substitutions[read_json(original + "/robots.json")["text_fingerprint"]] = sha256(lower(trim(regex_replace(robots_text, "\\s+", " "))))
+    for finding in read_json(original + "/findings.json")["findings"] {
+        let target := replace(finding["target"], provenance["base"], ctx["base"])
+        substitutions[finding["id"]] = "SP-" + upper(substring(sha256(finding["check"] + decode_text_lossy(bytes([0]), "utf-8", 1) + target), 0, 16))
+    }
+    for name in ["run.json", "site.json", "links.json", "redirects.json", "metadata.json", "structured-data.json", "sitemap.json", "robots.json", "findings.json", "pages.jsonl", "report.md"] {
+        mut expected := replace(read_file(original + "/" + name), substring(provenance["base"], 0, len(provenance["base"]) - 1), substring(ctx["base"], 0, len(ctx["base"]) - 1))
+        for id in keys(substitutions) {expected = replace(expected, id, substitutions[id])}
+        if ends_with(name, ".json") {equal(parse_json(expected), read_json(native + "/" + name), "full oracle " + name)}
+        else if name == "pages.jsonl" {mut expected_rows := []; for line in split(trim(expected), "\n") {expected_rows = push(expected_rows, parse_json(line))}; equal(expected_rows, rows(native + "/" + name), "full oracle pages")}
+        else {equal(expected, read_file(native + "/" + name), "full oracle report")}
+    }
+    cli(["validate", native], 0); cli(["verify", native, "--signing-key-file", key], 0)
+    let manifest := read_json(native + "/manifest.json")
+    equal(hmac_sha256(io_read_bytes(key, 65536), to_json(manifest["artifacts"])), manifest["signature"]["value"], "independent manifest signature contract")
+}
+export func test_artifacts_larger_than_eight_mib(ctx) {
+    let run := ctx["dir"] + "/large"; cli(["crawl", ctx["base"], "--out", run, "--max-pages", 1, "--allow-private-network", "--deterministic"], 0)
+    mut page := rows(run + "/pages.jsonl")[0]; page["title"] = repeat_text("x", 12000); delete_file(run + "/pages.jsonl")
+    for i in range(0, 800) {page["url"] = ctx["base"] + to_string(i); page["normalized_url"] = page["url"]; jsonl_write(run + "/pages.jsonl", [page], true, 268435456)}
+    let finding_spool := ctx["dir"] + "/findings.jsonl"; let link_spool := ctx["dir"] + "/links.jsonl"
+    mut batch := []
+    for i in range(0, 20000) {
+        let number := to_string(i)
+        batch = push(batch, {"id": "SP-" + substring("0000000000000000" + number, len(number), 16 + len(number)), "check": "fixture", "target": ctx["base"], "severity": "warning", "evidence": {}})
+        if len(batch) == 64 {jsonl_write(finding_spool, batch, true, 268435456); batch = []}
+    }
+    if len(batch) > 0 {jsonl_write(finding_spool, batch, true, 268435456)}
+    delete_file(run + "/findings.json"); jsonl_wrap_array(finding_spool, run + "/findings.json", "findings", {"schema":"siteprobe.findings/v1"}, 268435456)
+    let link_text := repeat_text("x", 200); batch = []
+    for i in range(0, 10000) {
+        batch = push(batch, {"source":ctx["base"], "target":ctx["base"] + to_string(i), "text":link_text, "rel":"", "internal":true})
+        if len(batch) == 64 {jsonl_write(link_spool, batch, true, 268435456); batch = []}
+    }
+    if len(batch) > 0 {jsonl_write(link_spool, batch, true, 268435456)}
+    delete_file(run + "/links.json"); jsonl_wrap_array(link_spool, run + "/links.json", "links", {"schema":"siteprobe.links/v1"}, 268435456)
+    mut data := read_json(run + "/run.json"); mut counts := data["counts"]; counts["pages"] = 800; counts["findings"] = 20000; counts["findings_by_severity"] = {"warning": 20000}; counts["links"] = 10000; data["counts"] = counts; put_json(run + "/run.json", data); delete_file(run + "/manifest.json")
+    require(file_size(run + "/pages.jsonl") > 8388608, "large artifact size"); cli(["validate", run], 0); equal([], parse_json(cli(["compare", run, run], 0).stdout)["changes"], "large comparison")
+    let output := cli(["links", run], 0).stdout; require(byte_length(output) > 1048576, "complete large stdout"); let actual_links := parse_json(output)["links"]; equal(10000, len(actual_links), "all links returned"); for i in range(0, 10000) {if actual_links[i] != {"source":ctx["base"], "target":ctx["base"] + to_string(i), "text":link_text, "rel":"", "internal":true} {error("large stdout link mismatch " + to_string(i))}}
+    put_json(".siteprobe/verification/native-large-artifacts.json", {"pages_jsonl_bytes": file_size(run + "/pages.jsonl"), "pages": 800, "findings": 20000, "links": 10000, "links_stdout_bytes": byte_length(output), "validate": "passed", "compare": "passed", "complete_stdout": "passed"})
+}
+export func test_untrusted_native_primitives_denied(ctx) {
+    let cases := [["http_destination_check(\"https://example.invalid\")", "network"], ["http_get_file_response(\"https://example.invalid\", \"never\", {})", "network"], ["json_file_read(\"never\", 100)", "filesystem"], ["xml_file_select(\"never\", {})", "filesystem"], ["regular_file_digest(\"never\", 100)", "filesystem"], ["jsonl_wrap_array(\"never\", \"never\", \"rows\", {}, 100)", "filesystem"], ["publish_directory_noreplace(\"never\", \"never\")", "filesystem"], ["rate_limit_wait(channel(), 0)", "clock"]]
+    let path := ctx["dir"] + "/capability.kujo"
+    for pair in cases {write_file(path, pair[0] + "\n", true); let result := spawn_process([runtime(), "run", path, "--untrusted"], {"timeout_ms": 10000}); require(result.exitcode != 0&&includes(lower(result.stderr), "denied")&&includes(lower(result.stderr), pair[1]), "capability denial " + pair[0])}
+}
+export func test_large_jsonl_and_secondary_capabilities(ctx) {
+    let source := ctx["dir"] + "/input.jsonl"; let destination := ctx["dir"] + "/output.json"; let script := ctx["dir"] + "/operation.kujo"; let payload := repeat_text("x", 9437184)
+    jsonl_write(source, [{"payload": payload}], false, 16777216); write_file(script, "jsonl_wrap_array(args()[0], args()[1], \"rows\", {\"schema\":\"fixture/v1\"}, 16777216)\n")
+    let command := [runtime(), "run", script, "--", source, destination]; process(command, 0, {"timeout_ms": 10000}); equal({"schema": "fixture/v1", "rows": [{"payload": payload}]}, read_json(destination), "large JSONL wrap")
+    let digest := sha256_file(destination); let collision := spawn_process(command, {"timeout_ms": 10000}); require(collision.exitcode != 0, "no-replace JSONL wrap"); equal(digest, sha256_file(destination), "collision preserved bytes")
+    for spec in [["http_get_file_response(\"https://example.invalid\", \"never\", {})", "--allow-net-client", "filesystem-write"], ["jsonl_wrap_array(\"never\", \"never\", \"rows\", {}, 100)", "--allow-fs-write", "filesystem-read"], ["publish_directory_noreplace(\"never\", \"never\")", "--allow-fs-write", "filesystem-delete"]] {write_file(script, spec[0] + "\n", true); let r := spawn_process([runtime(), "run", script, spec[1]], {"timeout_ms": 10000}); require(r.exitcode != 0&&includes(r.stderr, spec[2]), "secondary capability " + spec[2])}
+}
+export func test_native_crawl_without_process_or_proxy(ctx) {
+    let run := ctx["dir"] + "/native"
+    let command := [runtime(), "run", "src/main.kujo", "--untrusted", "--allow-fs-read", "--allow-fs-write", "--allow-fs-delete", "--allow-env-read", "--allow-net-client", "--allow-clock", "--", "crawl", ctx["base"], "--out", run, "--max-pages", "1", "--allow-private-network", "--json"]
+    mut environment := {"KUJO_ALLOW_PRIVATE_NETWORK_DESTINATIONS": "1", "NO_PROXY": "", "no_proxy": ""}; for key in ["HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"] {environment[key] = "http://127.0.0.1:1"}
+    let r := process(command, 0, {"timeout_ms": 10000, "env": environment}); equal(1, parse_json(r.stdout)["counts"]["pages"], "restricted crawl"); equal(200, rows(run + "/pages.jsonl")[0]["status"], "proxy-independent native fetch")
+}

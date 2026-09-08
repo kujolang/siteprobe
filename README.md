@@ -25,7 +25,6 @@ information system.
 
 - The Kujo runtime revision pinned in [`KUJO_REVISION`](KUJO_REVISION), including
   the bounded web-data primitives used by this native implementation.
-- Python 3.10+ is required only for repository tests and fixture benchmarks.
 
 Set `KUJO_BIN` when the runtime is not at `../kujo/target/release/kujo`.
 
@@ -147,11 +146,12 @@ measured cost of copying captured environments across frequent module calls.
 Kujo owns crawl policy, per-hop robots checks, retries, extraction, analysis,
 comparison, manifests, reporting, and publication. Rust runtime primitives provide
 bounded I/O, HTTP/DNS, HTML tokenization, URL parsing, XML projection, cryptography,
-and scheduling mechanisms. No product command starts Python or another process.
+and scheduling mechanisms.
 
-`tests/legacy/siteprobe.py` is a frozen compatibility oracle, never a runtime
-fallback. The native migration and its measured verification evidence are recorded
-in [the repository audit](docs/audits/repository-hardening.md).
+`tests/fixtures/` preserves hash-verified compatibility snapshots and signed runs
+from the original implementation. The test runner, loopback fixture server,
+benchmark and package verifier are Kujo programs. See the [maintenance migration
+audit](docs/audits/kujo-maintenance-2026-09-08.md) for coverage and provenance.
 
 ## Development
 
@@ -161,14 +161,20 @@ ${KUJO_BIN:-../kujo/target/release/kujo} run scripts/benchmark.kujo -- --pages 1
 ${KUJO_BIN:-../kujo/target/release/kujo} run scripts/generate_docs.kujo -- ${KUJO_BIN:-../kujo/target/release/kujo}
 ```
 
-The validation gate checks the Python test fixtures and frozen oracle, runs the full
-adversarial fixture suite through Kujo, checks and lints Kujo sources, verifies
+Run a selected test by passing part of its name:
+
+```bash
+${KUJO_BIN:-../kujo/target/release/kujo} run tests/siteprobe_tests.kujo -- signatures
+```
+
+The validation gate checks the frozen compatibility evidence, runs all 36 native
+adversarial tests, checks and lints Kujo sources, verifies
 Kujo formatting, parses every JSON Schema, and checks the Git diff. CI builds
 Kujo from the revision pinned in `KUJO_REVISION` and runs the same gate on
 Linux, macOS, and Windows. Linux also requires a complete 10,000-page native
 crawl with HTTP 200 results at concurrency 1, 4, 8 and 16. CI preserves timing,
 RSS and verification logs as artifacts; timing is not a flaky pass/fail threshold.
-See the historical Python [10,000-page baseline](docs/benchmark-10000.json),
+See the historical [10,000-page baseline](docs/benchmark-10000.json),
 the native [audit measurements](docs/audits/repository-hardening.md),
 the [Kujo API reference](docs/generated/kujo-api.md), and
 the [artifact contract reference](docs/generated/artifact-contracts.md).

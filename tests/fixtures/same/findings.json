@@ -1,0 +1,108 @@
+{
+  "findings": [
+    {
+      "check": "broken-url",
+      "evidence": {
+        "error": "HTTP 404",
+        "status": 404
+      },
+      "id": "SP-B69E31E5B9075636",
+      "severity": "error",
+      "target": "http://127.0.0.1:56602/broken"
+    },
+    {
+      "check": "not-indexable",
+      "evidence": {
+        "directives": [
+          "noindex"
+        ]
+      },
+      "id": "SP-AE930604B90352F5",
+      "severity": "info",
+      "target": "http://127.0.0.1:56602/noindex"
+    },
+    {
+      "check": "duplicate-content",
+      "evidence": {
+        "urls": [
+          "http://127.0.0.1:56602/duplicate",
+          "http://127.0.0.1:56602/redirect"
+        ],
+        "value_fingerprint": "c90c5a8b092da2ec6e0618e7c986e89ce30c4f2c9da0cfe0a0b214666920f074"
+      },
+      "id": "SP-B64DE5C79FB8B7A1",
+      "severity": "warning",
+      "target": "http://127.0.0.1:56602/duplicate"
+    },
+    {
+      "check": "duplicate-description",
+      "evidence": {
+        "urls": [
+          "http://127.0.0.1:56602/",
+          "http://127.0.0.1:56602/duplicate",
+          "http://127.0.0.1:56602/redirect"
+        ],
+        "value_fingerprint": "5f7c4531986dc82a3401f4d39d0f460e31b16b1377d8d0f3fb75861fbeea4ec3"
+      },
+      "id": "SP-93C445F1DCA3ED63",
+      "severity": "warning",
+      "target": "http://127.0.0.1:56602/"
+    },
+    {
+      "check": "duplicate-title",
+      "evidence": {
+        "urls": [
+          "http://127.0.0.1:56602/",
+          "http://127.0.0.1:56602/duplicate",
+          "http://127.0.0.1:56602/redirect"
+        ],
+        "value_fingerprint": "4ea140588150773ce3aace786aeef7f4049ce100fa649c94fbbddb960f1da942"
+      },
+      "id": "SP-24C98D8538707D4C",
+      "severity": "warning",
+      "target": "http://127.0.0.1:56602/"
+    },
+    {
+      "check": "invalid-structured-data",
+      "evidence": {},
+      "id": "SP-56AC3B0106F1646E",
+      "severity": "warning",
+      "target": "http://127.0.0.1:56602/duplicate"
+    },
+    {
+      "check": "invalid-structured-data",
+      "evidence": {},
+      "id": "SP-A121C1E2F3D0D562",
+      "severity": "warning",
+      "target": "http://127.0.0.1:56602/redirect"
+    },
+    {
+      "check": "missing-description",
+      "evidence": {},
+      "id": "SP-90B9F397E740C55A",
+      "severity": "warning",
+      "target": "http://127.0.0.1:56602/noindex"
+    },
+    {
+      "check": "missing-image-alt",
+      "evidence": {
+        "count": 1
+      },
+      "id": "SP-8C85571E8803BDB2",
+      "severity": "warning",
+      "target": "http://127.0.0.1:56602/"
+    },
+    {
+      "check": "orphan-candidate",
+      "evidence": {
+        "crawled": false,
+        "incoming_links": 0,
+        "sitemap_member": true
+      },
+      "id": "SP-2B09E9E692D29967",
+      "severity": "warning",
+      "target": "http://127.0.0.1:56602/orphan"
+    }
+  ],
+  "schema": "siteprobe.findings/v1"
+}

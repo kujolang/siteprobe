@@ -1,0 +1,12 @@
+[KUJOVM001] [vm] Runtime Error: len() requires an array, dict, bytes, set, queue, stack, or string
+  --> 0:0
+
+Call stack:
+  0 at check_maintenance
+  1 at check_maintenance
+  2 at check_maintenance
+  3 at check_maintenance
+  4 at check_maintenance
+  5 at check_maintenance
+  6 at main
+

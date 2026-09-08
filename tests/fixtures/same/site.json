@@ -1,0 +1,12 @@
+{
+  "crawlable_pages": 4,
+  "indexable_pages": 3,
+  "origin": "http://127.0.0.1:56602",
+  "robots_url": "http://127.0.0.1:56602/robots.txt",
+  "schema": "siteprobe.site/v1",
+  "sitemaps": [
+    "http://127.0.0.1:56602/sitemap-index.xml",
+    "http://127.0.0.1:56602/sitemap.xml.gz"
+  ],
+  "target": "http://127.0.0.1:56602/"
+}

@@ -5,7 +5,6 @@ if (-not (Test-Path -PathType Leaf $KujoRuntime)) {
     Write-Error "SiteProbe validation: Kujo runtime not found. Set KUJO_BIN."
     exit 2
 }
-if (-not $env:SITEPROBE_PYTHON) { $env:SITEPROBE_PYTHON = (Get-Command python -ErrorAction Stop).Source }
 Push-Location $Root
 try { & $KujoRuntime run scripts/validate.kujo -- $KujoRuntime; exit $LASTEXITCODE }
 finally { Pop-Location }

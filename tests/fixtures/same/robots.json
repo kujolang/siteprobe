@@ -1,0 +1,11 @@
+{
+  "error": "",
+  "schema": "siteprobe.robots/v1",
+  "sitemaps": [
+    "http://127.0.0.1:56602/sitemap-index.xml",
+    "http://127.0.0.1:56602/sitemap.xml.gz"
+  ],
+  "status": 200,
+  "text_fingerprint": "65a65e05432db439d994ddccdf4aff02e1ecab58dadec48451acfff890ede0c4",
+  "url": "http://127.0.0.1:56602/robots.txt"
+}

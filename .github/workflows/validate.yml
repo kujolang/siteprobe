@@ -21,9 +21,6 @@ jobs:
           ref: 2be1f04b89dbecd591ef1af0d68974c05586900e
           path: kujo
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: kujo
@@ -47,7 +44,7 @@ jobs:
         working-directory: siteprobe
         env:
           KUJO_BIN: ${{ github.workspace }}/kujo/target/release/kujo
-        run: python scripts/benchmark_fixture.py --pages 10000 --concurrency-levels 1,4,8,16 --output .siteprobe/verification/native-concurrency-10000.json
+        run: ../kujo/target/release/kujo run scripts/benchmark.kujo -- --pages 10000 --concurrency-levels 1,4,8,16 --output .siteprobe/verification/native-concurrency-10000.json
 
       - name: Preserve verification evidence
         if: always()

@@ -1,0 +1,26 @@
+{
+  "source_commit": "71a2071b60174cf755084e167ccc392710a104b8",
+  "oracle_path": "tests/legacy/siteprobe.py",
+  "oracle_sha256": "a388dd1cec12c86fb29ec93d02c528aedc941e787b0eaa60c1f42fde857e129a",
+  "base": "http://127.0.0.1:56602/",
+  "normalization": "Only replace fixture origin and its documented SHA-256 finding IDs for live dynamic-port comparisons. Original signed run remains immutable and is independently verified.",
+  "files": {
+    "report-oracle.json": "2ff1258eefdb332333ee09b8a94863202b0e3b5e72484b739d6884e3164bc005",
+    "oracle-key.txt": "4df8faf4da29fd23a02ccf5c67066cfe8a914d52d01052a69738218a7a57f08e",
+    "malformed-urls.json": "76a2a051729234b6492fa9943b528cc845a3cda8b7a893b01644504cf85e5bc9",
+    "routes.json": "d9c3ee17ce5e954c6203152e747bb00ee6761cb0722993644109bed0ff86d678",
+    "html-oracle.json": "1ef968818c094cf72e8b828a79ab4d816819e3874b642101d10e170f00be5521",
+    "same/redirects.json": "aac51b57715d19b01271e6326bbf7cb66dabcf497616c8a455b5ca0d44e3750f",
+    "same/site.json": "a57234d5bfbb5cd69086618a2221895b3919fb03472c96755a232aeeb4871d0b",
+    "same/report.md": "e54977d465c749d09fafcb50f3acdc34fbde360e125388b685ca4bbe66024d9a",
+    "same/links.json": "a8c14c80c7cc390d708bad5d29562261088ddaac4639089ca700d3ba0e1036ce",
+    "same/structured-data.json": "c2681552f80fcf8f7e26878100ce3e0abd482ba17926624359f60d1d62d1e504",
+    "same/metadata.json": "e70d91912bdd185d9966973bf42e34be6511448cd0db11fc02a0dd951a9a668b",
+    "same/pages.jsonl": "334f6ce4b5e6bcfde36beef1f32aa0fb0cc446e6aa49cc2986315bc676f04662",
+    "same/findings.json": "a7cc3a5cdc6efb36e43e545eb5c54446168be75d99fff26d180d73f9d81314ff",
+    "same/manifest.json": "380497f0b6439ba27a10f84d211e69229b683ddc55e5df61fa6f4d9697482b72",
+    "same/sitemap.json": "e45497227b21bf43a870f5e92aab496859c3b760c77a4c88364d9e4907e230d1",
+    "same/run.json": "ef1e9254eff1dd5a64e73d08ac486bb77f108bae19bb24fd4fe8f288499d1bb1",
+    "same/robots.json": "b0421b384e223014ca4bf98e55b81adc5119a9e0c20be16d599ec36be7d64d0d"
+  }
+}

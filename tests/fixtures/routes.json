@@ -1,0 +1,72 @@
+{
+  "/robots.txt": [
+    200,
+    "text/plain",
+    "User-agent: *\nDisallow: /private\nSitemap: {{BASE}}sitemap-index.xml\n"
+  ],
+  "/sitemap-index.xml": [
+    200,
+    "application/xml",
+    "<sitemapindex><sitemap><loc>{{BASE}}sitemap.xml.gz</loc></sitemap></sitemapindex>"
+  ],
+  "/sitemap.xml": [
+    200,
+    "application/xml",
+    "<urlset><url><loc>{{BASE}}</loc></url><url><loc>{{BASE}}orphan</loc></url><url><loc>{{BASE}}noindex</loc></url></urlset>"
+  ],
+  "/": [
+    200,
+    "text/html",
+    "<html lang=\"en\"><head><title>Home</title><meta name=\"description\" content=\"Shared description\"><link rel=\"canonical\" href=\"{{BASE}}\"><link rel=\"alternate\" hreflang=\"fr\" href=\"/fr\"><meta http-equiv=\"refresh\" content=\"30; url=/fresh\"><meta property=\"og:title\" content=\"Home\"><script type=\"application/ld+json\">{\"@type\":\"WebSite\"}</script></head><body><h1>Home</h1><a href=\"/duplicate\">Duplicate</a><a href=\"/redirect\">Redirect</a><a href=\"/broken\">Broken</a><a href=\"https://example.net/\">External</a><img src=\"/image.png\"></body></html>"
+  ],
+  "/duplicate": [
+    200,
+    "text/html",
+    "<html><head><title>Home</title><meta name=\"description\" content=\"Shared description\"></head><body><h1>Other</h1><a href=\"/noindex\">Noindex</a><a href=\"/\">Cycle</a><script type=\"application/ld+json\">{\"bad\":</script></body></html>"
+  ],
+  "/noindex": [
+    200,
+    "text/html",
+    "<html><head><title>Noindex</title><meta name=\"robots\" content=\"noindex\"></head><body>Hidden</body></html>"
+  ],
+  "/orphan": [
+    200,
+    "text/html",
+    "<html><head><title>Orphan</title></head><body>Orphan content</body></html>"
+  ],
+  "/private": [
+    200,
+    "text/html",
+    "<html><head><title>Private</title></head><body>Private</body></html>"
+  ],
+  "/image.png": [
+    200,
+    "image/png",
+    "not-really-an-image"
+  ],
+  "/nested": [
+    200,
+    "text/html",
+    "<title>Nested <span>title</span></title><h1>Useful <em>heading</em></h1>"
+  ],
+  "/many": [
+    200,
+    "text/html",
+    "<title>Many</title><a href=\"/p/0\">0</a><a href=\"/p/1\">1</a><a href=\"/p/2\">2</a><a href=\"/p/3\">3</a><a href=\"/p/4\">4</a>"
+  ],
+  "/queries": [
+    200,
+    "text/html",
+    "<title>Queries</title><a href=\"/next?utm_source=x&b=2&a=1\">next</a>"
+  ],
+  "/etag": [
+    200,
+    "text/html",
+    "<title>ETag</title><a href=\"/etag-next\">next</a>"
+  ],
+  "/etag-next": [
+    200,
+    "text/html",
+    "<title>ETag next</title>"
+  ]
+}
