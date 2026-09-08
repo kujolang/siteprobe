@@ -50,3 +50,10 @@ export func test_gzip_expansion_limit(ctx) {
     let script := ctx["dir"] + "/limit.kujo"; write_file(script, "xml_file_select(args()[0], {\"compression\":\"gzip\",\"max_bytes\":1024,\"max_matches\":10,\"element\":\"loc\"})\n")
     let result := spawn_process([runtime(), "run", script, "--", path], {"timeout_ms": 10000}); require(result.exitcode != 0&&includes(lower(result.stderr), "exceed"), "native gzip expansion bounded")
 }
+
+export func test_benchmark_fixture_bounds_request_history(ctx) {
+    let result := process([runtime(), "run", "scripts/benchmark.kujo", "--", "--pages", "3", "--concurrency-levels", "1"], 0, {"timeout_ms":30000})
+    let report := parse_json(result.stdout)
+    equal("siteprobe.benchmark/v2", report["schema"], "native benchmark schema")
+    equal(3, report["results"][0]["successful_pages"], "native benchmark completion and bounded-history assertions")
+}

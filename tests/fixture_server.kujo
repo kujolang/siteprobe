@@ -28,6 +28,7 @@ func fixture_loop(listener, base, initial) {
     mut paths := []
     mut methods := []
     mut times := []
+    mut request_count := 0
     mut flaky := 0
     mut pending := []
     let pages := get_default(initial, "pages", 0)
@@ -54,13 +55,14 @@ func fixture_loop(listener, base, initial) {
         if starts_with(path, "/__fixture/") {
             if path == "/__fixture/reset" {
                 for line in lines {if starts_with(line, "X-Fixture-Config: ") {cfg = parse_json(substring(line, 18, len(line)))}}
-                paths = []; methods = []; times = []; flaky = 0
+                paths = []; methods = []; times = []; flaky = 0; request_count = 0
             }
-            fixture_reply(conn, 200, to_json({"paths": paths, "methods": methods, "times": times}), "Content-Type: application/json\r\n")
+            fixture_reply(conn, 200, to_json({"paths": paths, "methods": methods, "times": times, "request_count": request_count}), "Content-Type: application/json\r\n")
             if path == "/__fixture/stop" {break}
             continue
         }
-        paths = push(paths, path); methods = push(methods, parts[0]); times = push(times, performance_now())
+        request_count = request_count + 1
+        if pages == 0 {paths = push(paths, path); methods = push(methods, parts[0]); times = push(times, performance_now())}
         mut status := 404
         mut body := "<title>Not found</title>"
         mut headers := "Content-Type: text/html\r\n"

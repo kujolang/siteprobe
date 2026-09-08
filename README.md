@@ -167,7 +167,7 @@ Run a selected test by passing part of its name:
 ${KUJO_BIN:-../kujo/target/release/kujo} run tests/siteprobe_tests.kujo -- signatures
 ```
 
-The validation gate checks the frozen compatibility evidence, runs all 36 native
+The validation gate checks the frozen compatibility evidence, runs all 37 native
 adversarial tests, checks and lints Kujo sources, verifies
 Kujo formatting, parses every JSON Schema, and checks the Git diff. CI builds
 Kujo from the revision pinned in `KUJO_REVISION` and runs the same gate on

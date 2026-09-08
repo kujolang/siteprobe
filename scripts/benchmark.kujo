@@ -1,4 +1,4 @@
-from tests.fixture_server import fixture_start, fixture_stop
+from tests.fixture_server import fixture_request, fixture_start, fixture_stop
 from tests.support import includes, runtime, process, read_json, cleanup, require, equal
 func benchmark_platform() {if env("OS") == "Windows_NT" {return "nt"}; return trim(process(["uname", "-s"], 0, {"timeout_ms": 10000}).stdout)}
 func main() {
@@ -26,6 +26,9 @@ func main() {
             mut offset := 0; mut successful := 0
             loop {let block := jsonl_read_chunk(run + "/pages.jsonl", offset, 64, 268435456); for page in block["rows"] {if page["status"] == 200 {successful = successful + 1}}; if block["eof"] {break}; offset = block["offset"]}
             equal(pages, successful, "successful benchmark fetches")
+            let server_state := fixture_request(server["port"], "state", {})
+            equal([], server_state["paths"], "bounded benchmark history")
+            equal([], server_state["times"], "bounded benchmark timestamps")
             mut measurement := read_json(metrics); measurement["concurrency"] = concurrency; measurement["pages"] = pages; measurement["successful_pages"] = successful
             mut size := 0; for name in list_dir(run) {if path_is_file(run + "/" + name) {size = size + file_size(run + "/" + name)}}
             measurement["output_bytes"] = size; measurement["pages_per_second"] = round(pages / measurement["wall_seconds"] * 1000) / 1000

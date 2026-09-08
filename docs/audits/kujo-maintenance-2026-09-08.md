@@ -14,7 +14,7 @@ and product source remain unchanged, including the established doctor JSON field
 
 | Finding | Action | Evidence |
 | --- | --- | --- |
-| Maintenance runner delegated to unittest | 36 native tests in unit/crawl/contract modules with concise receipts and selective execution | `tests/siteprobe_tests.kujo`, `tests/support.kujo` |
+| Maintenance runner delegated to unittest | 37 native tests in unit/crawl/contract modules (36 preserved plus bounded fixture history) with concise receipts and selective execution | `tests/siteprobe_tests.kujo`, `tests/support.kujo` |
 | Fixture server and benchmark required another interpreter | Loopback-only Kujo TCP task; exact routes, gzip, retries, ETags, pacing and three-socket concurrency barrier | `tests/fixture_server.kujo`, `scripts/benchmark.kujo` |
 | Compatibility depended on executing the old implementation | Preserve immutable signed run, 13 parser projections, report and 100 seeded malformed URLs from the original oracle | `tests/fixtures/oracle-provenance.json` |
 | Packaging depended on host ZIP libraries | Native bounded/safe unzip, digest checks and extracted doctor/version commands | `scripts/verify_release.kujo` |
@@ -84,3 +84,10 @@ can therefore see its parent's arguments. SiteProbe now denies that variable whe
 spawning validation steps. The runtime should clear or explicitly override it on
 all script launches and regression-test parent/child argument isolation. No runtime
 change is required for this repository's fix, and no sibling repository was edited.
+
+The full 10,000-page migration attempt exposed request-history accumulation in
+the new benchmark fixture: after 17,421 requests the fixture task used about 97%
+of one CPU while the crawler waited. The incomplete attempt was stopped and is
+not qualification evidence. Benchmark mode now keeps only a scalar request count;
+small contract fixtures retain their necessary request evidence. A regression test
+and benchmark assertion lock in empty path/timestamp history in benchmark mode.
