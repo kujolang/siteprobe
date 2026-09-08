@@ -1,3 +1,11 @@
+# Rust canonicalization returns Windows verbatim paths, which reject slash suffixes.
+# Maintenance fixtures use ordinary absolute paths, as the historical harness did.
+export func fixture_path(path) {
+    let absolute := path_absolute(path)
+    if starts_with(absolute, "\\\\?\\UNC\\") {return "\\\\" + substring(absolute, 8, len(absolute))}
+    if starts_with(absolute, "\\\\?\\") {return substring(absolute, 4, len(absolute))}
+    return absolute
+}
 export func equal(expected, actual, label) {if expected != actual {error(label + ": expected " + substring(to_json(expected), 0, 1500) + "; actual " + substring(to_json(actual), 0, 1500))}}
 export func require(value, label) {if value {return}; error(label)}
 export func runtime() {let configured := env("KUJO_BIN"); if configured != "" {return path_absolute(configured)}; mut suffix := ""; if env("OS") == "Windows_NT" {suffix = ".exe"}; return path_absolute("../kujo/target/release/kujo" + suffix)}

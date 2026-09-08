@@ -1,5 +1,5 @@
 from tests.fixture_server import fixture_request, fixture_start, fixture_stop
-from tests.support import includes, runtime, process, read_json, cleanup, require, equal
+from tests.support import fixture_path, includes, runtime, process, read_json, cleanup, require, equal
 func benchmark_platform() {if env("OS") == "Windows_NT" {return "nt"}; return trim(process(["uname", "-s"], 0, {"timeout_ms": 10000}).stdout)}
 func main() {
     mut pages := 10000; mut levels := [1, 4, 8, 16]; mut output := ""
@@ -15,7 +15,7 @@ func main() {
     require(pages >= 1&&pages <= 10000&&len(levels) > 0, "pages must be 1..10000 and concurrency levels 1..32")
     for level in levels {require(level >= 1&&level <= 32, "concurrency levels must be 1..32")}
     create_dir(".siteprobe/verification")
-    let temporary := path_absolute(create_temp_dir(".siteprobe/verification", "benchmark-"))
+    let temporary := fixture_path(create_temp_dir(".siteprobe/verification", "benchmark-"))
     let server := fixture_start({"pages": pages})
     mut results := []
     try {

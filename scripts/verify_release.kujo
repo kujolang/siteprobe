@@ -1,14 +1,14 @@
-from tests.support import runtime, require, equal, process, cleanup
+from tests.support import fixture_path, runtime, require, equal, process, cleanup
 func main() {
     let argv := args()
     require(len(argv) == 2, "usage: kujo run scripts/verify_release.kujo -- <dist> <kujo-runtime>")
-    let dist := path_absolute(argv[0]); let kujo := path_absolute(argv[1]); let expected := trim(read_file("VERSION"))
+    let dist := fixture_path(argv[0]); let kujo := fixture_path(argv[1]); let expected := trim(read_file("VERSION"))
     mut archives := []; for name in list_dir(dist) {if ends_with(name, ".zip") {archives = push(archives, name)}}
     require(len(archives) > 0, "No release archives found")
     for name in sort(archives) {
         let archive := dist + "/" + name
         equal(sha256_file(archive) + "  " + name, trim(read_file(archive + ".sha256")), "archive checksum " + name)
-        let root := path_absolute(create_temp_dir(dist, ".verify-"))
+        let root := fixture_path(create_temp_dir(dist, ".verify-"))
         try {
             # Native extraction rejects traversal, symlinks and bounded-expansion violations.
             unzip(archive, root)

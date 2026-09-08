@@ -1,8 +1,8 @@
-from tests.support import includes, equal, require, runtime, process, cli, read_json, put_json, rows, repeat_text
+from tests.support import fixture_path, includes, equal, require, runtime, process, cli, read_json, put_json, rows, repeat_text
 export func test_full_run_matches_oracle_and_signatures(ctx) {
     let provenance := read_json("tests/fixtures/oracle-provenance.json")
     for name in keys(provenance["files"]) {equal(provenance["files"][name], sha256_file("tests/fixtures/" + name), "immutable oracle " + name)}
-    let original := "tests/fixtures/same"; let key := path_absolute("tests/fixtures/oracle-key.txt")
+    let original := fixture_path("tests/fixtures/same"); let key := fixture_path("tests/fixtures/oracle-key.txt")
     cli(["validate", original], 0); cli(["verify", original, "--signing-key-file", key], 0)
     let native := ctx["dir"] + "/same"; let metrics := ctx["dir"] + "/metrics.json"; write_file(metrics, "previous measurement")
     cli(["crawl", ctx["base"], "--out", native, "--max-pages", 20, "--max-depth", 3, "--deterministic", "--allow-private-network", "--signing-key-file", key, "--metrics-file", metrics], 0)
