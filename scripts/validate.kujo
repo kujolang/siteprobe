@@ -1,9 +1,10 @@
 func check_maintenance(directory) {
     for name in list_dir(directory) {
         let path := directory + "/" + name
-        if ends_with(name, ".py") {error("Maintenance code must be Kujo: " + path)}
-        if path_is_dir(path)&& ! path_is_symlink(path) {check_maintenance(path)}
+        if ends_with(name, ".py") {return path}
+        if path_is_dir(path)&& ! path_is_symlink(path) {let violation := check_maintenance(path); if violation != "" {return violation}}
     }
+    return ""
 }
 
 func check_source(kujo, source) {
@@ -66,7 +67,7 @@ func main() {
         print("KUJO_REVISION must be a 40-character commit pinned by validation and release workflows")
         exit(1)
     }
-    for directory in ["scripts", "tests"] {check_maintenance(directory)}
+    for directory in ["scripts", "tests"] {let violation := check_maintenance(directory); if violation != "" {eprint("Maintenance code must be Kujo: " + violation); exit(1)}}
     for schema in list_dir("schemas") {if ends_with(schema, ".json") {json_file_read("schemas/" + schema, 1048576)}}
     for source in list_dir("src") {check_source(kujo, source)}
     run_step([kujo, "check", "src/main.kujo"], 30000)

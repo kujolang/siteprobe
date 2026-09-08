@@ -1,0 +1,4 @@
+let child := args()[0]
+let kujo := args()[1]
+let r := spawn_process([kujo, "run", child], {"timeout_ms":10000})
+print(r.stdout)
