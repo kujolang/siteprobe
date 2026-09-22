@@ -1,0 +1,18 @@
+{
+  "project": "siteprobe",
+  "captures": [
+    {
+      "id": "cap_13b4ac6b-1f1a-4647-a4dc-ce22164f9a06",
+      "label": "robots rule conformance",
+      "signal": "sig_da4bb4d8-8db7-4936-8412-42f604fb959a"
+    },
+    {
+      "id": "cap_acf3aed8-0a8a-4262-a63d-b3a42903e83b",
+      "label": "metrics output collision",
+      "signal": "sig_a936ac31-b083-433e-a914-1774d6a3093b"
+    }
+  ],
+  "retrieval": "exact IDs and concept searches passed",
+  "skipped_duplicates": [],
+  "rejected": "completed fixes, routine verification and speculative enhancement tasks were not captured"
+}

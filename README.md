@@ -15,7 +15,7 @@ information system.
 
 ## Why SiteProbe
 
-- Safe defaults: GET-only, DNS-pinned same-origin connections, robots-respecting pacing, bounded resources, and public-network-only resolution.
+- Safe defaults: GET-only, DNS-pinned same-origin connections, robots-aware crawl pacing, bounded resources, and public-network-only resolution.
 - Reproducible evidence: versioned contracts, stable finding IDs, deterministic mode, immutable run directories, and digest manifests with optional HMAC signatures.
 - CI-ready outcomes: validate artifacts, compare baselines, and fail on a chosen finding severity.
 - Useful coverage: links, redirects, canonicals, metadata, headings, images, robots, sitemaps, JSON-LD, pagination, duplicates, and orphan candidates.
@@ -67,7 +67,7 @@ output budget and optional baseline validation pass.
 | `doctor` | Check runtime and local write prerequisites. |
 | `crawl <url>` | Crawl a bounded same-origin surface and write a run. |
 | `inspect <url>` | Inspect one URL and emit JSON without persistent history. |
-| `validate <run>` | Validate required artifacts, schemas, counts, IDs, and declared output budget. |
+| `validate <run>` | Validate required artifacts, schemas, unique page identities, counts, severity totals, and declared output budget. |
 | `verify <run>` | Verify every manifest digest and an optional HMAC signature. |
 | `compare <old> <new>` | Report meaningful URL, status, canonical, metadata, schema, link, and content changes. |
 | `report <run>` | Print the bounded human report. |
@@ -137,6 +137,37 @@ The primary contracts are `siteprobe.run/v1`, `siteprobe.page/v1`,
 [`schemas/`](schemas/). `siteprobe validate` invokes both structural consistency
 checks and Kujo's native Draft 2020-12 subset validator.
 
+## Choosing a workflow
+
+Use `crawl` for repeatable site inventories and CI baselines. Use `inspect` for a
+single explicitly selected URL: it follows bounded same-origin redirects but does
+**not** retrieve or enforce robots.txt. Inspect reports HTTP failures in its JSON
+page record; exit zero means the inspection completed, not that the page was healthy.
+Use `crawl --fail-on error` when CI should fail for observed errors.
+
+`validate` checks artifact structure and consistency. `verify` checks digests;
+authentication requires `--signing-key-file` and a trusted shared key. Without a
+key, a signed manifest's signature is not authenticated. Keep baseline directories
+under operator control and verify signed baselines before consuming them.
+
+## Repository layout
+
+| Location | Role |
+| --- | --- |
+| `src/` | Native Kujo CLI and product behavior. |
+| `tests/` | Native tests, fixture server, and immutable compatibility evidence. |
+| `scripts/` | Validation, benchmarks, documentation, and release packaging. |
+| `schemas/` | Versioned artifact contracts. |
+| `examples/` | Runnable integration adapters and CI examples. |
+| `docs/` | Reference material, qualification evidence, and review backlogs. |
+| Root launchers, `VERSION`, `KUJO_REVISION`, `kujo.toml`, `kujo.lock` | Supported entrypoints and runtime/package metadata. |
+
+The root launchers are intentional; they dispatch into `src/main.kujo`. Product
+source and maintenance code have already moved to their respective directories.
+See the [integration examples](examples/README.md) and
+[Kujo source](https://github.com/kujolang/kujo) to explore the language mechanisms
+behind the crawler.
+
 ## Architecture and Kujo boundary
 
 `src/main.kujo` dispatches the native CLI into `src/siteprobe.kujo`. The core keeps
@@ -167,7 +198,7 @@ Run a selected test by passing part of its name:
 ${KUJO_BIN:-../kujo/target/release/kujo} run tests/siteprobe_tests.kujo -- signatures
 ```
 
-The validation gate checks the frozen compatibility evidence, runs all 37 native
+The validation gate checks the frozen compatibility evidence, runs all 38 native
 adversarial tests, checks and lints Kujo sources, verifies
 Kujo formatting, parses every JSON Schema, and checks the Git diff. CI builds
 Kujo from the revision pinned in `KUJO_REVISION` and runs the same gate on
@@ -210,11 +241,22 @@ platform labels identify the runner used to verify each package.
 
 See [security boundaries](docs/security.md), [agent integration](docs/agent-integration.md),
 [release qualification](docs/release-qualification-0.3.0.md), and the
-[next-session roadmap](docs/next-session-roadmap.md).
+[September 22 review and next-session backlog](docs/audits/readiness-review-2026-09-22.md).
 
 ## Maturity boundary
 
-SiteProbe 0.3 is a fixture-verified, local-first crawler for static and
+SiteProbe 0.3 is a fixture-verified, local-first crawler, not a universal enterprise
+certification. Suitability depends on target policy, workload, runtime and platform.
+The [current review](docs/audits/readiness-review-2026-09-22.md) records remaining
+release gates and concrete acceptance criteria.
+
+Robots matching currently uses the first matching group and first matching literal
+path prefix. It does not implement complete RFC 9309 group merging, longest-match
+precedence, or embedded wildcard/end-anchor matching. Qualify target robots rules
+before unattended use. Sitemap discovery also runs separately from page robots
+checks. These limitations are prioritized in the new backlog.
+
+SiteProbe supports static and
 server-rendered HTML. It is not a JavaScript renderer, browser automation tool,
 security scanner, search-engine emulator, or substitute for Lens. Near-duplicate
 signals use deterministic normalized-text fingerprints and metadata duplication;

@@ -5,7 +5,7 @@
 - Pinned requests connect directly; proxy environment variables cannot substitute a different connection or resolver.
 - Every request and redirect hop resolves immediately before connection, rejects the complete answer set if any address is non-public, and pins the socket to an approved address. Private, loopback, link-local, reserved, multicast, and unspecified addresses are blocked unless `--allow-private-network` is explicit.
 - Kujo process-level destination restrictions may be stricter; `--allow-private-network` does not override the runtime capability or outbound-policy boundary.
-- `robots.txt` is respected by default, including every page redirect destination. Unavailable/denied robots responses abort before crawling; 404/410 mean no rules. `--ignore-robots` is an explicit operator override.
+- The crawl evaluates its parsed `robots.txt` policy by default, including every page redirect destination. Unavailable/denied robots responses abort before crawling; 404/410 mean no rules. `--ignore-robots` is an explicit operator override.
 - Requests are GET-only, identify SiteProbe, have bounded timeouts, retries, pages, depth, retained page structure, bytes, and concurrency, and never submit forms.
 - Redirects that leave the origin are recorded and blocked before DNS resolution or connection.
 - Output uses a private staging directory under its explicit parent; existing destination entries, including dangling symlinks, are rejected. OS no-replace rename prevents publication from overwriting a competing destination. Runs are staged beside the destination and atomically published only after analysis and budget checks.
@@ -39,3 +39,18 @@ XML projection rejects DTDs, depth over 64, and selected text over 32 MiB; expan
 sitemap bytes remain independently bounded. Compressed sitemap limits now have
 an explicit 512 MiB ceiling. These limits fail visibly rather than dropping data.
 Process metrics are null on platforms where the runtime cannot measure them.
+
+## Robots and command scope
+
+The current robots parser selects the first matching group and first literal
+prefix rule. It does not claim complete RFC 9309 matching. `inspect` intentionally
+passes no robots policy; sitemap discovery also fetches without page-policy checks.
+See the [current review](audits/readiness-review-2026-09-22.md) for the pending
+conformance and policy work. Do not infer universal robots compliance from the
+same-origin and private-network protections.
+
+Unsigned legacy runs remain readable without a manifest. If a manifest directory
+entry exists, including a dangling symlink, validation rejects unsafe entries.
+Validation checks duplicate normalized page identities, link/redirect envelope
+shapes and finding severity totals independently of manifest presence. Digest
+verification without a trusted signing key establishes integrity only, not origin.

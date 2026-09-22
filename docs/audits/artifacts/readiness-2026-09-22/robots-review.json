@@ -1,0 +1,23 @@
+[
+  {
+    "actual": true,
+    "expected": false,
+    "name": "longest-specific-disallow",
+    "text": "User-agent: *\nAllow: /\nDisallow: /private\n",
+    "url": "https://example.com/private"
+  },
+  {
+    "actual": true,
+    "expected": false,
+    "name": "embedded-wildcard",
+    "text": "User-agent: *\nDisallow: /private/*\n",
+    "url": "https://example.com/private/a"
+  },
+  {
+    "actual": true,
+    "expected": false,
+    "name": "merge-matching-groups",
+    "text": "User-agent: Kujo-SiteProbe\nDisallow: /one\n\nUser-agent: Kujo-SiteProbe\nDisallow: /two\n",
+    "url": "https://example.com/two"
+  }
+]

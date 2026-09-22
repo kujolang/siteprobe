@@ -1,4 +1,7 @@
-# SiteProbe next-session roadmap
+# SiteProbe historical roadmap
+
+For new work, use the [September 22, 2026 review backlog](audits/readiness-review-2026-09-22.md).
+This document records the completed earlier milestone.
 
 This is the prioritized follow-up list after the August 2026 production-readiness
 pass. Each item preserves the same-origin, read-only, robots-respecting, bounded
@@ -22,7 +25,7 @@ artifact contract.
 
 ## P2 — Distribution and ecosystem
 
-- [x] Complete the Kujo-native implementation. All product behavior lives in `src/*.kujo`; Python exists only in maintenance tests and benchmarks. The pinned Kujo runtime supplies generic bounded parsing, file and transport mechanisms.
+- [x] Complete the Kujo-native implementation. All product behavior lives in `src/*.kujo`; Maintenance tests and benchmarks were also migrated to Kujo on September 8. The pinned Kujo runtime supplies generic bounded parsing, file and transport mechanisms.
 - [x] Add cross-platform launchers and qualification for Linux, macOS, and Windows.
 - [x] Publish a versioned install path and checksum-verified release artifacts through the Kujo package workflow.
 - [x] Add first-party examples for ContentGraph, Eval, RunLedger, and CI baseline promotion.

@@ -1,0 +1,2 @@
+{"archive":".siteprobe/review-release/siteprobe-0.3.0-macos-review.zip","checksum":".siteprobe/review-release/siteprobe-0.3.0-macos-review.zip.sha256","package":"siteprobe-0.3.0-macos-review","schema":"siteprobe.release/v1","sha256":"4bcea12ebc105c757e53cc2f21fe4b1b30e92d406171e01119891c39f709f465"}
+PASS siteprobe-0.3.0-macos-review.zip checksum, extracted native doctor and version

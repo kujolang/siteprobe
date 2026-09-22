@@ -1,0 +1,67 @@
+PASS /Users/robertdevore/.local/bin/kujo check src/siteprobe.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check src/siteprobe.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint src/siteprobe.kujo
+PASS /Users/robertdevore/.local/bin/kujo check src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo check src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/validate.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/benchmark.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/release.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/generate_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/validate.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/benchmark.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/release.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/generate_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/validate.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/benchmark.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/release.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/generate_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo check examples/contentgraph.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check examples/contentgraph.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint examples/contentgraph.kujo
+PASS /Users/robertdevore/.local/bin/kujo check examples/eval.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check examples/eval.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint examples/eval.kujo
+PASS /Users/robertdevore/.local/bin/kujo check examples/runledger.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check examples/runledger.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint examples/runledger.kujo
+PASS /Users/robertdevore/.local/bin/kujo check examples/ci_baseline.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check examples/ci_baseline.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint examples/ci_baseline.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/support.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/support.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/support.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/fixture_server.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/fixture_server.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/fixture_server.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/unit_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/unit_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/unit_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/crawl_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/crawl_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/crawl_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/contract_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/contract_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/contract_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/native_probe.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/native_probe.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/native_probe.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/verify_release.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/verify_release.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/verify_release.kujo
+PASS /Users/robertdevore/.local/bin/kujo run tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo package-install --manifest kujo.toml
+PASS /Users/robertdevore/.local/bin/kujo package-install --manifest kujo.toml --frozen
+PASS /Users/robertdevore/.local/bin/kujo package-publish --manifest kujo.toml
+PASS /Users/robertdevore/.local/bin/kujo run scripts/generate_docs.kujo -- /Users/robertdevore/.local/bin/kujo
+PASS git diff --check
+SiteProbe validation passed.

@@ -1,0 +1,100 @@
+PASS /Users/robertdevore/.local/bin/kujo check src/siteprobe.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check src/siteprobe.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint src/siteprobe.kujo
+PASS /Users/robertdevore/.local/bin/kujo check src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo check src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/validate.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/benchmark.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/release.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/generate_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/validate.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/benchmark.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/release.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/generate_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint src/main.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/validate.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/benchmark.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/release.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/generate_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/generate_contract_docs.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/siteprobe_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo check examples/contentgraph.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check examples/contentgraph.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint examples/contentgraph.kujo
+PASS /Users/robertdevore/.local/bin/kujo check examples/eval.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check examples/eval.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint examples/eval.kujo
+PASS /Users/robertdevore/.local/bin/kujo check examples/runledger.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check examples/runledger.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint examples/runledger.kujo
+PASS /Users/robertdevore/.local/bin/kujo check examples/ci_baseline.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check examples/ci_baseline.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint examples/ci_baseline.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/support.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/support.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/support.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/fixture_server.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/fixture_server.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/fixture_server.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/unit_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/unit_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/unit_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/crawl_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/crawl_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/crawl_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/contract_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/contract_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/contract_tests.kujo
+PASS /Users/robertdevore/.local/bin/kujo check tests/native_probe.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check tests/native_probe.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint tests/native_probe.kujo
+PASS /Users/robertdevore/.local/bin/kujo check scripts/verify_release.kujo
+PASS /Users/robertdevore/.local/bin/kujo format --check scripts/verify_release.kujo
+PASS /Users/robertdevore/.local/bin/kujo lint scripts/verify_release.kujo
+FAIL /Users/robertdevore/.local/bin/kujo run tests/siteprobe_tests.kujo; evidence: .siteprobe/verification/b0d18d3e70cefd97
+FAIL test_artifacts_larger_than_eight_mib: Error { line: 0, message: incomplete process evidence: ["/Users/robertdevore/.local/bin/kujo","run","src/main.kujo","--","compare","/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/.siteprobe/verification/test-Mc4aqh/large","/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/.siteprobe/verification/test-Mc4aqh/large"], stack: [main] }; evidence /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/.siteprobe/verification/test-Mc4aqh
+PASS test_validation_rejects_inconsistent_unsigned_runs
+PASS test_benchmark_fixture_bounds_request_history
+PASS test_row_sort_preserves_order_and_ties
+PASS test_terminal_controls_are_not_emitted_in_diagnostics
+PASS test_nonfinite_bounds_rejected_before_network
+PASS test_manifest_size_rejected_before_read
+PASS test_manifest_cannot_certify_empty_run
+PASS test_atomic_publication_never_replaces_existing_directory
+PASS test_signing_key_shape_and_bounds
+PASS test_report_budget_and_terminal_controls
+PASS test_unknown_charset_and_url_controls
+PASS test_native_entrypoint_without_process_capability
+PASS test_external_sort_caps_descriptors_and_cleans_chunks
+PASS test_native_normalization_fuzz_matches_rejected_inputs
+PASS test_robots_comments_and_encoded_agents
+PASS test_percent_encoded_robots_rules
+PASS test_large_html_preserves_order
+PASS test_html_projection_matches_frozen_oracle
+PASS test_gzip_expansion_limit
+PASS test_full_fixture_contract_and_compare
+PASS test_inspect_and_doctor
+PASS test_rejects_credentials_and_bad_bounds
+PASS test_fuzz_redirects_retries_cycles_and_read_only
+PASS test_deterministic_semantic_rerun_and_output_budget
+PASS test_fail_on_and_cross_artifact_validation
+PASS test_validation_rejects_symbolic_link_artifacts
+PASS test_signed_manifest_query_pacing_and_conditional
+PASS test_blocked_pages_do_not_exceed_budget
+PASS test_redirect_cannot_bypass_robots
+PASS test_deterministic_pages_and_native_stderr
+PASS test_unavailable_robots_fails_closed
+PASS test_sitemap_queue_retains_fifty_unique_maps
+PASS test_crawl_fetches_configured_batch_concurrently
+PASS test_full_run_matches_oracle_and_signatures
+PASS test_untrusted_native_primitives_denied
+PASS test_large_jsonl_and_secondary_capabilities
+PASS test_native_crawl_without_process_or_proxy
+38 native Kujo tests; 1 failed

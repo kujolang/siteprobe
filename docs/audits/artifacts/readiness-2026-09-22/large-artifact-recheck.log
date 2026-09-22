@@ -1,0 +1,2 @@
+PASS test_artifacts_larger_than_eight_mib
+1 native Kujo tests; 0 failed

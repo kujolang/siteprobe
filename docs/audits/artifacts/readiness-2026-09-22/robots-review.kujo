@@ -1,0 +1,9 @@
+from src.siteprobe import robots_parse, robots_allowed
+let cases := [
+{"name": "longest-specific-disallow", "text": "User-agent: *\nAllow: /\nDisallow: /private\n", "url": "https://example.com/private", "expected": false},
+{"name": "embedded-wildcard", "text": "User-agent: *\nDisallow: /private/*\n", "url": "https://example.com/private/a", "expected": false},
+{"name": "merge-matching-groups", "text": "User-agent: Kujo-SiteProbe\nDisallow: /one\n\nUser-agent: Kujo-SiteProbe\nDisallow: /two\n", "url": "https://example.com/two", "expected": false}
+]
+mut evidence := []
+for sample in cases {mut row := sample; row["actual"] = robots_allowed(robots_parse(sample["text"]), sample["url"]); evidence = push(evidence, row)}
+print(to_json_pretty(evidence))

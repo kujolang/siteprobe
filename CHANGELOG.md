@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Reject duplicate page identities, incorrect severity totals, malformed link and
+  redirect inventories, and dangling manifest symlinks during validation.
+- Validate self-comparisons once and avoid constructing two identical page indexes.
+- Reuse the target origin while analyzing links instead of parsing it for each edge.
+- Clarify command safety, signature verification, repository layout, and remaining
+  readiness gates; add the September 22 review backlog.
+
+## Unreleased
+
 - Move all 36 existing maintenance tests and a new bounded-fixture regression, loopback fixtures, benchmarks, schema checks and source-package verification to Kujo. Preserve frozen, signed compatibility fixtures and remove the Python CI dependency.
 
 ## 0.3.0 - 2026-09-07
