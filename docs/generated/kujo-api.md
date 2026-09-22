@@ -503,7 +503,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:779`
+- Source: `siteprobe.kujo:788`
 - Signature: `func(run)`
 
 Validate page schemas incrementally; whole pages.jsonl is never loaded.
@@ -512,7 +512,7 @@ Validate page schemas incrementally; whole pages.jsonl is never loaded.
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:838`
+- Source: `siteprobe.kujo:847`
 - Signature: `func(run)`
 
 Store bounded byte offsets instead of retaining complete baseline pages.
@@ -521,7 +521,7 @@ Store bounded byte offsets instead of retaining complete baseline pages.
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:853`
+- Source: `siteprobe.kujo:862`
 - Signature: `func(run, index, url)`
 
 Documentation needed.
@@ -531,7 +531,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:857`
+- Source: `siteprobe.kujo:866`
 - Signature: `func(page, field)`
 
 Documentation needed.
@@ -541,7 +541,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:866`
+- Source: `siteprobe.kujo:875`
 - Signature: `func(old, new)`
 
 Documentation needed.
@@ -551,7 +551,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:901`
+- Source: `siteprobe.kujo:910`
 - Signature: `func(path)`
 
 CRAWL
@@ -560,7 +560,7 @@ CRAWL
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:909`
+- Source: `siteprobe.kujo:918`
 - Signature: `func(stage)`
 
 Documentation needed.
@@ -570,7 +570,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:917`
+- Source: `siteprobe.kujo:926`
 - Signature: `func(stage, cfg, additional)`
 
 Documentation needed.
@@ -580,7 +580,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:921`
+- Source: `siteprobe.kujo:930`
 - Signature: `func(cfg, used)`
 
 Documentation needed.
@@ -590,7 +590,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:924`
+- Source: `siteprobe.kujo:933`
 - Signature: `func(stage, path, rows, cfg)`
 
 Documentation needed.
@@ -600,7 +600,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:930`
+- Source: `siteprobe.kujo:939`
 - Signature: `func(stage, path, value, cfg)`
 
 Documentation needed.
@@ -610,7 +610,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:935`
+- Source: `siteprobe.kujo:944`
 - Signature: `func(stage, source, destination, fields, cfg)`
 
 Documentation needed.
@@ -620,7 +620,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:940`
+- Source: `siteprobe.kujo:949`
 - Signature: `func(target, policy, cfg, pacer, delay, stage)`
 
 Documentation needed.
@@ -630,7 +630,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:1001`
+- Source: `siteprobe.kujo:1010`
 - Signature: `func(target, final_out, out, cfg)`
 
 Documentation needed.
@@ -640,7 +640,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:1131`
+- Source: `siteprobe.kujo:1140`
 - Signature: `func(path)`
 
 Canonicalize existing ancestors and normalize a not-yet-created destination.
@@ -649,7 +649,7 @@ Canonicalize existing ancestors and normalize a not-yet-created destination.
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:1150`
+- Source: `siteprobe.kujo:1159`
 - Signature: `func(root, destination)`
 
 Documentation needed.
@@ -659,7 +659,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:1159`
+- Source: `siteprobe.kujo:1168`
 - Signature: `func(path, output, baseline)`
 
 Documentation needed.
@@ -669,7 +669,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:1172`
+- Source: `siteprobe.kujo:1181`
 - Signature: `func(cfg)`
 
 Documentation needed.
@@ -679,7 +679,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:1197`
+- Source: `siteprobe.kujo:1206`
 - Signature: `func(command)`
 
 CLI
@@ -688,7 +688,7 @@ CLI
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:1208`
+- Source: `siteprobe.kujo:1217`
 - Signature: `func(message)`
 
 Documentation needed.
@@ -698,7 +698,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:1209`
+- Source: `siteprobe.kujo:1218`
 - Signature: `func(argv)`
 
 Documentation needed.

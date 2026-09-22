@@ -157,7 +157,7 @@ export func robots_parse(text) {
     return {"rules": rules, "delay": delay, "sitemaps": sitemaps}
 }
 export func robots_allowed(policy, url) {
-    if policy == null {return true}
+    if policy == null||len(policy["rules"]) == 0 {return true}
     let parts := url_components(url)
     if parts["path"] == "/robots.txt" {return true}
     mut target := parts["path"]
@@ -439,7 +439,7 @@ func fetch_into(url, cfg, extra_headers, maximum, policy, pacer, delay, path, co
             let status := response["status"]
             mut response_headers := response["headers"]
             let header_values := get_default(response, "header_values", {})
-            if (has_key(header_values, "link") == 1) {response_headers["link"] = join(header_values["link"], ", ")}
+            for name in ["link", "x-robots-tag"] {if has_key(header_values, name) {response_headers[name] = join(header_values[name], ", ")}}
             if contains([301, 302, 303, 307, 308], status)&&get_default(response_headers, "location", "") != "" {
                 let destination := normalize(response_headers["location"], current, cfg)
                 mut to := destination
@@ -723,11 +723,20 @@ func validate_relationships(run, data) {
                 if pair[0] == "title" {titles[text] = push(get_default(titles, text, []), url)} else {descriptions[text] = push(get_default(descriptions, text, []), url)}
             }
             if len(page["structured_data"]) > 0 {structured[url] = sha256(to_json(page["structured_data"]))}
+            mut internal_count := 0; mut external_count := 0
+            for field in ["internal_links", "external_links"] {if has_key(page, field)&& ! is_array(page[field]) {error("page link partition must be an array")}}
             for link in page["links"] {
                 let internal := origin(link["url"]) == run_origin
+                mut field := "external_links"; mut position := external_count
+                if internal {field = "internal_links"; position = internal_count; internal_count = internal_count + 1}
+                else {external_count = external_count + 1}
+                if has_key(page, field) {if position >= len(page[field])||page[field][position] != link {error("page link partition disagrees with links: " + field)}}
                 let id := edge_identity(url, link["url"], link["text"], link["rel"], internal)
                 edges[id] = get_default(edges, id, 0) + 1
                 if internal {incoming[link["url"]] = get_default(incoming, link["url"], 0) + 1}
+            }
+            for pair in [["internal_links", internal_count], ["external_links", external_count]] {
+                if has_key(page, pair[0])&&len(page[pair[0]]) != pair[1] {error("page link partition count mismatch: " + pair[0])}
             }
             for hop in page["redirect_chain"] {let id := sha256(to_json(hop)); redirects[id] = get_default(redirects, id, 0) + 1}
             retained = retained + byte_length(to_json(page))

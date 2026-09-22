@@ -194,4 +194,56 @@ export func test_relative_run_paths(ctx) {
     cli(["verify", "tests/fixtures/same"], 0)
     let compared := parse_json(cli(["compare", "tests/fixtures/same", "tests/fixtures/same"], 0).stdout)
     equal([], compared["changes"], "relative paths preserve run identity")
+    let example := process([runtime(), "run", "examples/ci_baseline.kujo", "--", "tests/fixtures/same", "tests/fixtures/same", runtime()], 0, {"timeout_ms":30000})
+    equal([], parse_json(example.stdout)["changes"], "CI example preserves complete comparison output")
+    process([runtime(), "run", "examples/ci_baseline.kujo", "--", "tests/fixtures/same", ctx["dir"] + "/missing", runtime()], 1, {"timeout_ms":30000})
+}
+
+export func test_repeated_robots_response_headers(ctx) {
+    let base := ctx["base"]; let old := ctx["dir"] + "/old"; let new := ctx["dir"] + "/new"
+    fixture_request(ctx["port"], "reset", {"routes":{"/headers":[200, "<title>Headers</title>", "Content-Type: text/html\r\nX-Robots-Tag: noindex\r\nX-Robots-Tag: nofollow\r\n"]}})
+    let inspected := parse_json(cli(["inspect", base + "headers", "--allow-private-network"], 0).stdout)
+    equal(["nofollow", "noindex"], inspected["robots_directives"], "all repeated robots headers retained")
+    equal(false, inspected["indexable"], "earlier noindex header respected")
+    fixture_request(ctx["port"], "reset", {"routes":{"/headers":[200, "<title>Headers</title>", "Content-Type: text/html\r\n"]}, "validators":{"/headers":["headers-v1", ""]}})
+    cli(["crawl", base + "headers", "--out", old, "--max-pages", 1, "--allow-private-network"], 0)
+    fixture_request(ctx["port"], "reset", {"routes":{"/headers":[200, "unused", "Content-Type: text/html\r\n"]}, "validators":{"/headers":["headers-v1", "X-Robots-Tag: noindex\r\nX-Robots-Tag: nofollow\r\n"]}})
+    cli(["crawl", base + "headers", "--out", new, "--baseline", old, "--max-pages", 1, "--allow-private-network"], 0)
+    let reused := rows(new + "/pages.jsonl")[0]
+    equal(true, reused["not_modified"], "304 reused baseline")
+    equal(["nofollow", "noindex"], reused["robots_directives"], "all 304 robots headers retained")
+    equal(false, reused["indexable"], "304 earlier noindex respected")
+    cli(["validate", new], 0)
+}
+
+export func test_page_link_partitions_reject_resigned_inconsistency(ctx) {
+    let run := ctx["dir"] + "/run"; create_dir(run)
+    for name in list_dir("tests/fixtures/same") {copy_file("tests/fixtures/same/" + name, run + "/" + name)}
+    let original := rows(run + "/pages.jsonl")
+    mut selected :=  - 1
+    for i in range(0, len(original)) {if len(original[i]["internal_links"]) > 1 {selected = i; break}}
+    require(selected >= 0, "fixture has internal links")
+    for mode in ["omitted", "extra", "text", "misclassified", "order", "shape"] {
+        mut records := original; mut page := records[selected]; mut internal := page["internal_links"]
+        if mode == "omitted" {internal = []}
+        if mode == "extra" {internal = push(internal, internal[0])}
+        if mode == "order" {let first := internal[0]; internal[0] = internal[1]; internal[1] = first}
+        if mode == "shape" {internal = {}}
+        if mode == "text" {mut link := internal[0]; link["text"] = "contradictory evidence"; internal[0] = link}
+        if mode == "misclassified" {page["external_links"] = push(page["external_links"], internal[0])}
+        page["internal_links"] = internal; records[selected] = page
+        delete_file(run + "/pages.jsonl"); jsonl_write(run + "/pages.jsonl", records, false, 268435456); resign_fixture(ctx, run)
+        cli(["verify", run], 0)
+        require(includes(cli(["validate", run], 1).stderr, "link partition"), "contradictory " + mode + " partition rejected")
+        cli(["compare", run, run], 1)
+    }
+    delete_file(run + "/pages.jsonl"); jsonl_write(run + "/pages.jsonl", original, false, 268435456); resign_fixture(ctx, run); cli(["validate", run], 0)
+    mut legacy := []
+    for page in original {
+        mut record := {}
+        for key in keys(page) {if key != "internal_links"&&key != "external_links" {record[key] = page[key]}}
+        legacy = push(legacy, record)
+    }
+    delete_file(run + "/pages.jsonl"); jsonl_write(run + "/pages.jsonl", legacy, false, 268435456); resign_fixture(ctx, run)
+    cli(["validate", run], 0)
 }

@@ -145,7 +145,8 @@ This closes the DNS-rebinding gap between policy validation and connection.
 Conditional baselines must have the same target, query policy, and deny list.
 ETag/Last-Modified headers are sent only to the baseline's final resource URL;
 a changed redirect destination is fetched afresh. Valid 304 reuse incorporates
-new HTTP Link and noindex metadata. Metrics paths inside output, baseline, or
+new HTTP Link and noindex metadata. Repeated HTTP Link and X-Robots-Tag
+fields retain all values. Metrics paths inside output, baseline, or
 other existing runs are rejected before publication, including parent aliases.
 
 HTML references use the first valid document `<base href>`; same-origin crawl
@@ -175,7 +176,7 @@ The primary contracts are `siteprobe.run/v1`, `siteprobe.page/v1`,
 `siteprobe.findings/v1`, and `siteprobe.manifest/v1`; their JSON Schemas live in
 [`schemas/`](schemas/). `siteprobe validate` invokes Kujo's native Draft 2020-12 subset validator for
 all JSON inventories, then checks page identities, graph endpoints and edge
-multiplicity, incoming counts, origin policy, metadata, sitemap membership,
+multiplicity, incoming counts, ordered internal/external link partitions, origin policy, metadata, sitemap membership,
 structured-data inventories, redirect chains, and site aggregates. Regenerating
 an unsigned manifest does not make contradictory evidence valid.
 
@@ -241,7 +242,7 @@ Run a selected test by passing part of its name:
 ${KUJO_BIN:-../kujo/target/release/kujo} run tests/siteprobe_tests.kujo -- signatures
 ```
 
-The validation gate checks the frozen compatibility evidence, runs all 46 native
+The validation gate checks the frozen compatibility evidence, runs all 48 native
 adversarial tests, checks and lints Kujo sources, verifies
 Kujo formatting, parses every JSON Schema, and checks the Git diff. CI builds
 Kujo from the revision pinned in `KUJO_REVISION` and runs the same gate on
