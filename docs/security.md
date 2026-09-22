@@ -61,5 +61,8 @@ sandbox. See [resource envelopes](readiness-completion.md#resource-accounting).
 Unsigned legacy runs remain readable without a manifest. If a manifest directory
 entry exists, including a dangling symlink, validation rejects unsafe entries.
 Validation checks duplicate normalized page identities, link/redirect envelope
-shapes and finding severity totals independently of manifest presence. Digest
+shapes, ordered internal/external link partitions when present, and finding severity totals independently of manifest presence. Digest
 verification without a trusted signing key establishes integrity only, not origin.
+
+Integration example error messages use the same ASCII control sanitization as
+product diagnostics while preserving their existing output channels and exit codes.

@@ -1,4 +1,4 @@
-from src.siteprobe import validate_run, read_json
+from src.siteprobe import validate_run, read_json, safe_text
 # Emit a compact RunLedger-style receipt without copying full crawl evidence.
 argv := args()
 if len(argv) != 1 {print("usage: kujo run examples/runledger.kujo -- <run>"); exit(2)}
@@ -8,4 +8,4 @@ try {
     if len(errors) > 0 {error(join(errors, "; "))}
     run := read_json(run_path + "/run.json")
     print(to_json({"schema": "siteprobe.runledger-example/v1", "run_directory": run_path, "run_id": run["run_id"], "target": run["target"], "counts": run["counts"], "artifact_contract": run["schema"]}))
-} except err {print("runledger example error: " + to_string(err)); exit(1)}
+} except err {print("runledger example error: " + safe_text(err)); exit(1)}

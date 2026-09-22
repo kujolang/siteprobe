@@ -13,7 +13,9 @@ kujo run examples/ci_baseline.kujo -- .siteprobe/baseline .siteprobe/candidate
   ContentGraph itself accepts the validated run directory via `build --siteprobe RUN`.
 - `eval.kujo` is a deterministic error-severity release gate.
 - `runledger.kujo` emits a compact receipt without copying page content.
-- `ci_baseline.kujo` validates and compares two immutable runs through the SiteProbe CLI.
+- `ci_baseline.kujo` validates and compares two immutable runs through one SiteProbe
+  `compare` invocation. It fails if capture is incomplete or exceeds 16 MiB per
+  stream; use `siteprobe compare` directly to stream larger comparisons.
 
 Create a safe public fixture first when needed:
 

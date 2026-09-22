@@ -20,12 +20,18 @@ func check_maintenance(directory) {
     return ""
 }
 
-func check_source(kujo, source) {
-    if ends_with(source, ".py") {eprint("Production source must be Kujo: " + source); exit(1)}
-    if ends_with(source, ".kujo") {
-        let path := "src/" + source
-        let content := safe_read(path)
-        if contains(content, "spawn_process(")||contains(content, "execute(") {eprint("Product must not delegate to host processes: " + path); exit(1)}
+# Discover maintained Kujo files once so new modules cannot silently miss checks.
+func check_sources(kujo, directory) {
+    for name in sort(list_dir(directory)) {
+        let path := directory + "/" + name
+        if path_is_symlink(path) {error("maintained source must not be a symlink: " + path)}
+        if path_is_dir(path) {check_sources(kujo, path); continue}
+        if starts_with(path, "src/")&&ends_with(name, ".py") {error("Production source must be Kujo: " + path)}
+        if ! ends_with(name, ".kujo") {continue}
+        if starts_with(path, "src/") {
+            let content := safe_read(path)
+            if contains(content, "spawn_process(")||contains(content, "execute(") {error("Product must not delegate to host processes: " + path)}
+        }
         run_step([kujo, "check", path], 30000)
         run_step([kujo, "format", "--check", path], 30000)
         run_step([kujo, "lint", path], 30000)
@@ -51,7 +57,6 @@ func run_step(command, timeout_ms) {
     }
     print("PASS " + join(command, " "))
 }
-func run_quiet(command, timeout_ms) {run_step(command, timeout_ms)}
 
 func safe_read(path) {
     try {return read_file(path)} except err {
@@ -83,35 +88,7 @@ func main() {
     }
     for directory in ["scripts", "tests"] {let violation := check_maintenance(directory); if violation != "" {eprint("Maintenance code must be Kujo: " + violation); exit(1)}}
     for schema in list_dir("schemas") {if ends_with(schema, ".json") {json_file_read("schemas/" + schema, 1048576)}}
-    for source in list_dir("src") {check_source(kujo, source)}
-    run_step([kujo, "check", "src/main.kujo"], 30000)
-    run_step([kujo, "check", "scripts/validate.kujo"], 30000)
-    run_step([kujo, "check", "scripts/benchmark.kujo"], 30000)
-    run_step([kujo, "check", "scripts/release.kujo"], 30000)
-    run_step([kujo, "check", "scripts/generate_docs.kujo"], 30000)
-    run_step([kujo, "check", "scripts/generate_contract_docs.kujo"], 30000)
-    run_step([kujo, "check", "tests/siteprobe_tests.kujo"], 30000)
-    run_step([kujo, "format", "--check", "src/main.kujo"], 30000)
-    run_step([kujo, "format", "--check", "scripts/validate.kujo"], 30000)
-    run_step([kujo, "format", "--check", "scripts/benchmark.kujo"], 30000)
-    run_step([kujo, "format", "--check", "scripts/release.kujo"], 30000)
-    run_step([kujo, "format", "--check", "scripts/generate_docs.kujo"], 30000)
-    run_step([kujo, "format", "--check", "scripts/generate_contract_docs.kujo"], 30000)
-    run_step([kujo, "format", "--check", "tests/siteprobe_tests.kujo"], 30000)
-    run_step([kujo, "lint", "src/main.kujo"], 30000)
-    run_step([kujo, "lint", "scripts/validate.kujo"], 30000)
-    run_step([kujo, "lint", "scripts/benchmark.kujo"], 30000)
-    run_step([kujo, "lint", "scripts/release.kujo"], 30000)
-    run_step([kujo, "lint", "scripts/generate_docs.kujo"], 30000)
-    run_step([kujo, "lint", "scripts/generate_contract_docs.kujo"], 30000)
-    run_step([kujo, "lint", "tests/siteprobe_tests.kujo"], 30000)
-    example_files := ["examples/contentgraph.kujo", "examples/eval.kujo", "examples/runledger.kujo", "examples/ci_baseline.kujo"]
-    for file in example_files {
-        run_step([kujo, "check", file], 30000)
-        run_step([kujo, "format", "--check", file], 30000)
-        run_step([kujo, "lint", file], 30000)
-    }
-    for source in ["tests/readiness_tests.kujo", "tests/support.kujo", "tests/fixture_server.kujo", "tests/unit_tests.kujo", "tests/crawl_tests.kujo", "tests/contract_tests.kujo", "tests/native_probe.kujo", "scripts/verify_integrations.kujo", "scripts/verify_release.kujo"] {for operation in ["check", "format", "lint"] {if operation == "format" {run_step([kujo, operation, "--check", source], 30000)} else {run_step([kujo, operation, source], 30000)}}}
+    for directory in ["src", "scripts", "tests", "examples"] {check_sources(kujo, directory)}
     run_step([kujo, "run", "tests/siteprobe_tests.kujo"], 300000)
     run_step([kujo, "package-install", "--manifest", "kujo.toml"], 30000)
     run_step([kujo, "package-install", "--manifest", "kujo.toml", "--frozen"], 30000)
