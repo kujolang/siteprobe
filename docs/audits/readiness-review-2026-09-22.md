@@ -181,3 +181,13 @@ path collision); their exact Capture/Signal IDs and successful retrieval checks
 are in the [receipt](artifacts/readiness-2026-09-22/signalbox-receipt.json). No
 duplicates were found. Completed changes, normal test results and speculative
 feature work were excluded from SignalBox.
+
+The exact pinned Kujo revision `2be1f04b89dbecd591ef1af0d68974c05586900e`
+was rebuilt with `cargo build --release --locked`. The final full gate passed
+38/38 tests on that runtime as well. The pinned archive smoke and 200-page
+concurrency-4 smoke also passed. See [verification receipt](artifacts/readiness-2026-09-22/verification.json),
+[pinned gate](artifacts/readiness-2026-09-22/pinned-validation.log) and
+[test results](artifacts/readiness-2026-09-22/pinned-tests.json).
+At recording, hosted Ubuntu qualification passed; hosted macOS and Windows were
+still running. No new tagged release or universal enterprise certification is
+implied by these results.
