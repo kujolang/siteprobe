@@ -82,3 +82,26 @@ The GitHub validation workflow qualifies the pinned runtime on Linux, macOS and
 Windows, and runs the full sweep plus dense/multilingual workloads on Linux.
 Timing comparisons across different machines or simultaneous jobs are not
 controlled speedup measurements.
+
+## Local results
+
+The pinned-runtime gate passed all 45 tests, including the unchanged hash-verified
+oracle. Relative documentation links, generated references, native package
+checks and the extracted archive passed. Actual consumer qualification passed for
+ContentGraph 0.3.0, Eval 2.0.0 and RunLedger 1.1.0 at the receipt revisions.
+
+| Workload | Pages | Concurrency | Wall seconds | Peak RSS bytes | Published bytes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| standard | 10000 | 1 | 169.235 | 326025216 | 15455348 |
+| standard | 10000 | 4 | 91.444 | 358789120 | 15456861 |
+| standard | 10000 | 8 | 121.546 | 340807680 | 15460364 |
+| standard | 10000 | 16 | 86.350 | 351866880 | 15462339 |
+| dense | 25 | 1 | 42.544 | 445509632 | 25939911 |
+| dense | 25 | 4 | 28.984 | 446676992 | 25939929 |
+| multilingual | 50 | 1 | 1.032 | 28856320 | 92118 |
+| multilingual | 50 | 4 | 1.386 | 29900800 | 92137 |
+
+Implementation source: `5a1599be67278d64921d8a380467ab9f984d3cdf`. The corresponding
+[cross-platform qualification run](https://github.com/kujolang/siteprobe/actions/runs/35751964943)
+is authoritative for platform outcomes; local success alone does not establish
+Linux or Windows qualification.
