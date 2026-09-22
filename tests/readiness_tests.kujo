@@ -1,5 +1,5 @@
 from tests.fixture_server import fixture_request
-from tests.support import equal, require, includes, probe, cli, read_json, rows, make_link, put_json, runtime, process
+from tests.support import fixture_path, equal, require, includes, probe, cli, read_json, rows, make_link, put_json, runtime, process
 export func test_robots_conformance_and_sitemap_policy(ctx) {
     # Independently authored expectations from RFC 9309 examples and precedence rules.
     let cases := [
@@ -246,4 +246,14 @@ export func test_page_link_partitions_reject_resigned_inconsistency(ctx) {
     }
     delete_file(run + "/pages.jsonl"); jsonl_write(run + "/pages.jsonl", legacy, false, 268435456); resign_fixture(ctx, run)
     cli(["validate", run], 0)
+}
+
+export func test_ci_example_rejects_truncated_comparison(ctx) {
+    let example := fixture_path("examples/ci_baseline.kujo")
+    create_dir(ctx["dir"] + "/src")
+    # Substitute only the CLI child in an isolated cwd; exercise real capture limits.
+    write_file(ctx["dir"] + "/src/main.kujo", "mut payload := \"x\"\nwhile byte_length(payload) <= 16777216 {payload = payload + payload}\nprint(payload)\n")
+    let result := process([runtime(), "run", example, "--", "old", "new", runtime()], 1, {"cwd":ctx["dir"], "timeout_ms":30000, "max_output_bytes":1048576})
+    equal("", result.stdout, "partial comparison JSON is never forwarded")
+    require(includes(result.stderr, "did not complete with full output"), "capture failure explains streaming alternative")
 }
