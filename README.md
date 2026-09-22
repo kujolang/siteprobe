@@ -1,6 +1,6 @@
 # SiteProbe
 
-[![Version](https://img.shields.io/badge/version-0.3.0-black)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.4.0-black)](VERSION)
 [![CI](https://github.com/kujolang/siteprobe/actions/workflows/validate.yml/badge.svg)](https://github.com/kujolang/siteprobe/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
@@ -269,9 +269,9 @@ may lack required primitives. On Unix, verify and extract the download, then use
 `bash siteprobe doctor` (ZIP extraction may not preserve executable permissions):
 
 ```bash
-sha256sum -c siteprobe-0.3.0-linux-x64.zip.sha256
-unzip siteprobe-0.3.0-linux-x64.zip -d siteprobe-0.3.0
-cd siteprobe-0.3.0
+sha256sum -c siteprobe-0.4.0-linux-x64.zip.sha256
+unzip siteprobe-0.4.0-linux-x64.zip -d siteprobe-0.4.0
+cd siteprobe-0.4.0
 export KUJO_BIN=/absolute/path/to/kujo
 bash siteprobe doctor
 bash siteprobe version
@@ -283,12 +283,12 @@ README and qualification records describe the same source across platforms;
 platform labels identify the runner used to verify each package.
 
 See [security boundaries](docs/security.md), [agent integration](docs/agent-integration.md),
-[release qualification](docs/release-qualification-0.3.0.md), and the
+[release qualification](docs/release-qualification-0.4.0.md), and the
 [September 22 review and next-session backlog](docs/audits/readiness-review-2026-09-22.md).
 
 ## Maturity boundary
 
-SiteProbe 0.3 is a fixture-verified, local-first crawler, not a universal enterprise
+SiteProbe 0.4 is a fixture-verified, local-first crawler, not a universal enterprise
 certification. Suitability depends on target policy, workload, runtime and platform.
 The [completion record](docs/readiness-completion.md) maps the reviewed backlog
 to implementation, regression evidence and qualification procedures.

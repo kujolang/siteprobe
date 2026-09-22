@@ -1,35 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-09-22
 
-- Complete the September readiness backlog: merged robots policy and per-hop
-  sitemap checks; canonical metrics-path protection; conditional resource binding;
-  document base URLs and deterministic relationship diffs.
-- Bound staging work and retained evidence; replace full baseline/compare page
-  maps with capped byte-offset indexes.
-- Validate all secondary JSON contracts and cross-artifact relationships.
-- Report discovery limits, add command-specific help and `inspect --fail-on error`,
-  and qualify dense, multilingual and real ecosystem-consumer workflows.
-
-- Reject duplicate page identities, incorrect severity totals, malformed link and
-  redirect inventories, and dangling manifest symlinks during validation.
-- Validate self-comparisons once and avoid constructing two identical page indexes.
-- Reuse the target origin while analyzing links instead of parsing it for each edge.
-- Clarify command safety, signature verification, repository layout, and remaining
-  readiness gates; add the September 22 review backlog.
-
-## Unreleased
-
-- Complete the September readiness backlog: merged robots policy and per-hop
-  sitemap checks; canonical metrics-path protection; conditional resource binding;
-  document base URLs and deterministic relationship diffs.
-- Bound staging work and retained evidence; replace full baseline/compare page
-  maps with capped byte-offset indexes.
-- Validate all secondary JSON contracts and cross-artifact relationships.
-- Report discovery limits, add command-specific help and `inspect --fail-on error`,
-  and qualify dense, multilingual and real ecosystem-consumer workflows.
-
-- Move all 36 existing maintenance tests and a new bounded-fixture regression, loopback fixtures, benchmarks, schema checks and source-package verification to Kujo. Preserve frozen, signed compatibility fixtures and remove the Python CI dependency.
+- Move maintenance tests, fixtures, benchmarks and package verification to native Kujo; preserve the immutable compatibility oracle.
+- Merge matching robots groups, apply longest-rule precedence and wildcard/anchor matching, and enforce policy on sitemap redirect hops.
+- Protect run artifacts from metrics-path collisions, including canonical aliases and Windows paths.
+- Bound staging and retained evidence; use capped byte-offset indexes for baselines and comparisons.
+- Validate seven secondary artifact schemas and cross-artifact relationships; reject inconsistent unsigned runs and unsafe manifests.
+- Bind conditional requests to compatible targets and final resources, honor HTML base URLs, and compare relationship inventories deterministically.
+- Expose discovery caps, add command-specific help and opt-in inspect error exits, and correct Windows relative artifact paths.
+- Qualify 46 native tests, complete 10,000-page concurrency sweeps, dense/multilingual fixtures, extracted archives and real ecosystem consumers.
 
 ## 0.3.0 - 2026-09-07
 
