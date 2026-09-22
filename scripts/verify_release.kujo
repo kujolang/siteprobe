@@ -13,6 +13,8 @@ func main() {
             # Native extraction rejects traversal, symlinks and bounded-expansion violations.
             unzip(archive, root)
             for required in ["src/siteprobe.kujo", "docs/audits/repository-hardening.md", "docs/release-qualification-" + expected + ".md", ".github/workflows/validate.yml", "tests/siteprobe_tests.kujo"] {require(path_is_file(root + "/" + required), "missing package entry " + required)}
+            for schema in list_dir("schemas") {require(path_is_file(root + "/schemas/" + schema), "missing packaged schema " + schema)}
+            process([kujo, "run", "src/main.kujo", "--", "validate", "tests/fixtures/same"], 0, {"timeout_ms":30000, "cwd":root})
             require( ! path_exists(root + "/src/siteprobe.py"), "unexpected non-Kujo product source")
             equal(expected, trim(read_file(root + "/VERSION")), "extracted version")
             for command in ["doctor", "version"] {

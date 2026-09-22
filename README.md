@@ -33,6 +33,29 @@ export KUJO_BIN=/absolute/path/to/kujo
 ./siteprobe doctor
 ```
 
+Build the pinned runtime anywhere (Rust/Cargo and Git required), from this
+repository's root:
+
+```bash
+KUJO_SOURCE="$HOME/.local/src/kujo-siteprobe"
+git clone https://github.com/kujolang/kujo.git "$KUJO_SOURCE"
+git -C "$KUJO_SOURCE" checkout "$(cat KUJO_REVISION)"
+cargo build --release --locked --manifest-path "$KUJO_SOURCE/Cargo.toml"
+export KUJO_BIN="$KUJO_SOURCE/target/release/kujo"
+./siteprobe doctor
+```
+
+On Windows PowerShell, use an absolute runtime path:
+
+```powershell
+$KujoSource = Join-Path $env:LOCALAPPDATA "Kujo-SiteProbe"
+git clone https://github.com/kujolang/kujo.git $KujoSource
+git -C $KujoSource checkout (Get-Content KUJO_REVISION).Trim()
+cargo build --release --locked --manifest-path "$KujoSource/Cargo.toml"
+$env:KUJO_BIN = "$KujoSource/target/release/kujo.exe"
+.\siteprobe.ps1 doctor
+```
+
 ## Quick start
 
 ```bash
@@ -75,7 +98,7 @@ output budget and optional baseline validation pass.
 | `sitemap <run>` | Print discovered sitemap evidence as JSON. |
 | `version` | Print version and schema contract. |
 
-Use `./siteprobe <command> --help` for the complete option set. Important crawl
+Use `./siteprobe <command> --help` for that command's options and exit behavior. Important crawl
 controls include:
 
 | Option | Default | Purpose |
@@ -93,6 +116,12 @@ controls include:
 | `--sort-buffer-bytes` | `8388608` | Bound each deterministic external-sort chunk. |
 | `--query-policy` | `preserve` | Preserve, sort, or drop query parameters. |
 | `--query-deny-param` | none | Remove a named parameter; repeat for multiple names. |
+| `--max-frontier` | `10 × max-pages` | Bound unique queued page URLs. |
+| `--max-sitemaps` | `50` | Bound distinct same-origin sitemap requests. |
+| `--max-sitemap-seeds` | `20` | Bound eligible robots sitemap seeds. |
+| `--max-sitemap-urls` | `100000` | Bound retained sitemap members. |
+| `--max-staging-bytes` | `4 × max-output-bytes`, capped at 1 GiB | Reserve disk space before writes, downloads, and sort scratch work. |
+| `--max-retained-bytes` | `268435456` | Bound conservatively accounted retained evidence; this is not an OS RSS limit. |
 | `--max-output-bytes` | `104857600` | Bound the complete published run. |
 | `--max-report-tokens` | `2000` | Bound report UTF-8 bytes to four times this approximate token budget. |
 | `--fail-on` | `none` | Return non-zero for `info`, `warning`, or `error` findings at and above the threshold. |
@@ -112,6 +141,16 @@ This closes the DNS-rebinding gap between policy validation and connection.
 ./siteprobe crawl https://example.com --out .siteprobe/signed --signing-key-file /secure/siteprobe.key
 ./siteprobe verify .siteprobe/signed --signing-key-file /secure/siteprobe.key
 ```
+
+Conditional baselines must have the same target, query policy, and deny list.
+ETag/Last-Modified headers are sent only to the baseline's final resource URL;
+a changed redirect destination is fetched afresh. Valid 304 reuse incorporates
+new HTTP Link and noindex metadata. Metrics paths inside output, baseline, or
+other existing runs are rejected before publication, including parent aliases.
+
+HTML references use the first valid document `<base href>`; same-origin crawl
+checks still use the original target. Comparisons report outgoing-link, hreflang,
+and HTTP-Link changes after normalizing relationship ordering.
 
 ## Artifacts
 
@@ -134,8 +173,11 @@ Every crawl writes a run directory containing:
 
 The primary contracts are `siteprobe.run/v1`, `siteprobe.page/v1`,
 `siteprobe.findings/v1`, and `siteprobe.manifest/v1`; their JSON Schemas live in
-[`schemas/`](schemas/). `siteprobe validate` invokes both structural consistency
-checks and Kujo's native Draft 2020-12 subset validator.
+[`schemas/`](schemas/). `siteprobe validate` invokes Kujo's native Draft 2020-12 subset validator for
+all JSON inventories, then checks page identities, graph endpoints and edge
+multiplicity, incoming counts, origin policy, metadata, sitemap membership,
+structured-data inventories, redirect chains, and site aggregates. Regenerating
+an unsigned manifest does not make contradictory evidence valid.
 
 ## Choosing a workflow
 
@@ -143,7 +185,8 @@ Use `crawl` for repeatable site inventories and CI baselines. Use `inspect` for 
 single explicitly selected URL: it follows bounded same-origin redirects but does
 **not** retrieve or enforce robots.txt. Inspect reports HTTP failures in its JSON
 page record; exit zero means the inspection completed, not that the page was healthy.
-Use `crawl --fail-on error` when CI should fail for observed errors.
+Use `inspect --fail-on error` to return exit 1 for transport/HTTP errors while
+retaining its JSON page record. Use `crawl --fail-on error` to gate crawl findings.
 
 `validate` checks artifact structure and consistency. `verify` checks digests;
 authentication requires `--signing-key-file` and a trusted shared key. Without a
@@ -198,7 +241,7 @@ Run a selected test by passing part of its name:
 ${KUJO_BIN:-../kujo/target/release/kujo} run tests/siteprobe_tests.kujo -- signatures
 ```
 
-The validation gate checks the frozen compatibility evidence, runs all 38 native
+The validation gate checks the frozen compatibility evidence, runs all 45 native
 adversarial tests, checks and lints Kujo sources, verifies
 Kujo formatting, parses every JSON Schema, and checks the Git diff. CI builds
 Kujo from the revision pinned in `KUJO_REVISION` and runs the same gate on
@@ -247,14 +290,20 @@ See [security boundaries](docs/security.md), [agent integration](docs/agent-inte
 
 SiteProbe 0.3 is a fixture-verified, local-first crawler, not a universal enterprise
 certification. Suitability depends on target policy, workload, runtime and platform.
-The [current review](docs/audits/readiness-review-2026-09-22.md) records remaining
-release gates and concrete acceptance criteria.
+The [completion record](docs/readiness-completion.md) maps the reviewed backlog
+to implementation, regression evidence and qualification procedures.
 
-Robots matching currently uses the first matching group and first matching literal
-path prefix. It does not implement complete RFC 9309 group merging, longest-match
-precedence, or embedded wildcard/end-anchor matching. Qualify target robots rules
-before unattended use. Sitemap discovery also runs separately from page robots
-checks. These limitations are prioritized in the new backlog.
+Robots matching merges matching groups, selects the most specific matching rule,
+favors allow rules on ties, and supports wildcard/end-anchor and percent-encoded
+path comparisons. Page and sitemap requests re-check policy at each redirect hop.
+Rules over 8 KiB fail closed. `inspect` remains an explicit observation without a
+robots fetch; it never weakens same-origin or destination-address checks.
+
+Reached sitemap, page, depth, frontier, or page-structure limits are recorded in
+`sitemap.json` and/or `run.json.configuration.coverage`. Missing coverage fields in
+legacy runs are not proof of complete site discovery. See the
+[completion and qualification record](docs/readiness-completion.md) for limits,
+compatibility changes, tests, and consumer versions.
 
 SiteProbe supports static and
 server-rendered HTML. It is not a JavaScript renderer, browser automation tool,

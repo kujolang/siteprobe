@@ -191,3 +191,5 @@ concurrency-4 smoke also passed. See [verification receipt](artifacts/readiness-
 At recording, hosted Ubuntu qualification passed; hosted macOS and Windows were
 still running. No new tagged release or universal enterprise certification is
 implied by these results.
+
+The September 22 backlog implementation and qualification are tracked in the [readiness completion record](../readiness-completion.md). This document preserves the historical review.

@@ -49,3 +49,5 @@ Status: native implementation completed by the September 2026 rewrite. See [the 
 No P0–P2 follow-up from this audit remains open. Future optimization needs new
 measurements and must preserve the established artifact and security contracts.
 See [0.3.0 qualification](release-qualification-0.3.0.md) for release evidence.
+
+The September 22 backlog implementation and qualification are tracked in the [readiness completion record](readiness-completion.md). This document preserves the historical review.

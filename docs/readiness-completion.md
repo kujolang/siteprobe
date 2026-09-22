@@ -1,0 +1,84 @@
+# Readiness backlog completion — September 22, 2026
+
+This is the implementation and qualification record for the eight items in the
+[September 22 review](audits/readiness-review-2026-09-22.md). SiteProbe is a bounded,
+same-origin observer, not a universal crawler or an enterprise certification.
+
+| Review item | Delivered behavior | Regression evidence |
+| --- | --- | --- |
+| 1. Robots | Matching groups merge; longest matching rule wins, allow wins ties; wildcard/end anchors and percent-encoding normalization; sitemap redirect hops obey policy. Inspect remains an explicit single-resource observation. | `robots_conformance_and_sitemap_policy`, existing redirect and unavailable-robots tests |
+| 2. Metrics | Canonical parents and aliases are checked before requests/publication; output and existing run directories are protected, including baseline aliases and Windows path forms. Separate metrics files remain replaceable. | `metrics_paths_preserve_immutable_runs` |
+| 3. Resources | Incremental staging reservations, retained-data estimates, early page-output abort and bounded offset indexes replace whole baseline/compare page retention. | `incremental_resource_budgets_and_cleanup`, artifacts above 8 MiB, workload receipts |
+| 4. Contracts | Seven secondary schemas and cross-artifact origin, edge, redirect, sitemap, metadata, structured-data and aggregate consistency checks. Re-signing an inconsistent run does not make it valid. | `secondary_contracts_reject_resigned_inconsistency`, immutable oracle/signatures |
+| 5. Conditional requests | Baseline target/query compatibility is checked before requests; validators follow only their final resource; 304 metadata is incorporated and changed redirects fetch fresh content. | `conditional_resource_identity_and_metadata` |
+| 6. Documents/comparison | First valid HTML base resolves document references; response origin determines classification; relationship inventories compare independently of order. | `document_base_and_relationship_comparison` |
+| 7. Coverage/CLI | Explicit frontier, sitemap seed/map/URL caps; machine-readable incomplete coverage; command help; opt-in inspect error exit with JSON retained. | `coverage_limits_help_and_inspect_outcomes` |
+| 8. Qualification | Pinned runtime matrix, full 10,000-page concurrency sweep, dense/multilingual workloads, extracted-package validation and real consumer integration driver. | Native gate, CI, receipts below |
+
+## Resource accounting
+
+`--max-output-bytes` bounds published artifacts and aborts an oversized page spool
+before final analysis. `--max-staging-bytes` defaults to four times that value,
+capped at 1 GiB; explicit values are supported. Writes reserve their encoded size;
+external sorts reserve three times their input for scratch work. Link wrapping,
+reports and manifest generation also reserve capacity. Failure cleans unpublished
+staging directories. No existing run is replaced.
+
+`--max-retained-bytes` defaults to 256 MiB. It bounds conservative serialized-data
+estimates: four times analyzed page JSON, a per-page allowance of one sixteenth of
+the limit, and sitemap URL bookkeeping. Baseline and comparison indexes retain
+URL/byte-offset entries, with a 16 MiB estimate limit per index, and read individual
+rows on demand. Validation bounds each artifact read at 256 MiB and limits distinct
+edge identities to one million. Dense workload receipts measure the implemented
+limits against link-heavy pages with large JSON-LD.
+
+These are application accounting limits, **not hard process RSS limits**. Native
+HTTP decoding, tokenization, JSON parsing, serialization, allocator overhead and
+concurrent response buffers require additional memory. Request bodies, tokenizer
+structures, XML expansion, sort chunks and merge fan-in have their own native
+bounds. A deployment needing an absolute memory/disk ceiling should also use OS
+resource limits. Reported peak RSS is measured evidence for the specified fixture,
+not a maximum for arbitrary sites.
+
+## Compatibility and coverage
+
+The immutable `tests/fixtures` oracle is unchanged. Contract identifiers remain
+v1, with additional secondary schema validation. Robots corrections intentionally
+change previously incorrect decisions. `inspect` still reports HTTP errors with
+exit zero unless `--fail-on error` is requested. Unsupported fail thresholds are
+rejected. The new budgets and discovery limits appear in configuration when
+non-default; incomplete discovery emits `configuration.coverage.complete=false`
+and sorted reasons. Absence of coverage fields in older artifacts is not proof of
+a complete crawl. Sitemap caps also record specific truncation and error evidence.
+
+Metrics destinations are compared conservatively without case sensitivity across
+platforms. This may reject a distinct case-sensitive path but protects runs moved
+between filesystems. Private-network crawling still requires explicit opt-in.
+
+## Reproducible qualification
+
+Use the exact revision in `KUJO_REVISION`, set `KUJO_BIN` to its absolute executable
+path, then run:
+
+```sh
+bash scripts/validate.sh
+"$KUJO_BIN" run scripts/benchmark.kujo -- --pages 10000 --concurrency-levels 1,4,8,16
+"$KUJO_BIN" run scripts/benchmark.kujo -- --pages 25 --workload dense --concurrency-levels 1,4
+"$KUJO_BIN" run scripts/benchmark.kujo -- --pages 50 --workload multilingual --concurrency-levels 1,4
+"$KUJO_BIN" run scripts/verify_integrations.kujo -- ../contentgraph ../eval ../runledger
+"$KUJO_BIN" run scripts/release.kujo -- "$KUJO_BIN" local .siteprobe/release-check
+"$KUJO_BIN" run scripts/verify_release.kujo -- .siteprobe/release-check "$KUJO_BIN"
+```
+
+The integration driver executes actual ContentGraph build, Eval suite execution,
+and isolated RunLedger start/note/test/finish/show operations. It records exact
+consumer revisions and versions; it does not claim compatibility with untested
+versions. See [integration examples](../examples/README.md) for the distinction
+between custom projections and native consumer inputs.
+
+Qualification receipts are stored in
+[audit artifacts](audits/artifacts/readiness-completion-2026-09-22/).
+The GitHub validation workflow qualifies the pinned runtime on Linux, macOS and
+Windows, and runs the full sweep plus dense/multilingual workloads on Linux.
+Timing comparisons across different machines or simultaneous jobs are not
+controlled speedup measurements.

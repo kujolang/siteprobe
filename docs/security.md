@@ -42,12 +42,21 @@ Process metrics are null on platforms where the runtime cannot measure them.
 
 ## Robots and command scope
 
-The current robots parser selects the first matching group and first literal
-prefix rule. It does not claim complete RFC 9309 matching. `inspect` intentionally
-passes no robots policy; sitemap discovery also fetches without page-policy checks.
-See the [current review](audits/readiness-review-2026-09-22.md) for the pending
-conformance and policy work. Do not infer universal robots compliance from the
-same-origin and private-network protections.
+Robots rules merge matching groups, use longest-match/allow-tie precedence, and
+support wildcard/end-anchor and percent-encoded comparisons. Oversized rules fail
+closed. Sitemap fetches enforce the same parsed policy on every redirect hop.
+`inspect` deliberately fetches only the explicit resource and its same-origin
+redirects without robots discovery; this scope is documented in command help.
+
+Metrics destinations are checked against canonical output/baseline paths and
+existing run ancestors. Checks fold case defensively for Windows and portable
+paths. Separate metrics files remain replaceable; run artifacts remain immutable.
+Local directory ownership is still required against concurrent hostile changes.
+
+Staging reserves cover pending writes and native sort scratch generations before
+they run. Retained-evidence accounting, per-resource HTTP/XML bounds, bounded page
+indexes and artifact limits constrain work; they are not an OS-level hard RSS
+sandbox. See [resource envelopes](readiness-completion.md#resource-accounting).
 
 Unsigned legacy runs remain readable without a manifest. If a manifest directory
 entry exists, including a dangling symlink, validation rejects unsafe entries.

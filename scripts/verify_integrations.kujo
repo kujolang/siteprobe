@@ -1,0 +1,47 @@
+from tests.fixture_server import fixture_start, fixture_stop
+from tests.support import fixture_path, runtime, process, cli, read_json, put_json, equal, require
+func consumer(root, entry, arguments) {
+    return process(concat([runtime(), "run", entry, "--"], arguments), 0, {"cwd":root, "timeout_ms":120000, "max_output_bytes":4194304})
+}
+func main() {
+    let argv := args()
+    require(len(argv) == 3, "usage: kujo run scripts/verify_integrations.kujo -- CONTENTGRAPH_ROOT EVAL_ROOT RUNLEDGER_ROOT")
+    let graph_root := fixture_path(argv[0]); let eval_root := fixture_path(argv[1]); let ledger_root := fixture_path(argv[2])
+    let project := fixture_path(".")
+    create_dir(".siteprobe/verification")
+    let work := fixture_path(create_temp_dir(".siteprobe/verification", "integrations-"))
+    let run := work + "/siteprobe"
+    let server := fixture_start({})
+    try {cli(["crawl", server["base"], "--out", run, "--max-pages", 20, "--deterministic", "--allow-private-network"], 0); fixture_stop(server)} except err {fixture_stop(server); error(to_string(err))}
+    cli(["validate", run], 0)
+    let graph := consumer(graph_root, "src/main.kujo", ["build", "--siteprobe", run, "--out", work + "/graph", "--deterministic"])
+    write_file(work + "/contentgraph.log", graph.stdout)
+    require(path_is_file(work + "/graph/manifest.json"), "ContentGraph produced a complete run")
+    let suite := {"name":"siteprobe-artifact-consumer", "allowed_paths":[work], "tests":[
+        {"name":"run contract", "check":"json_value_equals", "params":{"path":run + "/run.json", "json_path":"schema", "expected":"siteprobe.run/v1"}},
+        {"name":"graph contract", "check":"file_exists", "params":{"path":work + "/graph/manifest.json"}}
+        ]}
+    put_json(work + "/eval-suite.json", suite)
+    let evaluated := consumer(eval_root, "main.kujo", ["run", work + "/eval-suite.json", "--output-dir", work + "/eval", "--json"])
+    write_file(work + "/eval.log", evaluated.stdout)
+    let ledger := work + "/ledger"
+    let started := consumer(ledger_root, "runledger.kujo", ["start", "--provider", "fixture", "--model", "siteprobe", "--task", "siteprobe-consumer-qualification", "--repo", project, "--ledger", ledger])
+    let first := split(started.stdout, "\n")[0]
+    require(starts_with(first, "Started run: "), "RunLedger start receipt")
+    let id := trim(substring(first, 13, len(first)))
+    let projected := process([runtime(), "run", "examples/runledger.kujo", "--", run], 0, {"timeout_ms":30000})
+    consumer(ledger_root, "runledger.kujo", ["note", id, trim(projected.stdout), "--ledger", ledger])
+    consumer(ledger_root, "runledger.kujo", ["test", id, "SiteProbe artifact validation", "--status", "pass", "--ledger", ledger])
+    consumer(ledger_root, "runledger.kujo", ["finish", id, "--status", "pass", "--verdict", "SiteProbe artifacts consumed and verified", "--repo", project, "--ledger", ledger])
+    let shown := consumer(ledger_root, "runledger.kujo", ["show", id, "--json", "--ledger", ledger])
+    let record := parse_json(shown.stdout)
+    equal("pass", record["status"], "RunLedger terminal receipt")
+    mut versions := {}
+    for pair in [["contentgraph", graph_root, "src/main.kujo"], ["eval", eval_root, "main.kujo"], ["runledger", ledger_root, "runledger.kujo"]] {
+        versions[pair[0]] = {"version":trim(consumer(pair[1], pair[2], ["version"]).stdout), "commit":trim(process(["git", "rev-parse", "HEAD"], 0, {"cwd":pair[1], "timeout_ms":10000}).stdout)}
+    }
+    let receipt := {"schema":"siteprobe.consumer-qualification/v1", "work":work, "consumers":versions, "contentgraph":"passed", "eval":"passed", "runledger":"passed", "runledger_id":id}
+    put_json(".siteprobe/verification/consumer-qualification.json", receipt)
+    print(to_json_pretty(receipt))
+}
+try {main()} except err {eprint(to_string(err)); exit(1)}

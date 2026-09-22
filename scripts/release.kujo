@@ -49,12 +49,12 @@ func main() {
     files := [
     "AGENTS.md", ".github/workflows/validate.yml", ".github/workflows/release.yml", "README.md", "LICENSE", "VERSION", "KUJO_REVISION", "CHANGELOG.md", "kujo.toml", "kujo.lock",
     "siteprobe", "siteprobe.ps1", "siteprobe.cmd", "src/main.kujo", "src/siteprobe.kujo",
-    "tests/native_probe.kujo", "tests/siteprobe_tests.kujo", "tests/support.kujo", "tests/fixture_server.kujo", "tests/unit_tests.kujo", "tests/crawl_tests.kujo", "tests/contract_tests.kujo",
+    "tests/readiness_tests.kujo", "tests/native_probe.kujo", "tests/siteprobe_tests.kujo", "tests/support.kujo", "tests/fixture_server.kujo", "tests/unit_tests.kujo", "tests/crawl_tests.kujo", "tests/contract_tests.kujo",
     "schemas/run.schema.json", "schemas/page.schema.json", "schemas/findings.schema.json",
     "schemas/manifest.schema.json", "scripts/validate.sh", "scripts/validate.ps1",
-    "scripts/verify_release.kujo", "docs/release-notes-0.3.0.md", "scripts/validate.kujo", "scripts/benchmark.kujo",
+    "scripts/verify_integrations.kujo", "scripts/verify_release.kujo", "docs/release-notes-0.3.0.md", "scripts/validate.kujo", "scripts/benchmark.kujo",
     "scripts/generate_docs.kujo", "scripts/generate_contract_docs.kujo", "scripts/release.kujo",
-    "docs/security.md", "docs/agent-integration.md", "docs/release-qualification-0.1.0.md",
+    "docs/readiness-completion.md", "docs/security.md", "docs/agent-integration.md", "docs/release-qualification-0.1.0.md",
     "docs/release-qualification-0.2.0.md", "docs/release-qualification-0.3.0.md",
     "docs/next-session-roadmap.md", "docs/benchmark-10000.json",
     "docs/generated/kujo-api.md", "docs/generated/artifact-contracts.md", "examples/README.md",
@@ -67,6 +67,7 @@ func main() {
         copy_file(files[i], stage_path + "/" + files[i])
         i := i + 1
     }
+    copy_tree("schemas", stage_path + "/schemas")
     copy_tree("tests/fixtures", stage_path + "/tests/fixtures")
     copy_tree("docs/audits", stage_path + "/docs/audits")
     archive := zip_create(archive_path)

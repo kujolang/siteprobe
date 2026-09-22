@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Complete the September readiness backlog: merged robots policy and per-hop
+  sitemap checks; canonical metrics-path protection; conditional resource binding;
+  document base URLs and deterministic relationship diffs.
+- Bound staging work and retained evidence; replace full baseline/compare page
+  maps with capped byte-offset indexes.
+- Validate all secondary JSON contracts and cross-artifact relationships.
+- Report discovery limits, add command-specific help and `inspect --fail-on error`,
+  and qualify dense, multilingual and real ecosystem-consumer workflows.
+
 - Reject duplicate page identities, incorrect severity totals, malformed link and
   redirect inventories, and dangling manifest symlinks during validation.
 - Validate self-comparisons once and avoid constructing two identical page indexes.
@@ -10,6 +19,15 @@
   readiness gates; add the September 22 review backlog.
 
 ## Unreleased
+
+- Complete the September readiness backlog: merged robots policy and per-hop
+  sitemap checks; canonical metrics-path protection; conditional resource binding;
+  document base URLs and deterministic relationship diffs.
+- Bound staging work and retained evidence; replace full baseline/compare page
+  maps with capped byte-offset indexes.
+- Validate all secondary JSON contracts and cross-artifact relationships.
+- Report discovery limits, add command-specific help and `inspect --fail-on error`,
+  and qualify dense, multilingual and real ecosystem-consumer workflows.
 
 - Move all 36 existing maintenance tests and a new bounded-fixture regression, loopback fixtures, benchmarks, schema checks and source-package verification to Kujo. Preserve frozen, signed compatibility fixtures and remove the Python CI dependency.
 

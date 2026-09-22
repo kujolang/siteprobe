@@ -2,21 +2,23 @@ from tests.fixture_server import fixture_request, fixture_start, fixture_stop
 from tests.support import fixture_path, includes, runtime, process, read_json, cleanup, require, equal
 func benchmark_platform() {if env("OS") == "Windows_NT" {return "nt"}; return trim(process(["uname", "-s"], 0, {"timeout_ms": 10000}).stdout)}
 func main() {
-    mut pages := 10000; mut levels := [1, 4, 8, 16]; mut output := ""
+    mut pages := 10000; mut levels := [1, 4, 8, 16]; mut output := ""; mut workload := "standard"
     let argv := args(); mut i := 0
     while i < len(argv) {
         let flag := argv[i]
-        if ! includes(["--pages", "--concurrency-levels", "--output"], flag)||i + 1 >= len(argv) {error("usage: kujo run scripts/benchmark.kujo -- [--pages 1..10000] [--concurrency-levels 1,4,8,16] [--output path]")}
+        if ! includes(["--pages", "--concurrency-levels", "--output", "--workload"], flag)||i + 1 >= len(argv) {error("usage: kujo run scripts/benchmark.kujo -- [--pages 1..10000] [--concurrency-levels 1,4,8,16] [--output path]")}
         if flag == "--pages" {pages = to_int(argv[i + 1])}
+        else if flag == "--workload" {workload = argv[i + 1]}
         else if flag == "--output" {output = argv[i + 1]}
         else {levels = []; for value in split(argv[i + 1], ",") {let n := to_int(value); if ! includes(levels, n) {levels = push(levels, n)}}; levels = sort(levels)}
         i = i + 2
     }
+    require(includes(["standard", "dense", "multilingual"], workload), "workload must be standard, dense, or multilingual")
     require(pages >= 1&&pages <= 10000&&len(levels) > 0, "pages must be 1..10000 and concurrency levels 1..32")
     for level in levels {require(level >= 1&&level <= 32, "concurrency levels must be 1..32")}
     create_dir(".siteprobe/verification")
     let temporary := fixture_path(create_temp_dir(".siteprobe/verification", "benchmark-"))
-    let server := fixture_start({"pages": pages})
+    let server := fixture_start({"pages": pages, "workload": workload})
     mut results := []
     try {
         for concurrency in levels {
@@ -26,6 +28,12 @@ func main() {
             mut offset := 0; mut successful := 0
             loop {let block := jsonl_read_chunk(run + "/pages.jsonl", offset, 64, 268435456); for page in block["rows"] {if page["status"] == 200 {successful = successful + 1}}; if block["eof"] {break}; offset = block["offset"]}
             equal(pages, successful, "successful benchmark fetches")
+            process([runtime(), "run", "src/main.kujo", "--", "validate", run], 0, {"timeout_ms":120000, "max_output_bytes":1048576})
+            if workload == "multilingual" {
+                let first := jsonl_read_chunk(run + "/pages.jsonl", 0, 1, 268435456)["rows"][0]
+                equal("ja", first["language"], "multilingual language retained")
+                equal("世界", first["structured_data"][0]["name"], "multilingual JSON-LD retained")
+            }
             let server_state := fixture_request(server["port"], "state", {})
             equal([], server_state["paths"], "bounded benchmark history")
             equal([], server_state["times"], "bounded benchmark timestamps")
@@ -36,7 +44,7 @@ func main() {
         }
         fixture_stop(server); cleanup(temporary)
     } except err {fixture_stop(server); eprint("Benchmark failed; evidence retained at " + temporary); error(to_string(err))}
-    let report := {"schema": "siteprobe.benchmark/v2", "generated_at": now_utc(), "platform": benchmark_platform(), "pages": pages, "results": results}
+    let report := {"schema": "siteprobe.benchmark/v2", "generated_at": now_utc(), "platform": benchmark_platform(), "workload": workload, "pages": pages, "results": results}
     let encoded := to_json_pretty(report) + "\n"
     if output != "" {write_file(output, encoded, true)}
     print(trim_end(encoded))

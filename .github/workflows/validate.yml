@@ -24,7 +24,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: kujo
-      - run: cargo build --release --manifest-path kujo/Cargo.toml
+      - run: cargo build --release --locked --manifest-path kujo/Cargo.toml
       - name: Validate (Unix)
         if: runner.os != 'Windows'
         run: bash scripts/validate.sh
@@ -39,12 +39,28 @@ jobs:
         run: git diff --exit-code -- kujo.lock docs/generated
         working-directory: siteprobe
 
+      - name: Verify extracted package
+        shell: bash
+        working-directory: siteprobe
+        run: |
+          ../kujo/target/release/kujo${{ runner.os == 'Windows' && '.exe' || '' }} run scripts/release.kujo -- ../kujo/target/release/kujo${{ runner.os == 'Windows' && '.exe' || '' }} qualification .siteprobe/qualification-dist
+          ../kujo/target/release/kujo${{ runner.os == 'Windows' && '.exe' || '' }} run scripts/verify_release.kujo -- .siteprobe/qualification-dist ../kujo/target/release/kujo${{ runner.os == 'Windows' && '.exe' || '' }}
+
       - name: Verify full native concurrency sweep
         if: runner.os == 'Linux'
         working-directory: siteprobe
         env:
           KUJO_BIN: ${{ github.workspace }}/kujo/target/release/kujo
         run: ../kujo/target/release/kujo run scripts/benchmark.kujo -- --pages 10000 --concurrency-levels 1,4,8,16 --output .siteprobe/verification/native-concurrency-10000.json
+
+      - name: Verify dense and multilingual workloads
+        if: runner.os == 'Linux'
+        working-directory: siteprobe
+        env:
+          KUJO_BIN: ${{ github.workspace }}/kujo/target/release/kujo
+        run: |
+          ../kujo/target/release/kujo run scripts/benchmark.kujo -- --pages 25 --workload dense --concurrency-levels 1,4 --output .siteprobe/verification/dense.json
+          ../kujo/target/release/kujo run scripts/benchmark.kujo -- --pages 50 --workload multilingual --concurrency-levels 1,4 --output .siteprobe/verification/multilingual.json
 
       - name: Preserve verification evidence
         if: always()
