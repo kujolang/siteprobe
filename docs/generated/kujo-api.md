@@ -414,7 +414,7 @@ Analyze sorted JSONL in bounded batches, retaining only aggregate indexes.
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:560`
+- Source: `siteprobe.kujo:561`
 - Signature: `func(source, schema, name, destination)`
 
 Documentation needed.
@@ -424,7 +424,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:563`
+- Source: `siteprobe.kujo:564`
 - Signature: `func(path)`
 
 Documentation needed.
@@ -434,7 +434,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:572`
+- Source: `siteprobe.kujo:573`
 - Signature: `func(run, key)`
 
 Documentation needed.
@@ -444,7 +444,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:582`
+- Source: `siteprobe.kujo:583`
 - Signature: `func(run, key)`
 
 Documentation needed.
@@ -454,7 +454,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:618`
+- Source: `siteprobe.kujo:619`
 - Signature: `func(value, schema, label)`
 
 Documentation needed.
@@ -464,7 +464,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:623`
+- Source: `siteprobe.kujo:624`
 - Signature: `func(value, schema, field, label)`
 
 Batch arrays without aggregate constraints, preserving the enclosing schema.
@@ -473,7 +473,7 @@ Batch arrays without aggregate constraints, preserving the enclosing schema.
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:639`
+- Source: `siteprobe.kujo:640`
 - Signature: `func(run)`
 
 Validate page schemas incrementally; whole pages.jsonl is never loaded.
@@ -482,7 +482,7 @@ Validate page schemas incrementally; whole pages.jsonl is never loaded.
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:677`
+- Source: `siteprobe.kujo:697`
 - Signature: `func(run)`
 
 Documentation needed.
@@ -492,7 +492,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:687`
+- Source: `siteprobe.kujo:707`
 - Signature: `func(old, new)`
 
 Documentation needed.
@@ -502,7 +502,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:714`
+- Source: `siteprobe.kujo:737`
 - Signature: `func(path)`
 
 CRAWL
@@ -511,7 +511,7 @@ CRAWL
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:722`
+- Source: `siteprobe.kujo:745`
 - Signature: `func(target, policy, cfg, pacer, delay, stage)`
 
 Documentation needed.
@@ -521,7 +521,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:761`
+- Source: `siteprobe.kujo:784`
 - Signature: `func(target, final_out, out, cfg)`
 
 Documentation needed.
@@ -531,7 +531,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:866`
+- Source: `siteprobe.kujo:889`
 - Signature: `func(cfg)`
 
 Documentation needed.
@@ -541,7 +541,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:890`
+- Source: `siteprobe.kujo:913`
 - Signature: `func(command)`
 
 CLI
@@ -550,7 +550,7 @@ CLI
 
 - Kind: Function
 - Visibility: Private
-- Source: `siteprobe.kujo:893`
+- Source: `siteprobe.kujo:916`
 - Signature: `func(message)`
 
 Documentation needed.
@@ -560,7 +560,7 @@ This symbol was discovered from the source code, but no human-authored documenta
 
 - Kind: Function
 - Visibility: Public
-- Source: `siteprobe.kujo:894`
+- Source: `siteprobe.kujo:917`
 - Signature: `func(argv)`
 
 Documentation needed.

@@ -483,6 +483,7 @@ export func finding(check, target, severity, evidence) {
 }
 /// Analyze sorted JSONL in bounded batches, retaining only aggregate indexes.
 export func analyze(pages_path, updated_path, sitemap, target, link_spool) {
+    let target_origin := origin(target)
     mut incoming := {}; mut crawled := {}; mut groups := {}
     mut titles := {}; mut descriptions := {}; mut structured := []
     mut page_count := 0; mut link_count := 0; mut crawlable := 0; mut indexable := 0
@@ -508,7 +509,7 @@ export func analyze(pages_path, updated_path, sitemap, target, link_spool) {
             if len(page["structured_data"]) > 0 {structured = push(structured, {"url": url, "items": page["structured_data"]})}
             mut rows := []
             for link in page["links"] {
-                let internal := origin(link["url"]) == origin(target)
+                let internal := origin(link["url"]) == target_origin
                 rows = push(rows, {"source": url, "target": link["url"], "text": link["text"], "rel": link["rel"], "internal": internal})
                 link_count = link_count + 1
                 if internal {incoming[link["url"]] = get_default(incoming, link["url"], 0) + 1}
@@ -650,27 +651,46 @@ export func validate_run(run) {
         let data := read_json(run + "/run.json")
         let page_schema := read_json("schemas/page.schema.json")
         schema_check(data, read_json("schemas/run.schema.json"), "run.json")
-        mut count := 0; mut offset := 0
+        mut count := 0; mut offset := 0; mut page_ids := {}
         while true {
             let block := chunk(run + "/pages.jsonl", offset)
-            for page in block["rows"] {schema_batch(page, page_schema, "links", "pages.jsonl"); count = count + 1}
+            for page in block["rows"] {
+                schema_batch(page, page_schema, "links", "pages.jsonl")
+                let identity := page["normalized_url"]
+                if has_key(page_ids, identity) == 1 {error("duplicate page identity: " + identity)}
+                page_ids[identity] = true; count = count + 1
+            }
             if block["eof"] {break}
             offset = block["offset"]
         }
         if count != data["counts"]["pages"] {errors = push(errors, "page count mismatch")}
         for spec in [["links.json", "links"], ["redirects.json", "redirects"]] {
             let value := read_json(run + "/" + spec[0])
+            if get_default(value, "schema", "") != "siteprobe." + spec[1] + "/v1"|| ! is_array(get_default(value, spec[1], null)) {error("invalid inventory envelope: " + spec[0])}
             if len(value[spec[1]]) != data["counts"][spec[1]] {errors = push(errors, substring(spec[1], 0, len(spec[1]) - 1) + " count mismatch")}
         }
         let findings := read_json(run + "/findings.json")
         if len(findings["findings"]) != data["counts"]["findings"] {errors = push(errors, "finding count mismatch")}
         schema_batch(findings, read_json("schemas/findings.schema.json"), "findings", "findings.json")
-        mut ids := {}
-        for finding in findings["findings"] {if (has_key(ids, finding["id"]) == 1) {errors = push(errors, "duplicate finding IDs")}; ids[finding["id"]] = true}
+        mut ids := {}; mut severity_counts := {}
+        for finding in findings["findings"] {
+            if has_key(ids, finding["id"]) == 1 {error("duplicate finding IDs")}
+            ids[finding["id"]] = true
+            let severity := finding["severity"]
+            severity_counts[severity] = get_default(severity_counts, severity, 0) + 1
+        }
+        let declared := data["counts"]["findings_by_severity"]
+        for severity in unique(concat(keys(declared), keys(severity_counts))) {
+            if ! contains(["info", "warning", "error"], severity)||get_default(declared, severity, 0) != get_default(severity_counts, severity, 0) {errors = push(errors, "finding severity count mismatch: " + severity)}
+        }
         mut total := 0
         for name in list_dir(run) {if path_is_file(run + "/" + name) {total = total + file_size(run + "/" + name)}}
         if total > data["configuration"]["max_output_bytes"] {errors = push(errors, "run exceeds declared output budget")}
-        if path_exists(run + "/manifest.json") {errors = concat(errors, manifest_verify(run, null)); schema_check(read_json(run + "/manifest.json"), read_json("schemas/manifest.schema.json"), "manifest.json")}
+        if entry_exists(run + "/manifest.json") {
+            let manifest_errors := manifest_verify(run, null)
+            errors = concat(errors, manifest_errors)
+            if len(manifest_errors) == 0 {schema_check(read_json(run + "/manifest.json"), read_json("schemas/manifest.schema.json"), "manifest.json")}
+        }
     } except err {errors = push(errors, to_string(err))}
     return errors
 }
@@ -685,10 +705,13 @@ export func page_index(run) {
     return pages
 }
 export func compare_runs(old, new) {
-    for path in [old, new] {
+    mut paths := [old]
+    if old != new {paths = push(paths, new)}
+    for path in paths {
         let errors := validate_run(path)
         if len(errors) > 0 {return {"schema": "siteprobe.comparison/v1", "errors": errors, "changes": []}}
     }
+    if old == new {return {"schema": "siteprobe.comparison/v1", "old_run": old, "new_run": new, "changes": []}}
     let before := page_index(old); let after := page_index(new)
     mut changes := []
     for url in sort(keys(after)) {if ! (has_key(before, url) == 1) {changes = push(changes, {"type": "NEW URL", "url": url})}}
