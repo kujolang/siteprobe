@@ -1,0 +1,75 @@
+{
+  "completeness": "complete",
+  "deferred": [],
+  "documentType": "codex-security.coverage",
+  "excludePaths": [
+    "docs/audits/artifacts/",
+    "tests/fixtures/"
+  ],
+  "explicitExclusions": [
+    {
+      "pattern": "docs/audits/artifacts/",
+      "reason": "Historical benchmark/source reproduction artifacts, not active product or maintenance entrypoints."
+    },
+    {
+      "pattern": "tests/fixtures/",
+      "reason": "Inert hash-verified compatibility payloads; consuming test and product code fully reviewed."
+    },
+    {
+      "pattern": "../kujo/",
+      "reason": "Out-of-repository dependency implementation; current scan verifies call-site controls only."
+    }
+  ],
+  "includePaths": [
+    "."
+  ],
+  "inventoryStrategy": "repository",
+  "mode": "repository",
+  "openQuestions": [],
+  "scanId": "siteprobe-security-20260922",
+  "schemaVersion": "1.0",
+  "surfaces": [
+    {
+      "disposition": "no_issue_found",
+      "id": "network",
+      "label": "HTTP, DNS and redirect authority",
+      "notes": "src/siteprobe.kujo:403-465 explicitly pins connections, disables automatic redirects, enforces same-origin before next request, bounds retries/hops/response bytes; private-network bypass requires explicit operator flag. No SSRF bypass established.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "parsers",
+      "label": "HTML, robots and sitemap parsing",
+      "notes": "src/siteprobe.kujo:103-387,940-996 use bounded native tokenization/XML and allowlisted normalized URLs. No evaluation of remote content. Parser internals remain a Kujo dependency assumption.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "filesystem",
+      "label": "Artifacts, keys and publication",
+      "notes": "src/siteprobe.kujo:614-836,1131-1193 enforce regular files, HMAC, required artifacts, schema/relationship checks, private staging and no-replace publish. TOCTOU requires hostile operator-owned directory mutation explicitly outside documented boundary.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "resources",
+      "label": "Resource bounds and concurrency",
+      "notes": "src/siteprobe.kujo:901-1128,1252 specify response/frontier/page/concurrency/retained/staging bounds and deterministic serialization. They are accounting envelopes, not hard RSS isolation; no concrete unbounded remotely induced resource path validated.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "terminal",
+      "label": "Human and machine output",
+      "notes": "Product diagnostic/report sanitize ASCII terminal controls (src/siteprobe.kujo:58,97-98,1301); exact JSON preserves data. Example error catches print raw errors: non-blocking consistency hardening candidate sent to parent, without demonstrated security-impacting privilege gain.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "maintenance",
+      "label": "Launchers, CI, release, tests and examples",
+      "notes": "All current executable files reviewed. Product never shells out; maintenance passes argv arrays. Release workflows are tag-triggered and runtime revision pinned. Local fixture control server binds loopback; no production deployment. No privileged trust-boundary bypass established.",
+      "receiptRefs": []
+    }
+  ]
+}

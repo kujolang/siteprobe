@@ -1,0 +1,2 @@
+FAIL test_repeated_robots_response_headers: Error { line: 0, message: all repeated robots headers retained: expected ["nofollow","noindex"]; actual ["nofollow"], stack: [main] }; evidence /Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/.siteprobe/verification/test-ihLeSt
+1 native Kujo tests; 1 failed

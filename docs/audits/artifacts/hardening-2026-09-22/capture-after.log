@@ -1,0 +1,2 @@
+PASS test_ci_example_rejects_truncated_comparison
+1 native Kujo tests; 0 failed

@@ -1,0 +1,53 @@
+{
+  "schema": "siteprobe.hardening-qualification/v1",
+  "head_sha": "6568986e406d3b2b4350d65979e2c9c22f0a63c8",
+  "run_id": 35759228954,
+  "url": "https://github.com/kujolang/siteprobe/actions/runs/35759228954",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 106852746662,
+      "name": "fixture-contract (ubuntu-latest)",
+      "html_url": "https://github.com/kujolang/siteprobe/actions/runs/35759228954/job/106852746662",
+      "conclusion": "success",
+      "started_at": "2026-09-22T17:13:09Z",
+      "completed_at": "2026-09-22T17:22:21Z"
+    },
+    {
+      "id": 106852746989,
+      "name": "fixture-contract (macos-latest)",
+      "html_url": "https://github.com/kujolang/siteprobe/actions/runs/35759228954/job/106852746989",
+      "conclusion": "success",
+      "started_at": "2026-09-22T17:14:10Z",
+      "completed_at": "2026-09-22T17:23:17Z"
+    },
+    {
+      "id": 106852747122,
+      "name": "fixture-contract (windows-latest)",
+      "html_url": "https://github.com/kujolang/siteprobe/actions/runs/35759228954/job/106852747122",
+      "conclusion": "success",
+      "started_at": "2026-09-22T17:13:09Z",
+      "completed_at": "2026-09-22T17:24:02Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 10710271993,
+      "name": "verification-macos-latest",
+      "tests": 49,
+      "failed": 0
+    },
+    {
+      "id": 10709982019,
+      "name": "verification-ubuntu-latest",
+      "tests": 49,
+      "failed": 0
+    },
+    {
+      "id": 10709233437,
+      "name": "verification-windows-latest",
+      "tests": 49,
+      "failed": 0
+    }
+  ]
+}

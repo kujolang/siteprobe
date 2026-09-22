@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-09-22T17:06:14Z",
+  "pages": 10000,
+  "platform": "Darwin",
+  "results": [
+    {
+      "concurrency": 1,
+      "cpu_seconds": 91.248381,
+      "output_bytes": 15454750,
+      "pages": 10000,
+      "pages_per_second": 81.03,
+      "peak_rss_bytes": 356413440,
+      "schema": "siteprobe.process-metrics/v1",
+      "successful_pages": 10000,
+      "wall_seconds": 123.411319382
+    },
+    {
+      "concurrency": 4,
+      "cpu_seconds": 94.920059,
+      "output_bytes": 15454810,
+      "pages": 10000,
+      "pages_per_second": 179.118,
+      "peak_rss_bytes": 350269440,
+      "schema": "siteprobe.process-metrics/v1",
+      "successful_pages": 10000,
+      "wall_seconds": 55.829254437
+    },
+    {
+      "concurrency": 8,
+      "cpu_seconds": 104.459839,
+      "output_bytes": 15455411,
+      "pages": 10000,
+      "pages_per_second": 215.628,
+      "peak_rss_bytes": 357552128,
+      "schema": "siteprobe.process-metrics/v1",
+      "successful_pages": 10000,
+      "wall_seconds": 46.376101606999995
+    },
+    {
+      "concurrency": 16,
+      "cpu_seconds": 106.556025,
+      "output_bytes": 15457545,
+      "pages": 10000,
+      "pages_per_second": 233.434,
+      "peak_rss_bytes": 356855808,
+      "schema": "siteprobe.process-metrics/v1",
+      "successful_pages": 10000,
+      "wall_seconds": 42.838591431
+    }
+  ],
+  "schema": "siteprobe.benchmark/v2",
+  "workload": "standard"
+}

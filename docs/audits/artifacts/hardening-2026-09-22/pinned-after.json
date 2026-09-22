@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-09-22T17:00:05Z",
+  "pages": 200,
+  "platform": "Darwin",
+  "results": [
+    {
+      "concurrency": 1,
+      "cpu_seconds": 1.62441,
+      "output_bytes": 307621,
+      "pages": 200,
+      "pages_per_second": 99.53,
+      "peak_rss_bytes": 37163008,
+      "schema": "siteprobe.process-metrics/v1",
+      "successful_pages": 200,
+      "wall_seconds": 2.009439919
+    },
+    {
+      "concurrency": 4,
+      "cpu_seconds": 1.685705,
+      "output_bytes": 307620,
+      "pages": 200,
+      "pages_per_second": 193.984,
+      "peak_rss_bytes": 38121472,
+      "schema": "siteprobe.process-metrics/v1",
+      "successful_pages": 200,
+      "wall_seconds": 1.031014894
+    }
+  ],
+  "schema": "siteprobe.benchmark/v2",
+  "workload": "standard"
+}

@@ -1,5 +1,7 @@
 # SiteProbe native Kujo rewrite and hardening — 2026-09-07
 
+Latest incremental audit: [September 22, 2026](hardening-2026-09-22.md).
+
 Status: native implementation complete. The follow-up section records the runtime, concurrency and Windows corrections; earlier measurements remain historical evidence.
 
 ## Repository

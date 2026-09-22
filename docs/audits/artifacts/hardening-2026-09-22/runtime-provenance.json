@@ -1,0 +1,9 @@
+{
+  "revision": "2be1f04b89dbecd591ef1af0d68974c05586900e",
+  "source_root": "/tmp/siteprobe-pinned-kujo",
+  "checked_build_input_files": 408,
+  "mismatches": [],
+  "binary": "/tmp/siteprobe-pinned-target/release/kujo",
+  "binary_sha256": "46797b2a1fb9b75b8d7724cd26993f29e3c1c48c62f79de5c2e54cd5a444b43d",
+  "build_provenance": "Existing release binary and successful locked build log from prior session; archive build inputs rechecked against pinned git blobs this session."
+}

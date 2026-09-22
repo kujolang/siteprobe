@@ -1,0 +1,1 @@
+{"command":["/tmp/siteprobe-pinned-target/release/kujo","run","src/main.kujo","--","validate","/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/.siteprobe/verification/test-j8UFEa/large"],"exitcode":-1,"milliseconds":30120.938747999997,"revision":"a96bafa57bb5f11f58d8e2af1f1901bb17588b6f","stderr":"","stdout":"","timed_out":true}

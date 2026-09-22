@@ -1,0 +1,5 @@
+let started := performance_now()
+let command := [env("KUJO_BIN"), "run", "src/main.kujo", "--", "validate", ".siteprobe/verification/test-j8UFEa/large"]
+let result := spawn_process(command, {"timeout_ms":30000, "max_output_bytes":16777216, "env_deny":["KUJO_SCRIPT_ARGS"]})
+print(to_json({"command":command, "milliseconds":performance_now() - started, "exitcode":result.exitcode, "timed_out":result.timed_out, "cancelled":result.cancelled, "stdout_truncated":result.stdout_truncated, "stderr_truncated":result.stderr_truncated, "stdout":result.stdout, "stderr":result.stderr}))
+if result.exitcode != 0||result.timed_out||result.cancelled||result.stdout_truncated||result.stderr_truncated {exit(1)}

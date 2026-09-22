@@ -1,0 +1,251 @@
+{
+  "failed": 0,
+  "schema": "siteprobe.tests/v1",
+  "tests": [
+    {
+      "milliseconds": 74.096873,
+      "name": "test_ci_example_rejects_truncated_comparison",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 191.45748300000002,
+      "name": "test_repeated_robots_response_headers",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 623.8104010000001,
+      "name": "test_page_link_partitions_reject_resigned_inconsistency",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 130.10161100000005,
+      "name": "test_relative_run_paths",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 814.5152699999998,
+      "name": "test_coverage_limits_help_and_inspect_outcomes",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 751.820866,
+      "name": "test_secondary_contracts_reject_resigned_inconsistency",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 1100.903776,
+      "name": "test_incremental_resource_budgets_and_cleanup",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 278.33709299999964,
+      "name": "test_conditional_resource_identity_and_metadata",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 299.2791339999999,
+      "name": "test_document_base_and_relationship_comparison",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 467.2230300000001,
+      "name": "test_metrics_paths_preserve_immutable_runs",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 496.8628290000006,
+      "name": "test_robots_conformance_and_sitemap_policy",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 258.1635559999995,
+      "name": "test_validation_rejects_inconsistent_unsigned_runs",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 124.17569600000024,
+      "name": "test_benchmark_fixture_bounds_request_history",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 129.4179810000005,
+      "name": "test_row_sort_preserves_order_and_ties",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 90.63528099999985,
+      "name": "test_terminal_controls_are_not_emitted_in_diagnostics",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 89.30617600000005,
+      "name": "test_nonfinite_bounds_rejected_before_network",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 23.43619899999976,
+      "name": "test_manifest_size_rejected_before_read",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 23.414878999999928,
+      "name": "test_manifest_cannot_certify_empty_run",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 45.921158000000105,
+      "name": "test_atomic_publication_never_replaces_existing_directory",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 123.44447899999977,
+      "name": "test_signing_key_shape_and_bounds",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 23.542742999999973,
+      "name": "test_report_budget_and_terminal_controls",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 44.88761700000032,
+      "name": "test_unknown_charset_and_url_controls",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 34.68235999999888,
+      "name": "test_native_entrypoint_without_process_capability",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 225.2166099999995,
+      "name": "test_external_sort_caps_descriptors_and_cleans_chunks",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 83.55145399999947,
+      "name": "test_native_normalization_fuzz_matches_rejected_inputs",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 67.08775400000013,
+      "name": "test_robots_comments_and_encoded_agents",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 22.98474400000032,
+      "name": "test_percent_encoded_robots_rules",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 129.7406179999998,
+      "name": "test_large_html_preserves_order",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 285.71081700000013,
+      "name": "test_html_projection_matches_frozen_oracle",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 12.967869999999493,
+      "name": "test_gzip_expansion_limit",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 382.0470129999994,
+      "name": "test_full_fixture_contract_and_compare",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 172.92356799999925,
+      "name": "test_inspect_and_doctor",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 108.8085400000009,
+      "name": "test_rejects_credentials_and_bad_bounds",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 768.8077470000007,
+      "name": "test_fuzz_redirects_retries_cycles_and_read_only",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 229.21177999999964,
+      "name": "test_deterministic_semantic_rerun_and_output_budget",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 137.9871750000002,
+      "name": "test_fail_on_and_cross_artifact_validation",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 180.95804500000122,
+      "name": "test_validation_rejects_symbolic_link_artifacts",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 398.4467850000001,
+      "name": "test_signed_manifest_query_pacing_and_conditional",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 63.698678000000655,
+      "name": "test_blocked_pages_do_not_exceed_budget",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 54.338653000000704,
+      "name": "test_redirect_cannot_bypass_robots",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 188.459667000001,
+      "name": "test_deterministic_pages_and_native_stderr",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 67.17613800000072,
+      "name": "test_unavailable_robots_fails_closed",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 367.07494999999835,
+      "name": "test_sitemap_queue_retains_fifty_unique_maps",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 74.314022999999,
+      "name": "test_crawl_fetches_configured_batch_concurrently",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 207.7618650000004,
+      "name": "test_full_run_matches_oracle_and_signatures",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 5394.911340999997,
+      "name": "test_artifacts_larger_than_eight_mib",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 100.82233200000155,
+      "name": "test_untrusted_native_primitives_denied",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 166.27495700000327,
+      "name": "test_large_jsonl_and_secondary_capabilities",
+      "status": "passed"
+    },
+    {
+      "milliseconds": 64.05826900000102,
+      "name": "test_native_crawl_without_process_or_proxy",
+      "status": "passed"
+    }
+  ]
+}

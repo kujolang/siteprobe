@@ -1,0 +1,36 @@
+{
+  "baseline_revision": "a96bafa57bb5f11f58d8e2af1f1901bb17588b6f",
+  "method": "Isolated cwd substitutes a native Kujo child emitting 32 MiB; actual example/runtime subprocess capture executes unchanged. Oversized intermediate stdout counted then removed.",
+  "results": [
+    {
+      "label": "before",
+      "exitcode": 0,
+      "stdout_bytes": 1048577,
+      "stderr": "",
+      "command": [
+        "/tmp/siteprobe-pinned-target/release/kujo",
+        "run",
+        "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/.siteprobe/hardening-20260922/capture-probe-oyu7amd9/before-ci.kujo",
+        "--",
+        "old",
+        "new",
+        "/tmp/siteprobe-pinned-target/release/kujo"
+      ]
+    },
+    {
+      "label": "after",
+      "exitcode": 1,
+      "stdout_bytes": 0,
+      "stderr": "SiteProbe comparison did not complete with full output; run siteprobe compare directly to stream large evidence.\n",
+      "command": [
+        "/tmp/siteprobe-pinned-target/release/kujo",
+        "run",
+        "/Users/robertdevore/2026/Kujolang/kujo-repos/siteprobe/examples/ci_baseline.kujo",
+        "--",
+        "old",
+        "new",
+        "/tmp/siteprobe-pinned-target/release/kujo"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"cancelled":false,"command":["/tmp/siteprobe-pinned-target/release/kujo","run","src/main.kujo","--","validate",".siteprobe/verification/test-j8UFEa/large"],"exitcode":-1,"milliseconds":30160.200499,"stderr":"","stderr_truncated":false,"stdout":"","stdout_truncated":false,"timed_out":true}

@@ -1,0 +1,24 @@
+{
+  "schema": "siteprobe.hardening-efficiency/v1",
+  "validation": {
+    "before_commands": 72,
+    "after_commands": 69,
+    "before_unique_commands": 69,
+    "after_unique_commands": 69,
+    "same_command_set": true,
+    "before_normalized_stdout_bytes": 3138,
+    "after_normalized_stdout_bytes": 3040
+  },
+  "ci_baseline": {
+    "before_child_processes": 3,
+    "after_child_processes": 1,
+    "before_validation_passes_distinct_runs": 4,
+    "after_validation_passes_distinct_runs": 2,
+    "capture_limit_per_stream_after": 16777216
+  },
+  "agent_context_bytes": {
+    "AGENTS.md": 1795,
+    "docs/agent-integration.md": 2084
+  },
+  "token_measurement": "No model tokenizer measurements; no token reduction claimed."
+}

@@ -1,0 +1,5 @@
+let started := performance_now()
+let command := [env("KUJO_BIN"), "run", "src/main.kujo", "--", "validate", path_absolute(".siteprobe/verification/test-j8UFEa/large")]
+let result := spawn_process(command, {"cwd":path_absolute(".siteprobe/hardening-20260922/baseline-validation"), "timeout_ms":30000, "max_output_bytes":16777216, "env_deny":["KUJO_SCRIPT_ARGS"]})
+print(to_json({"command":command,"revision":"a96bafa57bb5f11f58d8e2af1f1901bb17588b6f", "milliseconds":performance_now() - started,"exitcode":result.exitcode,"timed_out":result.timed_out,"stdout":result.stdout,"stderr":result.stderr}))
+if result.exitcode != 0||result.timed_out {exit(1)}
