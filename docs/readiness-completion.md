@@ -101,14 +101,28 @@ ContentGraph 0.3.0, Eval 2.0.0 and RunLedger 1.1.0 at the receipt revisions.
 | multilingual | 50 | 1 | 1.032 | 28856320 | 92118 |
 | multilingual | 50 | 4 | 1.386 | 29900800 | 92137 |
 
-Implementation source: `5a1599be67278d64921d8a380467ab9f984d3cdf`. The corresponding
-[cross-platform qualification run](https://github.com/kujolang/siteprobe/actions/runs/35751964943)
-is authoritative for platform outcomes; local success alone does not establish
-Linux or Windows qualification.
+Original local workload measurement source: `5a1599be67278d64921d8a380467ab9f984d3cdf`. Final source qualification is recorded below.
 
 The first hosted Windows run passed all 45 then-current tests but the new extracted
 package check exposed a relative-path bug: canonical Windows verbatim prefixes
 combined with artifact slash suffixes reported missing files. `absolute` now
 normalizes those prefixes, including UNC paths. A 46th regression validates,
 verifies and compares the immutable fixture using relative paths. The local gate
-and extracted-package recheck pass; the replacement hosted run qualifies this fix.
+and extracted-package recheck pass; the replacement hosted run also passed this fix.
+
+## Final qualification and handoff
+
+All eight review items are complete. Final implementation commit
+`293a0d3998ad314763c8045066f8c74cff132ad7` passed the pinned-runtime gate and
+extracted-package validation on Linux, macOS and Windows in
+[run 35754131008](https://github.com/kujolang/siteprobe/actions/runs/35754131008).
+All 46 tests passed. Linux also passed the complete 10,000-page concurrency sweep
+and dense/multilingual workloads. Local macOS 26.6.2 x86_64 passed the same gate
+and archive checks; actual consumer integrations passed again after the path fix.
+See the [qualification receipt](audits/artifacts/readiness-completion-2026-09-22/qualification.json)
+and [individual local test results](audits/artifacts/readiness-completion-2026-09-22/native-tests.json).
+
+Subsequent documentation-only commits record this evidence without changing the
+qualified executable source. No backlog item remains open and no tagged release
+was published. Future changes should preserve the pinned-runtime matrix, immutable
+oracle, resource limits and explicit scope documented here.

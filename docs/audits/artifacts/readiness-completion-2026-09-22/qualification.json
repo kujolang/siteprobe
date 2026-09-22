@@ -1,0 +1,251 @@
+{
+  "schema": "siteprobe.qualification/v1",
+  "source_commit": "293a0d3998ad314763c8045066f8c74cff132ad7",
+  "runtime_revision": "2be1f04b89dbecd591ef1af0d68974c05586900e",
+  "run_url": "https://github.com/kujolang/siteprobe/actions/runs/35754131008",
+  "run_id": 35754131008,
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "fixture-contract (macos-latest)",
+      "id": 106835489229,
+      "conclusion": "success",
+      "started_at": "2026-09-22T16:35:45Z",
+      "completed_at": "2026-09-22T16:41:20Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Swatinem/rust-cache@v2",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run cargo build --release --locked --manifest-path kujo/Cargo.toml",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate (Unix)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate (Windows)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Generated artifacts are current",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify extracted package",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify full native concurrency sweep",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Verify dense and multilingual workloads",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Preserve verification evidence",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "fixture-contract (ubuntu-latest)",
+      "id": 106835489478,
+      "conclusion": "success",
+      "started_at": "2026-09-22T16:26:35Z",
+      "completed_at": "2026-09-22T16:36:36Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Swatinem/rust-cache@v2",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run cargo build --release --locked --manifest-path kujo/Cargo.toml",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate (Unix)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate (Windows)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Generated artifacts are current",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify extracted package",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify full native concurrency sweep",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify dense and multilingual workloads",
+          "conclusion": "success"
+        },
+        {
+          "name": "Preserve verification evidence",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "fixture-contract (windows-latest)",
+      "id": 106835489960,
+      "conclusion": "success",
+      "started_at": "2026-09-22T16:26:35Z",
+      "completed_at": "2026-09-22T16:37:43Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@stable",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Swatinem/rust-cache@v2",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run cargo build --release --locked --manifest-path kujo/Cargo.toml",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate (Unix)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Validate (Windows)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Generated artifacts are current",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify extracted package",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify full native concurrency sweep",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Verify dense and multilingual workloads",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Preserve verification evidence",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "local": {
+    "os": "macOS",
+    "os_version": "26.6.2",
+    "architecture": "x86_64",
+    "runtime": "kujo 1.3.1",
+    "tests": 46,
+    "failed": 0,
+    "extracted_archive": "passed",
+    "consumers": "passed"
+  }
+}
