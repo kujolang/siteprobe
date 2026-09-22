@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.kujolang.ai/siteprobe/structured-data.v1.json",
+  "title": "SiteProbe structured-data",
+  "type": "object",
+  "required": [
+    "schema",
+    "pages"
+  ],
+  "properties": {
+    "schema": {
+      "const": "siteprobe.structured-data/v1"
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "url",
+          "items"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "items": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

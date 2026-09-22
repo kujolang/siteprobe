@@ -29,7 +29,15 @@ export func test_full_run_matches_oracle_and_signatures(ctx) {
 export func test_artifacts_larger_than_eight_mib(ctx) {
     let run := ctx["dir"] + "/large"; cli(["crawl", ctx["base"], "--out", run, "--max-pages", 1, "--allow-private-network", "--deterministic"], 0)
     mut page := rows(run + "/pages.jsonl")[0]; page["title"] = repeat_text("x", 12000); delete_file(run + "/pages.jsonl")
-    for i in range(0, 800) {page["url"] = ctx["base"] + to_string(i); page["normalized_url"] = page["url"]; jsonl_write(run + "/pages.jsonl", [page], true, 268435456)}
+    page["links"] = []; page["internal_links"] = []; page["external_links"] = []; page["outgoing_link_count"] = 0
+    page["structured_data"] = []; page["meta_description"] = ""; page["sitemap_member"] = false; page["incoming_link_count"] = 1
+    mut page_urls := []; mut link_records := {}
+    let dense_text := repeat_text("x", 200)
+    for i in range(0, 10000) {link_records[to_string(1000000 + i)] = {"url":ctx["base"] + to_string(i), "text":dense_text, "rel":""}}
+    let first_links := values(link_records)
+    for i in range(0, 800) {page_urls = push(page_urls, ctx["base"] + to_string(i)); page["url"] = ctx["base"] + to_string(i); page["normalized_url"] = page["url"]; page["final_url"] = page["url"]; mut record := page
+        if i == 0 {record["links"] = first_links; record["internal_links"] = first_links; record["outgoing_link_count"] = 10000}
+        jsonl_write(run + "/pages.jsonl", [record], true, 268435456)}
     let finding_spool := ctx["dir"] + "/findings.jsonl"; let link_spool := ctx["dir"] + "/links.jsonl"
     mut batch := []
     for i in range(0, 20000) {
@@ -41,14 +49,18 @@ export func test_artifacts_larger_than_eight_mib(ctx) {
     delete_file(run + "/findings.json"); jsonl_wrap_array(finding_spool, run + "/findings.json", "findings", {"schema":"siteprobe.findings/v1"}, 268435456)
     let link_text := repeat_text("x", 200); batch = []
     for i in range(0, 10000) {
-        batch = push(batch, {"source":ctx["base"], "target":ctx["base"] + to_string(i), "text":link_text, "rel":"", "internal":true})
+        batch = push(batch, {"source":ctx["base"] + "0", "target":ctx["base"] + to_string(i), "text":link_text, "rel":"", "internal":true})
         if len(batch) == 64 {jsonl_write(link_spool, batch, true, 268435456); batch = []}
     }
     if len(batch) > 0 {jsonl_write(link_spool, batch, true, 268435456)}
     delete_file(run + "/links.json"); jsonl_wrap_array(link_spool, run + "/links.json", "links", {"schema":"siteprobe.links/v1"}, 268435456)
-    mut data := read_json(run + "/run.json"); mut counts := data["counts"]; counts["pages"] = 800; counts["findings"] = 20000; counts["findings_by_severity"] = {"warning": 20000}; counts["links"] = 10000; data["counts"] = counts; put_json(run + "/run.json", data); delete_file(run + "/manifest.json")
+    mut data := read_json(run + "/run.json"); mut counts := data["counts"]; counts["pages"] = 800; counts["findings"] = 20000; counts["findings_by_severity"] = {"warning": 20000}; counts["links"] = 10000; data["counts"] = counts; mut configuration := data["configuration"]; configuration["max_pages"] = 800; data["configuration"] = configuration; put_json(run + "/run.json", data); delete_file(run + "/manifest.json")
+    mut site := read_json(run + "/site.json"); site["crawlable_pages"] = 800; site["indexable_pages"] = 800; put_json(run + "/site.json", site)
+    mut titles := {}; titles[page["title"]] = page_urls
+    put_json(run + "/metadata.json", {"schema":"siteprobe.metadata/v1", "titles":titles, "descriptions":{}})
+    put_json(run + "/structured-data.json", {"schema":"siteprobe.structured-data/v1", "pages":[]})
     require(file_size(run + "/pages.jsonl") > 8388608, "large artifact size"); cli(["validate", run], 0); equal([], parse_json(cli(["compare", run, run], 0).stdout)["changes"], "large comparison")
-    let output := cli(["links", run], 0).stdout; require(byte_length(output) > 1048576, "complete large stdout"); let actual_links := parse_json(output)["links"]; equal(10000, len(actual_links), "all links returned"); for i in range(0, 10000) {if actual_links[i] != {"source":ctx["base"], "target":ctx["base"] + to_string(i), "text":link_text, "rel":"", "internal":true} {error("large stdout link mismatch " + to_string(i))}}
+    let output := cli(["links", run], 0).stdout; require(byte_length(output) > 1048576, "complete large stdout"); let actual_links := parse_json(output)["links"]; equal(10000, len(actual_links), "all links returned"); for i in range(0, 10000) {if actual_links[i] != {"source":ctx["base"] + "0", "target":ctx["base"] + to_string(i), "text":link_text, "rel":"", "internal":true} {error("large stdout link mismatch " + to_string(i))}}
     put_json(".siteprobe/verification/native-large-artifacts.json", {"pages_jsonl_bytes": file_size(run + "/pages.jsonl"), "pages": 800, "findings": 20000, "links": 10000, "links_stdout_bytes": byte_length(output), "validate": "passed", "compare": "passed", "complete_stdout": "passed"})
 }
 export func test_untrusted_native_primitives_denied(ctx) {

@@ -1,9 +1,10 @@
-from src.siteprobe import sorted_rows, signing_key, manifest_verify, manifest_write, normalize, report_text, read_json, decode_body, parse_page_html, robots_parse, robots_allowed
+from src.siteprobe import path_contains, sorted_rows, signing_key, manifest_verify, manifest_write, normalize, report_text, read_json, decode_body, parse_page_html, robots_parse, robots_allowed
 func main() {
     let request := read_json(args()[0])
     let action := request["action"]
     mut result := null
-    if action == "sort_rows" {result = sorted_rows(request["rows"], request["fields"])}
+    if action == "path_contains" {result = path_contains(request["root"], request["destination"])}
+    else if action == "sort_rows" {result = sorted_rows(request["rows"], request["fields"])}
     else if action == "robots" {result = robots_allowed(robots_parse(request["text"]), request["url"])}
     else if action == "normalize" {
         mut values := []

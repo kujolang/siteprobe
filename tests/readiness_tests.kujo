@@ -1,0 +1,190 @@
+from tests.fixture_server import fixture_request
+from tests.support import equal, require, includes, probe, cli, read_json, rows, make_link, put_json, runtime, process
+export func test_robots_conformance_and_sitemap_policy(ctx) {
+    # Independently authored expectations from RFC 9309 examples and precedence rules.
+    let cases := [
+    ["User-agent: *\nAllow: /\nDisallow: /private", "/private", false],
+    ["User-agent: *\nDisallow: /\nAllow: /public", "/public/page", true],
+    ["User-agent: *\nDisallow: /same\nAllow: /same", "/same", true],
+    ["User-agent: *\nDisallow: /private/*", "/private/a", false],
+    ["User-agent: *\nDisallow: /*.pdf$", "/file.pdf", false],
+    ["User-agent: *\nDisallow: /*.pdf$", "/file.pdf?download", true],
+    ["User-agent: Kujo-SiteProbe\nDisallow: /one\n\nUser-agent: Kujo-SiteProbe\nDisallow: /two", "/two", false],
+    ["User-agent: *\nDisallow: /one\n\nDisallow: /two", "/two", false],
+    ["User-agent: *\nDisallow: \nDisallow: /private", "/private", false],
+    ["User-agent: *\nDisallow: /\nUser-agent: Kujo-SiteProbe\nDisallow:", "/page", true],
+    ["User-agent: *\nDisallow: /%70rivate", "/private", false],
+    ["User-agent: *\nDisallow: /caf%C3%A9", "/café", false],
+    ["User-agent: *\nDisallow: /a%2Fb", "/a/b", true],
+    ["User-agent: *\nDisallow: /a%2Fb", "/a%2fb", false],
+    ["User-agent: *\nDisallow: /private", "/Private", true],
+    ["User-agent: *\nDisallow: /", "/robots.txt", true],
+    ["User-agent: *\nDisallow: /a.b", "/axb", true],
+    ["User-agent: *\rDisallow: /private\r", "/private", false]
+    ]
+    for sample in cases {equal(sample[2], probe(ctx, {"action":"robots", "text":sample[0], "url":"https://example.com" + sample[1]}, 0), "robots conformance " + to_json(sample))}
+    let policy := "User-agent: *\nAllow: /\nDisallow: /private/*\nDisallow: /denied.xml\nSitemap: {{BASE}}denied.xml\nSitemap: {{BASE}}map-redirect\n"
+    fixture_request(ctx["port"], "reset", {"robots_text":policy, "routes":{
+            "/entry":[200, "<title>Entry</title><a href='/private/a'>denied</a><a href='/redirect-private'>redirect</a>", "Content-Type: text/html\r\n"],
+            "/redirect-private":[302, "", "Location: /private/b\r\n"],
+            "/map-redirect":[302, "", "Location: /denied.xml\r\n"]}})
+    let run := ctx["dir"] + "/robots"
+    cli(["crawl", ctx["base"] + "entry", "--out", run, "--max-pages", 3, "--allow-private-network"], 0)
+    let paths := fixture_request(ctx["port"], "state", {})["paths"]
+    for path in ["/private/a", "/private/b", "/denied.xml"] {require( ! includes(paths, path), "denied destination was fetched: " + path)}
+    equal(2, len(read_json(run + "/sitemap.json")["errors"]), "denied sitemap evidence")
+    # Explicit single-URL inspect keeps its documented no-robots-fetch contract.
+    fixture_request(ctx["port"], "reset", {"robots_status":503})
+    cli(["inspect", ctx["base"] + "private", "--allow-private-network"], 0)
+    equal(["/private"], fixture_request(ctx["port"], "state", {})["paths"], "inspect request scope")
+}
+
+export func test_metrics_paths_preserve_immutable_runs(ctx) {
+    let out := ctx["dir"] + "/new-run"
+    for path in [out + "/run.json", out + "/nested/../manifest.json", out] {
+        cli(["crawl", ctx["base"], "--out", out, "--metrics-file", path, "--allow-private-network"], 2)
+        require( ! path_exists(out), "metrics collision rejected before publication")
+    }
+    equal([], fixture_request(ctx["port"], "state", {})["paths"], "metrics rejection precedes HTTP")
+    let existing := ctx["dir"] + "/existing"
+    cli(["crawl", ctx["base"], "--out", existing, "--max-pages", 1, "--allow-private-network"], 0)
+    let digest := sha256_file(existing + "/manifest.json")
+    let alias := ctx["dir"] + "/alias"; make_link(existing, alias)
+    for path in [existing + "/run.json", alias + "/manifest.json", alias + "/nested/future.json"] {
+        cli(["crawl", ctx["base"], "--out", out, "--baseline", existing, "--metrics-file", path, "--allow-private-network"], 2)
+        require( ! path_exists(out), "baseline alias collision rejected")
+        equal(digest, sha256_file(existing + "/manifest.json"), "manifest preserved")
+        cli(["verify", existing], 0)
+    }
+    cli(["crawl", ctx["base"], "--out", out, "--metrics-file", alias + "/run.json", "--allow-private-network"], 2)
+    let metrics := ctx["dir"] + "/metrics.json"; write_file(metrics, "old")
+    cli(["crawl", ctx["base"], "--out", out, "--metrics-file", metrics, "--max-pages", 1, "--allow-private-network"], 0)
+    equal("siteprobe.process-metrics/v1", read_json(metrics)["schema"], "separate metrics replacement")
+    cli(["verify", out], 0)
+    for pair in [["C:\\Runs\\Output", "c:/runs/output/run.json"], ["\\\\?\\C:\\Runs\\Output", "C:\\RUNS\\OUTPUT\\nested\\m.json"], ["\\\\?\\UNC\\server\\share\\run", "\\\\server\\share\\run\\run.json"]] {
+        equal(true, probe(ctx, {"action":"path_contains", "root":pair[0], "destination":pair[1]}, 0), "Windows canonical path comparison")
+    }
+    equal(false, probe(ctx, {"action":"path_contains", "root":"/runs/run", "destination":"/runs/run-other/m.json"}, 0), "path component boundary")
+    if env("OS") == "Windows_NT" {os_rmdir(alias)} else {rename_file(existing, existing + "-moved"); delete_file(alias)}
+}
+
+export func test_conditional_resource_identity_and_metadata(ctx) {
+    let base := ctx["base"]; let old := ctx["dir"] + "/old"; let changed := ctx["dir"] + "/changed"; let reused := ctx["dir"] + "/reused"
+    fixture_request(ctx["port"], "reset", {"routes":{
+            "/resource":[302, "", "Location: /old-resource\r\n"],
+            "/old-resource":[200, "<title>Old</title><a href='/stale'>stale</a>", "Content-Type: text/html\r\n"]}, "validators":{"/old-resource":["shared-tag", ""]}})
+    cli(["crawl", base + "resource", "--out", old, "--max-pages", 1, "--allow-private-network"], 0)
+    fixture_request(ctx["port"], "reset", {"routes":{
+            "/resource":[302, "", "Location: /new-resource\r\n"],
+            "/new-resource":[200, "<title>New</title><a href='/fresh'>fresh</a>", "Content-Type: text/html\r\n"]}, "validators":{"/new-resource":["shared-tag", ""]}})
+    cli(["crawl", base + "resource", "--out", changed, "--baseline", old, "--max-pages", 1, "--allow-private-network"], 0)
+    let page := rows(changed + "/pages.jsonl")[0]
+    equal("New", page["title"], "changed redirect body retained"); equal(false, page["not_modified"], "different final resource cannot reuse validators")
+    equal([], fixture_request(ctx["port"], "state", {})["conditional_paths"], "conditional headers never sent to changed target")
+    require( ! includes(to_json(page["links"]), "stale"), "stale links not reused")
+    fixture_request(ctx["port"], "reset", {"routes":{
+            "/resource":[302, "", "Location: /new-resource\r\n"],
+            "/new-resource":[200, "unused", "Content-Type: text/html\r\n"]}, "validators":{"/new-resource":["shared-tag", "X-Robots-Tag: noindex\r\nLink: </updated>; rel=alternate\r\n"]}})
+    cli(["crawl", base + "resource", "--out", reused, "--baseline", changed, "--max-pages", 1, "--allow-private-network"], 0)
+    let fresh := rows(reused + "/pages.jsonl")[0]
+    equal(true, fresh["not_modified"], "same final resource reuses body"); equal(false, fresh["indexable"], "304 metadata updates indexability"); equal(base + "updated", fresh["http_links"][0]["url"], "304 Link header update")
+    equal(["/new-resource"], fixture_request(ctx["port"], "state", {})["conditional_paths"], "validators only reach matching resource")
+    fixture_request(ctx["port"], "reset", {})
+    for arguments in [["--query-policy", "drop"], ["--query-deny-param", "tracking"]] {
+        cli(concat(["crawl", base + "resource", "--out", ctx["dir"] + "/incompatible", "--baseline", old, "--allow-private-network"], arguments), 2)
+    }
+    cli(["crawl", base + "different", "--out", ctx["dir"] + "/incompatible", "--baseline", old, "--allow-private-network"], 2)
+    equal([], fixture_request(ctx["port"], "state", {})["paths"], "incompatible baselines rejected before requests")
+}
+export func test_document_base_and_relationship_comparison(ctx) {
+    let html := "<a href='before'>early</a><base href='javascript:bad'><base href='/docs/'><base href='/ignored/'><link rel=canonical href='home'><a href='after'>late</a><img src='image.png'>"
+    let page := probe(ctx, {"action":"html", "html":html, "url":"https://example.com/start"}, 0)
+    equal("https://example.com/docs/before", page["links"][0]["url"], "base applies to earlier attributes")
+    equal("https://example.com/docs/home", page["canonical"], "first valid base")
+    equal("https://example.com/docs/image.png", page["images"][0]["url"], "image base")
+    let external := probe(ctx, {"action":"html", "html":"<base href='https://other.example/'><a href='next'>next</a>", "url":"https://example.com/"}, 0)
+    equal(0, len(external["internal_links"]), "external base preserves response-origin classification")
+    let first := "<title>Page</title><a href='/a' rel='next nofollow'>A</a><a href='/b'>B</a><link rel=alternate hreflang=fr href='/fr'>"
+    let reordered := "<title>Page</title><a href='/b'>B</a><a href='/a' rel='nofollow next'>A</a><link rel=alternate hreflang=fr href='/fr'>"
+    for pair in [["first", first], ["reordered", reordered], ["changed", "<title>Page</title><a href='/c'>C</a><link rel=alternate hreflang=de href='/de'>"]] {
+        mut link_target := "/old"
+        if pair[0] == "changed" {link_target = "/new"}
+        fixture_request(ctx["port"], "reset", {"routes":{"/compare":[200, pair[1], "Content-Type: text/html\r\nLink: <" + link_target + ">; rel=alternate\r\n"]}})
+        cli(["crawl", ctx["base"] + "compare", "--out", ctx["dir"] + "/" + pair[0], "--max-pages", 1, "--allow-private-network"], 0)
+    }
+    let order_changes := parse_json(cli(["compare", ctx["dir"] + "/first", ctx["dir"] + "/reordered"], 0).stdout)["changes"]
+    for item in order_changes {require(item["type"] != "LINKS CHANGED", "anchor ordering is not a relationship change")}
+    let changes := parse_json(cli(["compare", ctx["dir"] + "/first", ctx["dir"] + "/changed"], 0).stdout)["changes"]
+    require(includes(to_json(changes), "LINKS CHANGED")&&includes(to_json(changes), "HREFLANG CHANGED")&&includes(to_json(changes), "HTTP LINKS CHANGED"), "relationship changes exposed")
+}
+
+export func test_secondary_contracts_reject_resigned_inconsistency(ctx) {
+    let run := ctx["dir"] + "/run"; create_dir(run)
+    for name in list_dir("tests/fixtures/same") {copy_file("tests/fixtures/same/" + name, run + "/" + name)}
+    for name in ["links", "redirects", "site", "robots", "sitemap", "metadata", "structured-data"] {
+        let path := run + "/" + name + ".json"; let original := read_json(path); mut value := original; value["schema"] = "wrong/v1"; put_json(path, value)
+        resign_fixture(ctx, run)
+        let rejected := cli(["validate", run], 1).stderr
+        require(includes(rejected, "schema")||includes(rejected, "envelope"), "secondary schema " + name)
+        put_json(path, original)
+    }
+    for name in ["links", "site", "robots", "sitemap", "metadata", "structured-data"] {
+        let path := run + "/" + name + ".json"; let original := read_json(path); mut value := original
+        if name == "links" {mut links := value["links"]; mut link := links[0]; link["source"] = "https://foreign.example/"; links[0] = link; value["links"] = links}
+        if name == "site" {value["indexable_pages"] = 999}
+        if name == "robots" {value["url"] = "https://foreign.example/robots.txt"}
+        if name == "sitemap" {value["urls"] = push(value["urls"], value["urls"][0])}
+        if name == "metadata" {value["titles"] = {}}
+        if name == "structured-data" {value["pages"] = []}
+        put_json(path, value); resign_fixture(ctx, run)
+        cli(["verify", run], 0); cli(["validate", run], 1)
+        put_json(path, original)
+    }
+    resign_fixture(ctx, run); cli(["validate", run], 0)
+}
+export func test_incremental_resource_budgets_and_cleanup(ctx) {
+    fixture_request(ctx["port"], "reset", {"dense_links":2000, "jsonld_bytes":524288})
+    for pair in [["--max-staging-bytes", 4096], ["--max-retained-bytes", 1048576], ["--max-output-bytes", 1024]] {
+        let run := ctx["dir"] + "/bounded"
+        let result := cli(["crawl", ctx["base"] + "dense", "--out", run, pair[0], pair[1], "--max-pages", 1, "--allow-private-network"], 1)
+        require(includes(result.stderr, "budget"), "bounded failure reason")
+        require( ! path_exists(run), "no partial publication")
+        for name in list_dir(ctx["dir"]) {require( ! starts_with(name, ".siteprobe-stage-"), "stage cleaned after budget failure")}
+    }
+    cli(["crawl", ctx["base"] + "dense", "--out", ctx["dir"] + "/dense-ok", "--max-pages", 1, "--allow-private-network"], 0)
+    cli(["validate", ctx["dir"] + "/dense-ok"], 0)
+}
+func resign_fixture(ctx, run) {delete_file(run + "/manifest.json"); probe(ctx, {"action":"manifest", "path":run}, 0)}
+
+export func test_coverage_limits_help_and_inspect_outcomes(ctx) {
+    let base := ctx["base"]
+    let maps := "<sitemapindex><sitemap><loc>" + base + "map-a</loc></sitemap><sitemap><loc>" + base + "map-b</loc></sitemap></sitemapindex>"
+    let members := "<urlset><url><loc>" + base + "one</loc></url><url><loc>" + base + "two</loc></url></urlset>"
+    let routes := {"/map-a":[200, members, "Content-Type: application/xml\r\n"], "/map-b":[200, members, "Content-Type: application/xml\r\n"], "/index":[200, maps, "Content-Type: application/xml\r\n"]}
+    for spec in [["seeds", "Sitemap: {{BASE}}map-a\nSitemap: {{BASE}}map-b\n", "--max-sitemap-seeds"], ["maps", "Sitemap: {{BASE}}index\n", "--max-sitemaps"], ["urls", "Sitemap: {{BASE}}map-a\n", "--max-sitemap-urls"]] {
+        fixture_request(ctx["port"], "reset", {"routes":routes, "robots_text":"User-agent: *\n" + spec[1]})
+        let run := ctx["dir"] + "/" + spec[0]
+        cli(["crawl", base, "--out", run, "--max-pages", 1, spec[2], 1, "--allow-private-network"], 0)
+        equal(true, read_json(run + "/sitemap.json")["truncated"][spec[0]], "sitemap cap recorded")
+        require(len(read_json(run + "/sitemap.json")["errors"]) > 0, "sitemap limit is actionable")
+        cli(["validate", run], 0)
+    }
+    fixture_request(ctx["port"], "reset", {})
+    for spec in [["pages", "--max-pages", 1, "max_pages"], ["depth", "--max-depth", 0, "max_depth"], ["frontier", "--max-frontier", 1, "max_frontier"], ["structure", "--max-links-per-page", 1, "page_structure"]] {
+        let run := ctx["dir"] + "/" + spec[0]
+        cli(["crawl", base, "--out", run, spec[1], spec[2], "--allow-private-network"], 0)
+        let coverage := read_json(run + "/run.json")["configuration"]["coverage"]
+        equal(false, coverage["complete"], "bounded coverage not complete")
+        require(includes(coverage["reasons"], spec[3]), "specific frontier cap recorded")
+    }
+    for command in ["validate", "verify", "compare", "report", "links", "sitemap", "doctor", "version", "inspect"] {
+        let help := cli([command, "--help"], 0).stdout
+        require(includes(help, "Usage: siteprobe " + command), "command-specific usage")
+        require( ! includes(help, "--max-pages"), "unrelated crawl options omitted")
+    }
+    equal(404, parse_json(cli(["inspect", base + "missing", "--allow-private-network"], 0).stdout)["status"], "legacy inspect observation")
+    equal(404, parse_json(cli(["inspect", base + "missing", "--fail-on", "error", "--allow-private-network"], 1).stdout)["status"], "opt-in failing inspection retains JSON")
+    cli(["inspect", base, "--fail-on", "warning", "--allow-private-network"], 2)
+    cli(["inspect", base, "--max-frontier", 1, "--allow-private-network"], 2)
+    cli(["crawl", base, "--max-sitemaps", 51, "--allow-private-network"], 2)
+}

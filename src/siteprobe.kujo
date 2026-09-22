@@ -96,22 +96,12 @@ export func terminal_text(value) {return regex_replace(value, "[\\x00-\\x08\\x0b
 
 /// ROBOTS
 
-/// Parse robots groups without network effects. Preserve first matching-group policy.
+/// Merge matching robots groups and apply bounded RFC 9309 path matching.
 export func robots_parse(text) {
-    mut groups := []
-    mut agents := []
-    mut rules := []
-    mut delay := null
-    mut sitemaps := []
-    mut has_rules := false
-    for raw in split(text, "\n") {
-        if raw == ""||raw == "\r" {
-            if has_rules {groups = push(groups, {"agents": agents, "rules": rules, "delay": delay})}
-            agents = []; rules = []; delay = null; has_rules = false
-            continue
-        }
+    mut groups := []; mut agents := []; mut rules := []; mut delay := null
+    mut sitemaps := []; mut has_rules := false
+    for raw in split(replace(replace(text, "\r\n", "\n"), "\r", "\n"), "\n") {
         let line := trim(split(raw, "#")[0])
-        if line == "" {continue}
         let colon := index_of(line, ":")
         if colon < 0 {continue}
         let name := lower(trim(substring(line, 0, colon)))
@@ -119,49 +109,86 @@ export func robots_parse(text) {
         if name == "sitemap" {sitemaps = push(sitemaps, value); continue}
         if name == "user-agent" {
             if has_rules {groups = push(groups, {"agents": agents, "rules": rules, "delay": delay}); agents = []; rules = []; delay = null; has_rules = false}
-            agents = push(agents, lower(percent_text(value)))
+            let agent := lower(percent_text(value))
+            if agent == "*"||regex_match(agent, "^[a-z_-]+$") {agents = push(agents, agent)}
         } else if len(agents) > 0 {
-            if name == "allow"||name == "disallow" {rules = push(rules, {"path": rule_path(value), "allow": (name == "allow"||value == "")}); has_rules = true}
+            if name == "allow"||name == "disallow" {
+                has_rules = true
+                if value == "" {continue}
+                if byte_length(value) > 8192 {error("robots rule exceeds 8192-byte matching limit")}
+                if starts_with(value, "/")||value == "*" {
+                    let path := robots_path(value)
+                    mut pattern := "^"
+                    let anchored := ends_with(path, "$")
+                    mut limit := len(path)
+                    if anchored {limit = limit - 1}
+                    for ch in substring(path, 0, limit) {
+                        if ch == "*" {pattern = pattern + ".*"}
+                        else {if contains(". +?^$()[]{}|\\", ch)&&ch != " " {pattern = pattern + "\\"}; pattern = pattern + ch}
+                    }
+                    if anchored {pattern = pattern + "$"}
+                    rules = push(rules, {"path": path, "pattern": pattern, "specificity": byte_length(substring(path, 0, limit)), "allow": name == "allow"})
+                }
+            }
             if name == "crawl-delay" {
-                let decoded := percent_text(value)
-                if regex_match(decoded, "^[0-9]+$") {delay = to_float(decoded)}
+                if regex_match(value, "^[0-9]+(?:\\.[0-9]+)?$") {delay = min(to_float(value), 60.0)}
                 has_rules = true
             }
             if name == "request-rate" {has_rules = true}
         }
     }
-    if has_rules {groups = push(groups, {"agents": agents, "rules": rules, "delay": delay})}
-    mut selected := {"rules": [], "delay": null}
-    mut wildcard := null
+    if len(agents) > 0 {groups = push(groups, {"agents": agents, "rules": rules, "delay": delay})}
     let agent := lower(split(user_agent(), "/")[0])
+    mut exact := []; mut wildcard := []
     for group in groups {
-        for pattern in group["agents"] {
-            if pattern == "*" {if wildcard == null {wildcard = group}}
-            else if contains(agent, pattern) {return {"rules": group["rules"], "delay": group["delay"], "sitemaps": sitemaps}}
-        }
+        if contains(group["agents"], agent) {exact = push(exact, group)}
+        else if contains(group["agents"], "*") {wildcard = push(wildcard, group)}
     }
-    if wildcard != null {selected = wildcard}
-    return {"rules": selected["rules"], "delay": selected["delay"], "sitemaps": sitemaps}
+    mut selected := exact
+    if len(selected) == 0 {selected = wildcard}
+    rules = []; delay = null
+    for group in selected {
+        rules = concat(rules, group["rules"])
+        if group["delay"] != null {if delay == null {delay = group["delay"]} else {delay = max(delay, group["delay"])}}
+    }
+    return {"rules": rules, "delay": delay, "sitemaps": sitemaps}
 }
 export func robots_allowed(policy, url) {
     if policy == null {return true}
     let parts := url_components(url)
+    if parts["path"] == "/robots.txt" {return true}
     mut target := parts["path"]
     if parts["query"] != "" {target = target + "?" + parts["query"]}
+    target = robots_path(target)
+    mut specificity :=  - 1; mut allowed := true
     for rule in policy["rules"] {
-        if rule["path"] == "*"||starts_with(target, rule["path"]) {return rule["allow"]}
+        if rule["specificity"] >= specificity&&regex_match(target, rule["pattern"]) {
+            if rule["specificity"] > specificity {allowed = rule["allow"]; specificity = rule["specificity"]}
+            else if rule["allow"] {allowed = true}
+        }
     }
-    return true
+    return allowed
 }
-
-func rule_path(value) {
-    if ! starts_with(value, "/") {return value}
-    let normalized := url_normalize("https://robots.invalid" + value, "", {})
-    if normalized == "" {error("invalid robots rule path")}
-    let parts := url_components(normalized)
-    mut path := parts["path"]
-    if parts["query"] != "" {path = path + "?" + parts["query"]}
-    return path
+func robots_path(value) {
+    let raw := decode_base64(encode_base64(value))
+    let hex := "0123456789ABCDEF"
+    mut result := ""; mut i := 0
+    while i < len(raw) {
+        let n := raw[i]
+        if n == 37&&i + 2 < len(raw) {
+            let pair := upper(decode_text_lossy(bytes([raw[i + 1], raw[i + 2]]), "utf-8", 2))
+            if regex_match(pair, "^[0-9A-F]{2}$") {
+                let decoded := index_of(hex, substring(pair, 0, 1)) * 16 + index_of(hex, substring(pair, 1, 2))
+                let ch := decode_text_lossy(bytes([decoded]), "utf-8", 4)
+                if regex_match(ch, "^[A-Za-z0-9._~-]$") {result = result + ch} else {result = result + "%" + pair}
+                i = i + 3; continue
+            }
+        }
+        if n >= 128 {result = result + "%" + substring(hex, to_int(floor(n / 16)), to_int(floor(n / 16)) + 1) + substring(hex, n % 16, n % 16 + 1)}
+        else {result = result + decode_text_lossy(bytes([n]), "utf-8", 1)}
+        i = i + 1
+    }
+    return result
 }
 
 func percent_text(value) {
@@ -202,7 +229,15 @@ export func parse_page_html(body, base, cfg) {
     mut json_parts := []
     mut text_parts := {}; mut links := {}; mut images := {}
     let limit := cfg["max_links_per_page"]
-    for event in html_tokens(body, 1000000) {
+    let events := html_tokens(body, 1000000)
+    mut document_base := base
+    for event in events {
+        if event["kind"] == "start"&&event["name"] == "base"&&has_key(event["attrs"], "href") {
+            let candidate := normalize(event["attrs"]["href"], base, cfg)
+            if candidate != "" {document_base = candidate; break}
+        }
+    }
+    for event in events {
         let kind := event["kind"]
         if kind == "text" {
             let data := event["text"]
@@ -238,27 +273,27 @@ export func parse_page_html(body, base, cfg) {
                         mut destination := normalize("", base, cfg)
                         if len(segments) > 1 {
                             let part := trim(join(slice(segments, 1, len(segments)), ";"))
-                            if regex_match(part, "(?i)^url\\s*=") {destination = normalize(unquote(substring(part, index_of(part, "=") + 1, len(part))), base, cfg)}
+                            if regex_match(part, "(?i)^url\\s*=") {destination = normalize(unquote(substring(part, index_of(part, "=") + 1, len(part))), document_base, cfg)}
                         }
                         page["refresh"] = {"delay_seconds": to_float(trim(segments[0])), "url": destination}
                     }
                 }
             } else if tag == "link" {
                 let rels := words(get_default(attrs, "rel", ""))
-                let href := normalize(get_default(attrs, "href", ""), base, cfg)
+                let href := normalize(get_default(attrs, "href", ""), document_base, cfg)
                 if contains(rels, "canonical") {page["canonical"] = href}
                 for rel in ["next", "prev"] {if contains(rels, rel)&&href != "" {page = nested_set(page, "pagination", rel, href)}}
                 if contains(rels, "alternate")&&get_default(attrs, "hreflang", "") != ""&&href != "" {page["hreflang"] = push(page["hreflang"], {"language": lower(attrs["hreflang"]), "url": href})}
             } else if tag == "a" {
                 if len(links) >= limit {page = nested_set(page, "truncated", "links", true)}
                 else {
-                    let href := normalize(get_default(attrs, "href", ""), base, cfg)
+                    let href := normalize(get_default(attrs, "href", ""), document_base, cfg)
                     if href != "" {link = {"url": href, "text": "", "rel": get_default(attrs, "rel", "")}}
                 }
             } else if tag == "img" {
                 if len(images) >= limit {page = nested_set(page, "truncated", "images", true)}
                 else {
-                    let src := normalize(get_default(attrs, "src", ""), base, cfg)
+                    let src := normalize(get_default(attrs, "src", ""), document_base, cfg)
                     if src != "" {images[to_string(1000000 + len(images))] = {"url": src, "alt": get_default(attrs, "alt", ""), "missing_alt": ! (has_key(attrs, "alt") == 1)}}
                 }
             } else if tag == "script"&&lower(get_default(attrs, "type", "")) == "application/ld+json" {jsonld = true}
@@ -357,12 +392,12 @@ export func private_reason(url) {
 }
 /// GET with policy evaluated before every hop. Retries are bounded product policy.
 export func fetch(url, cfg, extra_headers, maximum, policy, pacer, delay) {
-    return fetch_into(url, cfg, extra_headers, maximum, policy, pacer, delay, null)
+    return fetch_into(url, cfg, extra_headers, maximum, policy, pacer, delay, null, url)
 }
-export func fetch_file(url, cfg, maximum, pacer, delay, path) {
-    return fetch_into(url, cfg, {"Accept-Encoding": "gzip"}, maximum, null, pacer, delay, path)
+export func fetch_file(url, cfg, maximum, pacer, delay, path, policy) {
+    return fetch_into(url, cfg, {"Accept-Encoding": "gzip"}, maximum, policy, pacer, delay, path, url)
 }
-func fetch_into(url, cfg, extra_headers, maximum, policy, pacer, delay, path) {
+func fetch_into(url, cfg, extra_headers, maximum, policy, pacer, delay, path, conditional_url) {
     let allowed_origin := origin(url)
     mut last_error := ""
     mut current := url
@@ -375,7 +410,10 @@ func fetch_into(url, cfg, extra_headers, maximum, policy, pacer, delay, path) {
         while hop <= 10 {
             if ! robots_allowed(policy, current) {return {"status": 0, "url": current, "headers": {}, "body": "", "raw": bytes([]), "redirects": redirects, "error": "blocked by robots.txt"}}
             mut headers := {"User-Agent": cfg["user_agent"], "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5"}
-            for key in keys(extra_headers) {headers[key] = extra_headers[key]}
+            for key in keys(extra_headers) {
+                if contains(["if-none-match", "if-modified-since"], lower(key))&&current != conditional_url {continue}
+                headers[key] = extra_headers[key]
+            }
             rate_limit_wait(pacer, delay * 1000)
             mut destination_policy := "deny_private"
             if cfg["allow_private_network"] {destination_policy = "inherit"}
@@ -436,15 +474,20 @@ export func inspect_page(job, cfg, sitemap_urls, policy, pacer, delay) {
     let url := job["url"]
     let baseline := get_default(job, "baseline", null)
     mut headers := {}
-    if baseline != null {
+    if baseline != null&&baseline["status"] == 200 {
         if get_default(baseline, "etag", "") != "" {headers["If-None-Match"] = baseline["etag"]}
         if get_default(baseline, "last_modified", "") != "" {headers["If-Modified-Since"] = baseline["last_modified"]}
     }
-    let response := fetch(url, cfg, headers, 5242880, policy, pacer, delay)
+    mut conditional_url := url
+    if baseline != null {conditional_url = baseline["final_url"]}
+    let response := fetch_into(url, cfg, headers, 5242880, policy, pacer, delay, null, conditional_url)
     mut page := empty_page(url, job["depth"])
-    if response["status"] == 304&&baseline != null {
+    if response["status"] == 304&&baseline != null&&baseline["status"] == 200&&response["url"] == conditional_url {
         page = baseline
         page["not_modified"] = true
+        if has_key(response["headers"], "x-robots-tag") {page["robots_directives"] = unique(concat(page["robots_directives"], directives(response["headers"]["x-robots-tag"])))}
+        if has_key(response["headers"], "link") {page["http_links"] = http_links(response["headers"]["link"], response["url"], cfg)}
+        if contains(page["robots_directives"], "noindex") {page["indexable"] = false}
     } else {
         let raw_type := get_default(response["headers"], "content-type", "")
         let content_type := lower(split(raw_type, ";")[0])
@@ -464,6 +507,7 @@ export func inspect_page(job, cfg, sitemap_urls, policy, pacer, delay) {
     page["etag"] = get_default(response["headers"], "etag", get_default(page, "etag", ""))
     page["last_modified"] = get_default(response["headers"], "last-modified", get_default(page, "last_modified", ""))
     page["error"] = response["error"]
+    if response["status"] == 304&& ! page["not_modified"] {page["status"] = 0; page["error"] = "unexpected HTTP 304 without matching baseline resource"}
     page["elapsed_ms"] = to_int(round(performance_now() - started))
     if get_default(cfg, "deterministic", false) {page["elapsed_ms"] = 0}
     return page
@@ -482,8 +526,9 @@ export func finding(check, target, severity, evidence) {
     return {"id": "SP-" + upper(substring(sha256(check + decode_text_lossy(bytes([0]), "utf-8", 1) + target), 0, 16)), "check": check, "target": target, "severity": severity, "evidence": evidence}
 }
 /// Analyze sorted JSONL in bounded batches, retaining only aggregate indexes.
-export func analyze(pages_path, updated_path, sitemap, target, link_spool) {
+export func analyze(pages_path, updated_path, sitemap, target, link_spool, stage, cfg) {
     let target_origin := origin(target)
+    mut retained := 0
     mut incoming := {}; mut crawled := {}; mut groups := {}
     mut titles := {}; mut descriptions := {}; mut structured := []
     mut page_count := 0; mut link_count := 0; mut crawlable := 0; mut indexable := 0
@@ -492,6 +537,8 @@ export func analyze(pages_path, updated_path, sitemap, target, link_spool) {
     while true {
         let block := chunk(pages_path, offset)
         for page in block["rows"] {
+            retained = retained + byte_length(to_json(page)) * 4
+            retained_reserve(cfg, retained)
             let url := page["normalized_url"]
             crawled[url] = true; page_count = page_count + 1
             if page["status"] == 200 {crawlable = crawlable + 1}
@@ -513,9 +560,9 @@ export func analyze(pages_path, updated_path, sitemap, target, link_spool) {
                 rows = push(rows, {"source": url, "target": link["url"], "text": link["text"], "rel": link["rel"], "internal": internal})
                 link_count = link_count + 1
                 if internal {incoming[link["url"]] = get_default(incoming, link["url"], 0) + 1}
-                if len(rows) == 64 {write_rows(link_spool, rows); rows = []}
+                if len(rows) == 64 {staged_rows(stage, link_spool, rows, cfg); rows = []}
             }
-            if len(rows) > 0 {write_rows(link_spool, rows)}
+            if len(rows) > 0 {staged_rows(stage, link_spool, rows, cfg)}
         }
         if block["eof"] {break}
         offset = block["offset"]
@@ -544,7 +591,7 @@ export func analyze(pages_path, updated_path, sitemap, target, link_spool) {
             if invalid {findings = push(findings, finding("invalid-structured-data", url, "warning", {}))}
             if page["truncated"]["links"]||page["truncated"]["images"] {findings = push(findings, finding("page-structure-truncated", url, "info", page["truncated"]))}
         }
-        write_rows(updated_path, rows)
+        staged_rows(stage, updated_path, rows, cfg)
         if block["eof"] {break}
         offset = block["offset"]
     }
@@ -616,8 +663,19 @@ export func manifest_verify(run, key) {
     } except err {errors = push(errors, "invalid manifest: " + to_string(err))}
     return errors
 }
+func schema_projection(value, schema) {
+    if ! is_dict(value)||get_default(schema, "additionalProperties", null) != true {return value}
+    for key in keys(schema) {
+        if ! contains(["$schema", "$id", "$defs", "title", "description", "type", "required", "properties", "additionalProperties"], key) {return value}
+    }
+    mut projected := {}
+    for key in unique(concat(keys(get_default(schema, "properties", {})), get_default(schema, "required", []))) {
+        if has_key(value, key) {projected[key] = value[key]}
+    }
+    return projected
+}
 func schema_check(value, schema, label) {
-    let result := json_schema_validate(value, schema)
+    let result := json_schema_validate(schema_projection(value, schema), schema)
     if ! result["valid"] {error("schema validation failed for " + label + ": " + to_json(result["errors"]))}
 }
 /// Batch arrays without aggregate constraints, preserving the enclosing schema.
@@ -636,6 +694,84 @@ func schema_batch(value, schema, field, label) {
         offset = offset + 1024
     }
 }
+func edge_identity(source, target, text, rel, internal) {return sha256(to_json([source, target, text, rel, internal]))}
+func validate_relationships(run, data) {
+    for spec in [["site", ""], ["robots", ""], ["sitemap", "urls"], ["metadata", ""], ["structured-data", "pages"], ["links", "links"], ["redirects", "redirects"]] {
+        let value := read_json(run + "/" + spec[0] + ".json")
+        let schema := read_json("schemas/" + spec[0] + ".schema.json")
+        if spec[1] == "" {schema_check(value, schema, spec[0])} else {schema_batch(value, schema, spec[1], spec[0])}
+    }
+    let run_origin := origin(data["target"])
+    mut pages := {}; mut edges := {}; mut incoming := {}; mut redirects := {}
+    mut titles := {}; mut descriptions := {}; mut structured := {}
+    mut crawlable := 0; mut indexable := 0; mut offset := 0; mut retained := 0
+    while true {
+        let block := chunk(run + "/pages.jsonl", offset)
+        for page in block["rows"] {
+            let url := page["normalized_url"]
+            if page["url"] != url||origin(url) != run_origin||origin(page["final_url"]) != run_origin {error("page origin or identity mismatch")}
+            if page["status"] == 200 {crawlable = crawlable + 1}
+            if page["indexable"] {indexable = indexable + 1}
+            if page["outgoing_link_count"] != len(page["links"]) {error("page outgoing link count mismatch")}
+            pages[url] = {"incoming": page["incoming_link_count"], "sitemap_member": page["sitemap_member"], "final_url": page["final_url"]}
+            for pair in [["title", "titles"], ["meta_description", "descriptions"]] {
+                let text := page[pair[0]]
+                if text == "" {continue}
+                if pair[0] == "title" {titles[text] = push(get_default(titles, text, []), url)} else {descriptions[text] = push(get_default(descriptions, text, []), url)}
+            }
+            if len(page["structured_data"]) > 0 {structured[url] = sha256(to_json(page["structured_data"]))}
+            for link in page["links"] {
+                let internal := origin(link["url"]) == run_origin
+                let id := edge_identity(url, link["url"], link["text"], link["rel"], internal)
+                edges[id] = get_default(edges, id, 0) + 1
+                if internal {incoming[link["url"]] = get_default(incoming, link["url"], 0) + 1}
+            }
+            for hop in page["redirect_chain"] {let id := sha256(to_json(hop)); redirects[id] = get_default(redirects, id, 0) + 1}
+            retained = retained + byte_length(to_json(page))
+            if retained > 268435456||len(edges) > 1000000 {error("relationship validation exceeds retained-evidence bounds")}
+        }
+        if block["eof"] {break}
+        offset = block["offset"]
+    }
+    if len(pages) > data["configuration"]["max_pages"] {error("page count exceeds configured bound")}
+    for link in read_json(run + "/links.json")["links"] {
+        if has_key(pages, link["source"]) == 0||link["internal"] != (origin(link["target"]) == run_origin) {error("link graph endpoint or origin mismatch")}
+        let id := edge_identity(link["source"], link["target"], link["text"], link["rel"], link["internal"])
+        if get_default(edges, id, 0) <= 0 {error("link graph disagrees with pages")}
+        edges[id] = edges[id] - 1
+    }
+    for count in values(edges) {if count != 0 {error("link graph omits page links")}}
+    for hop in read_json(run + "/redirects.json")["redirects"] {
+        let id := sha256(to_json(hop))
+        if get_default(redirects, id, 0) <= 0 {error("redirect inventory disagrees with pages")}
+        redirects[id] = redirects[id] - 1
+    }
+    for count in values(redirects) {if count != 0 {error("redirect inventory omits page redirects")}}
+    let sitemap := read_json(run + "/sitemap.json"); mut members := {}
+    for url in sitemap["urls"] {if origin(url) != run_origin||has_key(members, url) {error("sitemap origin or duplicate member mismatch")}; members[url] = true}
+    for url in sitemap["sitemaps"] {if origin(url) != run_origin {error("sitemap source origin mismatch")}}
+    for url in keys(pages) {
+        if pages[url]["incoming"] != get_default(incoming, url, 0) {error("page incoming link count mismatch")}
+        if pages[url]["sitemap_member"] != (has_key(members, pages[url]["final_url"]) == 1) {error("page sitemap membership mismatch")}
+    }
+    let site := read_json(run + "/site.json"); let robots := read_json(run + "/robots.json")
+    if site["target"] != data["target"]||site["origin"] != run_origin||site["robots_url"] != run_origin + "/robots.txt"||robots["url"] != site["robots_url"] {error("site/robots origin mismatch")}
+    if site["crawlable_pages"] != crawlable||site["indexable_pages"] != indexable {error("site aggregate page count mismatch")}
+    if sort(site["sitemaps"]) != sort(sitemap["sitemaps"])||sort(robots["sitemaps"]) != sort(sitemap["sitemaps"]) {error("sitemap inventory mismatch")}
+    let metadata := read_json(run + "/metadata.json")
+    for pair in [[titles, metadata["titles"]], [descriptions, metadata["descriptions"]]] {
+        if sort(keys(pair[0])) != sort(keys(pair[1])) {error("metadata inventory keys disagree with pages")}
+        for key in keys(pair[0]) {if sort(pair[0][key]) != sort(pair[1][key]) {error("metadata inventory members disagree with pages")}}
+    }
+    mut observed := {}
+    for row in read_json(run + "/structured-data.json")["pages"] {
+        let url := row["url"]
+        if has_key(observed, url)||get_default(structured, url, "") != sha256(to_json(row["items"])) {error("structured-data inventory disagrees with pages")}
+        observed[url] = true
+    }
+    if sort(keys(observed)) != sort(keys(structured)) {error("structured-data inventory omits pages")}
+}
+
 /// Validate page schemas incrementally; whole pages.jsonl is never loaded.
 export func validate_run(run) {
     mut errors := []
@@ -669,6 +805,7 @@ export func validate_run(run) {
             if get_default(value, "schema", "") != "siteprobe." + spec[1] + "/v1"|| ! is_array(get_default(value, spec[1], null)) {error("invalid inventory envelope: " + spec[0])}
             if len(value[spec[1]]) != data["counts"][spec[1]] {errors = push(errors, substring(spec[1], 0, len(spec[1]) - 1) + " count mismatch")}
         }
+        validate_relationships(run, data)
         let findings := read_json(run + "/findings.json")
         if len(findings["findings"]) != data["counts"]["findings"] {errors = push(errors, "finding count mismatch")}
         schema_batch(findings, read_json("schemas/findings.schema.json"), "findings", "findings.json")
@@ -694,15 +831,34 @@ export func validate_run(run) {
     } except err {errors = push(errors, to_string(err))}
     return errors
 }
+/// Store bounded byte offsets instead of retaining complete baseline pages.
 export func page_index(run) {
-    mut pages := {}; mut offset := 0
+    mut pages := {}; mut offset := 0; mut used := 0
     while true {
-        let block := chunk(run + "/pages.jsonl", offset)
-        for page in block["rows"] {pages[page["normalized_url"]] = page}
+        let block := jsonl_read_chunk(run + "/pages.jsonl", offset, 1, 268435456)
+        for page in block["rows"] {
+            let url := page["normalized_url"]
+            used = used + byte_length(url) + 32
+            if used > 16777216 {error("page offset index exceeds 16 MiB retained-key budget")}
+            pages[url] = offset
+        }
         if block["eof"] {break}
         offset = block["offset"]
     }
     return pages
+}
+func indexed_page(run, index, url) {
+    if has_key(index, url) == 0 {return null}
+    return jsonl_read_chunk(run + "/pages.jsonl", index[url], 1, 268435456)["rows"][0]
+}
+func relationship_inventory(page, field) {
+    mut entries := {}
+    for original in get_default(page, field, []) {
+        mut item := original
+        if has_key(item, "rel") {item["rel"] = join(unique(words(item["rel"])), " ")}
+        entries[to_json(item)] = item
+    }
+    return values(entries)
 }
 export func compare_runs(old, new) {
     mut paths := [old]
@@ -719,13 +875,18 @@ export func compare_runs(old, new) {
     let fields := [["status", "STATUS CHANGED"], ["canonical", "CANONICAL CHANGED"], ["title", "TITLE CHANGED"], ["indexable", "INDEXABILITY CHANGED"], ["meta_description", "METADATA REGRESSION"], ["content_fingerprint", "CONTENT MATERIALLY CHANGED"]]
     for url in sort(keys(before)) {
         if ! (has_key(after, url) == 1) {continue}
+        let old_page := indexed_page(old, before, url); let new_page := indexed_page(new, after, url)
         for pair in fields {
-            let old_value := get_default(before[url], pair[0], null); let new_value := get_default(after[url], pair[0], null)
+            let old_value := get_default(old_page, pair[0], null); let new_value := get_default(new_page, pair[0], null)
             if old_value != new_value {changes = push(changes, {"type": pair[1], "url": url, "before": old_value, "after": new_value})}
         }
-        if len(get_default(before[url], "structured_data", [])) > 0&&len(get_default(after[url], "structured_data", [])) == 0 {changes = push(changes, {"type": "SCHEMA REGRESSION", "url": url})}
-        let was_broken := before[url]["status"] == 0||before[url]["status"] >= 400
-        let is_broken := after[url]["status"] == 0||after[url]["status"] >= 400
+        if len(get_default(old_page, "structured_data", [])) > 0&&len(get_default(new_page, "structured_data", [])) == 0 {changes = push(changes, {"type": "SCHEMA REGRESSION", "url": url})}
+        for pair in [["links", "LINKS CHANGED"], ["hreflang", "HREFLANG CHANGED"], ["http_links", "HTTP LINKS CHANGED"]] {
+            let previous := relationship_inventory(old_page, pair[0]); let current := relationship_inventory(new_page, pair[0])
+            if previous != current {changes = push(changes, {"type": pair[1], "url": url, "before": previous, "after": current})}
+        }
+        let was_broken := old_page["status"] == 0||old_page["status"] >= 400
+        let is_broken := new_page["status"] == 0||new_page["status"] >= 400
         if ! was_broken&&is_broken {changes = push(changes, {"type": "LINK BROKEN", "url": url})}
         if was_broken&& ! is_broken {changes = push(changes, {"type": "LINK RESTORED", "url": url})}
     }
@@ -742,21 +903,62 @@ export func cleanup_dir(path) {
     }
     os_rmdir(path)
 }
+func stage_bytes(stage) {
+    mut total := 0
+    for name in list_dir(stage) {
+        let path := stage + "/" + name
+        if path_is_dir(path) {total = total + stage_bytes(path)} else {total = total + file_size(path)}
+    }
+    return total
+}
+func stage_reserve(stage, cfg, additional) {
+    let limit := get_default(cfg, "max_staging_bytes", cfg["max_output_bytes"] * 4)
+    if stage_bytes(stage) + additional > limit {error("staging budget exceeded; no run was published")}
+}
+func retained_reserve(cfg, used) {
+    if used > get_default(cfg, "max_retained_bytes", 268435456) {error("retained evidence budget exceeded; no run was published")}
+}
+func staged_rows(stage, path, rows, cfg) {
+    mut size := 0
+    for row in rows {size = size + byte_length(to_json(row)) + 1}
+    stage_reserve(stage, cfg, size)
+    write_rows(path, rows)
+}
+func staged_json(stage, path, value, cfg) {
+    let size := byte_length(to_json_pretty(value)) + 1
+    stage_reserve(stage, cfg, size)
+    save_json(path, value)
+}
+func staged_sort(stage, source, destination, fields, cfg) {
+    # Native merge generations retain no more than two full input copies plus output.
+    stage_reserve(stage, cfg, 3 * file_size(source))
+    jsonl_sort(source, destination, fields, cfg["sort_buffer_bytes"])
+}
 export func discover_sitemaps(target, policy, cfg, pacer, delay, stage) {
     let source := stage + "/_sitemap.download"
-    mut seeds := slice(policy["sitemaps"], 0, min(20, len(policy["sitemaps"])))
+    mut seeds := policy["sitemaps"]
+    mut truncated := {"seeds":false, "maps":false, "urls":false}
     if len(seeds) == 0 {seeds = [origin(target) + "/sitemap.xml"]}
     mut queue := []; mut pending := {}
     for seed in seeds {
         let candidate := normalize(seed, "", cfg)
-        if candidate != ""&&same_origin(candidate, target)&& ! (has_key(pending, candidate) == 1) {pending[candidate] = true; queue = push(queue, candidate)}
+        if candidate != ""&&same_origin(candidate, target)&& ! (has_key(pending, candidate) == 1) {
+            if len(queue) >= cfg["max_sitemap_seeds"] {truncated["seeds"] = true; continue}
+            if len(queue) >= cfg["max_sitemaps"] {truncated["maps"] = true; continue}
+            pending[candidate] = true; queue = push(queue, candidate)
+        }
     }
-    mut cursor := 0; mut seen := {}; mut urls := {}; mut errors := []
-    while cursor < len(queue)&&len(seen) < 50 {
+    mut cursor := 0; mut seen := {}; mut urls := {}; mut errors := []; mut retained := 0
+    while cursor < len(queue)&&len(seen) < cfg["max_sitemaps"] {
         let url := normalize(queue[cursor], "", cfg); cursor = cursor + 1
         if url == ""||(has_key(seen, url) == 1)||origin(url) != origin(target) {continue}
         seen[url] = true
-        let response := fetch_file(url, cfg, cfg["max_sitemap_compressed_bytes"], pacer, delay, source)
+        mut request_policy := null
+        if cfg["respect_robots"] {request_policy = policy}
+        if path_exists(source) {delete_file(source)}
+        let available := cfg["max_staging_bytes"] - stage_bytes(stage)
+        if available < 1 {error("staging budget exhausted before sitemap fetch")}
+        let response := fetch_file(url, cfg, to_int(min(cfg["max_sitemap_compressed_bytes"], available)), pacer, delay, source, request_policy)
         if response["status"] != 200 {
             mut message := response["error"]
             if message == "" {message = "HTTP " + to_string(response["status"])}
@@ -766,20 +968,32 @@ export func discover_sitemaps(target, policy, cfg, pacer, delay, stage) {
             mut compression := "none"
             if lower(get_default(response["headers"], "content-encoding", "")) == "gzip"||ends_with(lower(url), ".gz") {compression = "gzip"}
             let document := xml_file_select(source, {"compression": compression, "max_bytes": cfg["max_sitemap_expanded_bytes"], "element": "loc", "max_matches": 100000})
-            if document["truncated"] {errors = push(errors, {"url": url, "error": "sitemap projection reached the matching-element limit; evidence is incomplete"})}
+            if document["truncated"] {if document["root"] == "sitemapindex" {truncated["maps"] = true} else {truncated["urls"] = true}; errors = push(errors, {"url": url, "error": "sitemap projection reached the matching-element limit; evidence is incomplete"})}
             let root := document["root"]
+            if ! contains(["urlset", "sitemapindex"], root) {error("sitemap root must be urlset or sitemapindex")}
             for raw in document["values"] {
                 let candidate := normalize(raw, "", cfg)
                 if candidate == "" {continue}
                 if root == "sitemapindex" {
-                    if len(pending) < 50&&same_origin(candidate, target)&& ! (has_key(pending, candidate) == 1) {pending[candidate] = true; queue = push(queue, candidate)}
+                    if same_origin(candidate, target)&&has_key(pending, candidate) == 0 {
+                        if len(pending) < cfg["max_sitemaps"] {pending[candidate] = true; queue = push(queue, candidate)} else {truncated["maps"] = true}
+                    }
                 }
-                else if origin(candidate) == origin(target)&&len(urls) < 100000 {urls[candidate] = true}
+                else if origin(candidate) == origin(target) {
+                    if has_key(urls, candidate) == 0&&len(urls) >= cfg["max_sitemap_urls"] {truncated["urls"] = true; continue}
+                    if has_key(urls, candidate) == 0 {retained = retained + byte_length(candidate) + 32; retained_reserve(cfg, retained)}
+                    urls[candidate] = true
+                }
             }
-        } except err {errors = push(errors, {"url": url, "error": "invalid sitemap: " + to_string(err)})}
+        } except err {if contains(to_string(err), "budget exceeded") {error(to_string(err))}; errors = push(errors, {"url": url, "error": "invalid sitemap: " + to_string(err)})}
     }
     if path_exists(source) {delete_file(source)}
-    return {"schema": "siteprobe.sitemap/v1", "sitemaps": sort(keys(seen)), "urls": sort(keys(urls)), "errors": errors}
+    mut result := {"schema": "siteprobe.sitemap/v1", "sitemaps": sort(keys(seen)), "urls": sort(keys(urls)), "errors": errors}
+    if truncated["seeds"]||truncated["maps"]||truncated["urls"] {
+        for kind in keys(truncated) {if truncated[kind] {errors = push(errors, {"url":target, "error":"sitemap " + kind + " limit reached; evidence is incomplete"})}}
+        result["errors"] = errors; result["truncated"] = truncated
+    }
+    return result
 }
 func crawl_into(target, final_out, out, cfg) {
     mut baseline := {}
@@ -787,6 +1001,11 @@ func crawl_into(target, final_out, out, cfg) {
         let path := absolute(cfg["baseline"])
         let errors := validate_run(path)
         if len(errors) > 0 {for message in errors {diagnostic("SiteProbe: invalid baseline: " + message)}; return 2}
+        let previous := read_json(path + "/run.json")
+        let configuration := previous["configuration"]
+        if previous["target"] != target||get_default(configuration, "query_policy", "preserve") != cfg["query_policy"]||unique(get_default(configuration, "query_deny_params", [])) != unique(cfg["query_deny_param"]) {
+            diagnostic("SiteProbe: baseline target or query policy is incompatible"); return 2
+        }
         baseline = page_index(path)
     }
     let robots_url := origin(target) + "/robots.txt"
@@ -804,7 +1023,7 @@ func crawl_into(target, final_out, out, cfg) {
     for url in sitemap["urls"] {sitemap_urls[url] = true}
     mut queue := {"0": {"url": target, "depth": 0}}; mut cursor := 0
     mut queued := {}; queued[target] = true
-    mut page_count := 0; mut redirects := []
+    mut page_count := 0; mut redirects := []; mut coverage := {}
     mut started := now_utc()
     let spool := out + "/_pages.unsorted.jsonl"
     write_rows(spool, [])
@@ -821,27 +1040,41 @@ func crawl_into(target, final_out, out, cfg) {
                 page["robots_directives"] = ["blocked-by-robots"]
                 page["sitemap_member"] = (has_key(sitemap_urls, job["url"]) == 1)
                 page["error"] = "blocked by robots.txt"
-                write_rows(spool, [page]); page_count = page_count + 1; continue
+                retained_reserve(cfg, byte_length(to_json(page)) * 16)
+                staged_rows(out, spool, [page], cfg); page_count = page_count + 1; continue
             }
-            job["baseline"] = get_default(baseline, job["url"], null)
+            job["baseline"] = null
+            if cfg["baseline"] != null {job["baseline"] = indexed_page(absolute(cfg["baseline"]), baseline, job["url"])}
             batch = push(batch, job)
         }
         if len(batch) == 0 {continue}
         let results := promise_wait(parallel_map(batch, mapper, cfg["concurrency"]))
         for page in sorted_rows(results, ["normalized_url"]) {
-            write_rows(spool, [page]); page_count = page_count + 1
+            retained_reserve(cfg, byte_length(to_json(page)) * 16)
+            staged_rows(out, spool, [page], cfg); page_count = page_count + 1
+            if file_size(spool) > cfg["max_output_bytes"] {error("output budget exceeded during crawl; no run was published")}
             redirects = concat(redirects, page["redirect_chain"])
-            if page["depth"] >= cfg["max_depth"] {continue}
+            if page["truncated"]["links"]||page["truncated"]["images"] {coverage["page_structure"] = true}
+            if page["depth"] >= cfg["max_depth"] {
+                for link in page["internal_links"] {if has_key(queued, link["url"]) == 0 {coverage["max_depth"] = true}}
+                continue
+            }
             for link in page["internal_links"] {
                 let url := link["url"]
-                if origin(url) == origin(target)&& ! (has_key(queued, url) == 1)&&len(queued) < cfg["max_pages"] * 10 {queued[url] = true; queue[to_string(len(queue))] = {"url": url, "depth": page["depth"] + 1}}
+                if origin(url) == origin(target)&&has_key(queued, url) == 0 {
+                    if len(queued) < cfg["max_frontier"] {queued[url] = true; queue[to_string(len(queue))] = {"url": url, "depth": page["depth"] + 1}}
+                    else {coverage["max_frontier"] = true}
+                }
             }
         }
     }
-    jsonl_sort(spool, out + "/pages.jsonl", ["normalized_url"], cfg["sort_buffer_bytes"]); delete_file(spool)
-    let analysis := analyze(out + "/pages.jsonl", out + "/_pages.updated.jsonl", sitemap, target, out + "/_links.unsorted.jsonl")
+    if cursor < len(queue) {coverage["max_pages"] = true}
+    if len(sitemap["errors"]) > 0 {coverage["sitemap_errors"] = true}
+    staged_sort(out, spool, out + "/pages.jsonl", ["normalized_url"], cfg); delete_file(spool)
+    let analysis := analyze(out + "/pages.jsonl", out + "/_pages.updated.jsonl", sitemap, target, out + "/_links.unsorted.jsonl", out, cfg)
     delete_file(out + "/pages.jsonl"); rename_file(out + "/_pages.updated.jsonl", out + "/pages.jsonl")
-    jsonl_sort(out + "/_links.unsorted.jsonl", out + "/_links.sorted.jsonl", ["source", "target", "text", "rel"], cfg["sort_buffer_bytes"])
+    staged_sort(out, out + "/_links.unsorted.jsonl", out + "/_links.sorted.jsonl", ["source", "target", "text", "rel"], cfg)
+    stage_reserve(out, cfg, file_size(out + "/_links.sorted.jsonl") * 2 + 1024)
     jsonl_array(out + "/_links.sorted.jsonl", "siteprobe.links/v1", "links", out + "/links.json")
     delete_file(out + "/_links.unsorted.jsonl"); delete_file(out + "/_links.sorted.jsonl")
     mut completed := now_utc()
@@ -851,27 +1084,32 @@ func crawl_into(target, final_out, out, cfg) {
     for item in findings {counts[item["severity"]] = get_default(counts, item["severity"], 0) + 1}
     mut configuration := {}
     for key in ["max_pages", "max_depth", "concurrency", "timeout", "retries", "respect_robots", "allow_private_network", "max_links_per_page", "max_sitemap_compressed_bytes", "max_sitemap_expanded_bytes", "sort_buffer_bytes", "query_policy", "baseline", "max_output_bytes", "max_report_tokens", "deterministic", "fail_on"] {configuration[key] = cfg[key]}
+    if cfg["max_staging_bytes"] != min(cfg["max_output_bytes"] * 4, 1073741824)||cfg["max_retained_bytes"] != 268435456 {configuration["resource_limits"] = {"max_staging_bytes":cfg["max_staging_bytes"], "max_retained_bytes":cfg["max_retained_bytes"]}}
+    if len(coverage) > 0 {configuration["coverage"] = {"complete":false, "reasons":sort(keys(coverage)), "pending_frontier":len(queue) - cursor}}
+    if cfg["max_frontier"] != cfg["max_pages"] * 10||cfg["max_sitemaps"] != 50||cfg["max_sitemap_urls"] != 100000||cfg["max_sitemap_seeds"] != 20 {configuration["discovery_limits"] = {"max_frontier":cfg["max_frontier"], "max_sitemaps":cfg["max_sitemaps"], "max_sitemap_urls":cfg["max_sitemap_urls"], "max_sitemap_seeds":cfg["max_sitemap_seeds"]}}
     configuration["query_deny_params"] = unique(cfg["query_deny_param"])
     configuration["same_origin"] = true; configuration["offline"] = false; configuration["conditional_fetch"] = cfg["baseline"] != null
     configuration["request_pacing"] = {"operator_delay_seconds": cfg["request_delay"], "robots_crawl_delay_seconds": robots_delay, "max_crawl_delay_seconds": cfg["max_crawl_delay"], "effective_delay_seconds": delay}
     let run := {"schema": "siteprobe.run/v1", "run_id": basename(final_out), "started_at": started, "completed_at": completed, "target": target, "configuration": configuration, "counts": {"pages": analysis["page_count"], "links": analysis["link_count"], "redirects": len(redirects), "findings": len(findings), "findings_by_severity": counts}}
-    save_json(out + "/run.json", run)
-    save_json(out + "/site.json", {"schema": "siteprobe.site/v1", "target": target, "origin": origin(target), "robots_url": robots_url, "sitemaps": sitemap["sitemaps"], "crawlable_pages": analysis["crawlable_pages"], "indexable_pages": analysis["indexable_pages"]})
-    save_json(out + "/redirects.json", {"schema": "siteprobe.redirects/v1", "redirects": redirects})
-    save_json(out + "/metadata.json", {"schema": "siteprobe.metadata/v1", "titles": analysis["titles"], "descriptions": analysis["descriptions"]})
-    save_json(out + "/structured-data.json", {"schema": "siteprobe.structured-data/v1", "pages": analysis["structured_pages"]})
-    save_json(out + "/sitemap.json", sitemap)
-    save_json(out + "/robots.json", {"schema": "siteprobe.robots/v1", "url": robots_url, "status": robots_response["status"], "text_fingerprint": fingerprint(robots_text), "error": robots_response["error"], "sitemaps": sitemap["sitemaps"]})
-    save_json(out + "/findings.json", {"schema": "siteprobe.findings/v1", "findings": findings})
+    staged_json(out, out + "/run.json", run, cfg)
+    staged_json(out, out + "/site.json", {"schema": "siteprobe.site/v1", "target": target, "origin": origin(target), "robots_url": robots_url, "sitemaps": sitemap["sitemaps"], "crawlable_pages": analysis["crawlable_pages"], "indexable_pages": analysis["indexable_pages"]}, cfg)
+    staged_json(out, out + "/redirects.json", {"schema": "siteprobe.redirects/v1", "redirects": redirects}, cfg)
+    staged_json(out, out + "/metadata.json", {"schema": "siteprobe.metadata/v1", "titles": analysis["titles"], "descriptions": analysis["descriptions"]}, cfg)
+    staged_json(out, out + "/structured-data.json", {"schema": "siteprobe.structured-data/v1", "pages": analysis["structured_pages"]}, cfg)
+    staged_json(out, out + "/sitemap.json", sitemap, cfg)
+    staged_json(out, out + "/robots.json", {"schema": "siteprobe.robots/v1", "url": robots_url, "status": robots_response["status"], "text_fingerprint": fingerprint(robots_text), "error": robots_response["error"], "sitemaps": sitemap["sitemaps"]}, cfg)
+    staged_json(out, out + "/findings.json", {"schema": "siteprobe.findings/v1", "findings": findings}, cfg)
+    stage_reserve(out, cfg, cfg["max_report_tokens"] * 4)
     write_file(out + "/report.md", report_text(run, findings, cfg["max_report_tokens"]))
     if cfg["baseline"] != null {
         mut comparison := compare_runs(absolute(cfg["baseline"]), out)
         comparison["new_run"] = final_out
-        save_json(out + "/comparison.json", comparison)
+        staged_json(out, out + "/comparison.json", comparison, cfg)
         if (has_key(comparison, "errors") == 1) {return 1}
     }
     mut key := null
     try {key = signing_key(cfg["signing_key_file"])} except err {diagnostic("SiteProbe: " + to_string(err)); return 2}
+    stage_reserve(out, cfg, 16384)
     manifest_write(out, key)
     mut total := 0
     for name in list_dir(out) {total = total + file_size(out + "/" + name)}
@@ -886,6 +1124,48 @@ func crawl_into(target, final_out, out, cfg) {
     for item in findings {if rank[item["severity"]] >= rank[cfg["fail_on"]] {return 1}}
     return 0
 }
+/// Canonicalize existing ancestors and normalize a not-yet-created destination.
+export func canonical_destination(path) {
+    mut ancestor := absolute(path); mut suffix := []
+    while ! path_exists(ancestor) {
+        if entry_exists(ancestor)&&path_is_symlink(ancestor) {error("dangling destination symlink")}
+        suffix = push(suffix, basename(ancestor))
+        let parent := dirname(ancestor)
+        if parent == ancestor {error("destination has no existing ancestor")}
+        ancestor = parent
+    }
+    mut result := path_absolute(ancestor)
+    mut i := len(suffix)
+    while i > 0 {
+        i = i - 1
+        if suffix[i] == "." {continue}
+        if suffix[i] == ".." {result = dirname(result)} else {result = path_join(result, suffix[i])}
+        if path_exists(result) {result = path_absolute(result)}
+    }
+    return result
+}
+export func path_contains(root, destination) {
+    mut a := lower(replace(root, "\\", "/")); mut b := lower(replace(destination, "\\", "/"))
+    if starts_with(a, "//?/") {a = substring(a, 4, len(a))}
+    if starts_with(b, "//?/") {b = substring(b, 4, len(b))}
+    if starts_with(a, "unc/") {a = "//" + substring(a, 4, len(a))}
+    if starts_with(b, "unc/") {b = "//" + substring(b, 4, len(b))}
+    a = regex_replace(a, "/+$", ""); b = regex_replace(b, "/+$", "")
+    return a == b||starts_with(b, a + "/")
+}
+func validate_metrics_path(path, output, baseline) {
+    if path == null {return}
+    let destination := canonical_destination(path)
+    if path_contains(canonical_destination(output), destination) {error("metrics output must be outside the output run")}
+    if baseline != null&&path_contains(canonical_destination(baseline), destination) {error("metrics output must be outside the baseline run")}
+    mut parent := dirname(destination)
+    while true {
+        if path_is_file(path_join(parent, "run.json"))&&path_is_file(path_join(parent, "pages.jsonl")) {error("metrics output must be outside existing run directories")}
+        let next := dirname(parent)
+        if parent == next {break}
+        parent = next
+    }
+}
 export func crawl(cfg) {
     let target := normalize(cfg["url"], "", cfg)
     if target == "" {diagnostic("SiteProbe: target must be an http(s) URL without credentials"); return 2}
@@ -896,6 +1176,7 @@ export func crawl(cfg) {
     mut output := cfg["out"]
     if output == null {output = ".siteprobe/" + replace(replace(now_utc(), "-", ""), ":", "")}
     let final_out := absolute(output)
+    try {validate_metrics_path(cfg["metrics_file"], final_out, cfg["baseline"])} except err {diagnostic("SiteProbe: " + to_string(err)); return 2}
     if entry_exists(final_out) {diagnostic("SiteProbe: output path already exists: " + final_out); return 2}
     create_dir(dirname(final_out))
     let stage := create_temp_dir(dirname(final_out), ".siteprobe-stage-")
@@ -911,7 +1192,15 @@ export func crawl(cfg) {
 /// CLI
 
 func usage(command) {
-    print("Usage: siteprobe " + command + "\nCommands: crawl inspect validate verify compare report links sitemap doctor version\nCrawl options: --out PATH --max-pages N --max-depth N --concurrency N --timeout SECONDS --retries N\n  --request-delay SECONDS --max-crawl-delay SECONDS --max-links-per-page N\n  --max-sitemap-compressed-bytes N --max-sitemap-expanded-bytes N --sort-buffer-bytes N\n  --max-output-bytes N --max-report-tokens N --query-policy preserve|sort|drop\n  --query-deny-param NAME --respect-robots --ignore-robots --allow-private-network\n  --deterministic --json --baseline PATH --signing-key-file PATH --fail-on none|info|warning|error")
+    if command == "COMMAND" {print("Usage: siteprobe COMMAND\nCommands: crawl inspect validate verify compare report links sitemap doctor version\nUse siteprobe COMMAND --help for command-specific options."); return}
+    if command == "crawl" {
+        print("Usage: siteprobe crawl URL [OPTIONS]\n--out PATH --baseline PATH --metrics-file PATH --signing-key-file PATH\n--max-pages N --max-depth N --max-frontier N --concurrency N --timeout SECONDS --retries N\n--request-delay SECONDS --max-crawl-delay SECONDS --max-links-per-page N\n--max-sitemaps N --max-sitemap-seeds N --max-sitemap-urls N\n--max-sitemap-compressed-bytes N --max-sitemap-expanded-bytes N --sort-buffer-bytes N\n--max-output-bytes N --max-staging-bytes N --max-retained-bytes N --max-report-tokens N\n--query-policy preserve|sort|drop --query-deny-param NAME\n--respect-robots --ignore-robots --same-origin --allow-private-network --deterministic --json\n--fail-on none|info|warning|error\nExit 0: published; 1: runtime/budget failure or finding threshold; 2: invalid input. A threshold exit may publish a valid run.")
+    } else if command == "inspect" {
+        print("Usage: siteprobe inspect URL [OPTIONS]\n--timeout SECONDS --retries N --max-links-per-page N --query-policy preserve|sort|drop\n--query-deny-param NAME --allow-private-network --fail-on none|error\nExplicit single-URL observation; robots.txt is not fetched. Same-origin redirect checks apply.\nExit 0: JSON observation produced; 1: error threshold or runtime failure; 2: invalid input.")
+    } else if command == "compare" {print("Usage: siteprobe compare OLD_RUN NEW_RUN\nValidates both runs and emits deterministic JSON changes. Exit 1 on invalid evidence.")}
+    else if command == "verify" {print("Usage: siteprobe verify RUN [--signing-key-file PATH]\nChecks digests; a trusted key is required to authenticate HMAC signatures. Exit 1 on verification failure.")}
+    else if contains(["doctor", "version"], command) {print("Usage: siteprobe " + command)}
+    else {print("Usage: siteprobe " + command + " RUN\nValidates evidence before reading it. Exit 1 on invalid evidence.")}
 }
 func invalid(message) {diagnostic("SiteProbe: " + message); exit(2)}
 export func dispatch(argv) {
@@ -919,10 +1208,10 @@ export func dispatch(argv) {
     let command := argv[0]
     if contains(["--help", "-h"], command) {usage("COMMAND"); return 0}
     if ! contains(["crawl", "inspect", "validate", "verify", "compare", "report", "links", "sitemap", "doctor", "version"], command) {invalid("unknown command: " + command)}
-    mut cfg := {"out": null, "max_pages": 100, "max_depth": 4, "concurrency": 4, "timeout": 15.0, "retries": 2, "request_delay": 0.0, "max_crawl_delay": 10.0, "max_links_per_page": 10000, "max_sitemap_compressed_bytes": 5242880, "max_sitemap_expanded_bytes": 20971520, "sort_buffer_bytes": 8388608, "max_output_bytes": 104857600, "max_report_tokens": 2000, "query_policy": "preserve", "query_deny_param": [], "offline": false, "deterministic": false, "respect_robots": true, "same_origin": true, "allow_private_network": false, "json": false, "baseline": null, "signing_key_file": null, "metrics_file": null, "fail_on": "none"}
+    mut cfg := {"out": null, "max_pages": 100, "max_frontier": 0, "max_sitemaps": 50, "max_sitemap_urls": 100000, "max_sitemap_seeds": 20, "max_depth": 4, "concurrency": 4, "timeout": 15.0, "retries": 2, "request_delay": 0.0, "max_crawl_delay": 10.0, "max_links_per_page": 10000, "max_sitemap_compressed_bytes": 5242880, "max_sitemap_expanded_bytes": 20971520, "sort_buffer_bytes": 8388608, "max_output_bytes": 104857600, "max_staging_bytes": 0, "max_retained_bytes": 268435456, "max_report_tokens": 2000, "query_policy": "preserve", "query_deny_param": [], "offline": false, "deterministic": false, "respect_robots": true, "same_origin": true, "allow_private_network": false, "json": false, "baseline": null, "signing_key_file": null, "metrics_file": null, "fail_on": "none"}
     if command == "inspect" {cfg["retries"] = 0}
     let flags := ["offline", "deterministic", "respect_robots", "ignore_robots", "same_origin", "allow_private_network", "json"]
-    let integers := ["max_pages", "max_depth", "concurrency", "retries", "max_links_per_page", "max_sitemap_compressed_bytes", "max_sitemap_expanded_bytes", "sort_buffer_bytes", "max_output_bytes", "max_report_tokens"]
+    let integers := ["max_frontier", "max_sitemaps", "max_sitemap_urls", "max_sitemap_seeds", "max_pages", "max_depth", "concurrency", "retries", "max_links_per_page", "max_sitemap_compressed_bytes", "max_sitemap_expanded_bytes", "sort_buffer_bytes", "max_output_bytes", "max_staging_bytes", "max_retained_bytes", "max_report_tokens"]
     let floats := ["timeout", "request_delay", "max_crawl_delay"]
     mut positional := []; mut cursor := 1; mut options := true
     while cursor < len(argv) {
@@ -933,7 +1222,7 @@ export func dispatch(argv) {
             let pair := split(arg, "=")
             let name := replace(substring(pair[0], 2, len(pair[0])), "-", "_")
             if ! starts_with(arg, "--")||( ! (has_key(cfg, name) == 1)&&name != "ignore_robots") {invalid("unrecognized argument: " + arg)}
-            if command == "inspect"&& ! contains(["timeout", "retries", "max_links_per_page", "query_policy", "query_deny_param", "allow_private_network"], name) {invalid("unsupported inspect option: " + arg)}
+            if command == "inspect"&& ! contains(["timeout", "retries", "max_links_per_page", "query_policy", "query_deny_param", "allow_private_network", "fail_on"], name) {invalid("unsupported inspect option: " + arg)}
             if command != "crawl"&&command != "inspect"&& ! (command == "verify"&&name == "signing_key_file") {invalid("unsupported option: " + arg)}
             if contains(flags, name) {
                 if len(pair) != 1 {invalid("flag does not take a value: " + arg)}
@@ -967,21 +1256,27 @@ export func dispatch(argv) {
     if contains(["crawl", "inspect"], command) {
         cfg["url"] = positional[0]
         cfg["user_agent"] = user_agent()
-        for spec in [["timeout", 0, 120], ["retries", 0, 5], ["max_links_per_page", 1, 100000], ["max_pages", 1, 10000], ["max_depth", 0, 20], ["concurrency", 1, 32], ["request_delay", 0, 60], ["max_crawl_delay", 0, 60], ["max_sitemap_compressed_bytes", 1024, 536870912], ["max_sitemap_expanded_bytes", 1024, 536870912], ["sort_buffer_bytes", 65536, 536870912], ["max_output_bytes", 1024, 9007199254740991], ["max_report_tokens", 64, 9007199254740991]] {
+        for spec in [["max_frontier", 0, 100000], ["max_sitemaps", 1, 50], ["max_sitemap_seeds", 1, 20], ["max_sitemap_urls", 1, 100000], ["max_staging_bytes", 0, 1073741824], ["max_retained_bytes", 1048576, 1073741824], ["timeout", 0, 120], ["retries", 0, 5], ["max_links_per_page", 1, 100000], ["max_pages", 1, 10000], ["max_depth", 0, 20], ["concurrency", 1, 32], ["request_delay", 0, 60], ["max_crawl_delay", 0, 60], ["max_sitemap_compressed_bytes", 1024, 536870912], ["max_sitemap_expanded_bytes", 1024, 536870912], ["sort_buffer_bytes", 65536, 536870912], ["max_output_bytes", 1024, 9007199254740991], ["max_report_tokens", 64, 9007199254740991]] {
             if ! (cfg[spec[0]] >= spec[1]&&cfg[spec[0]] <= spec[2]) {invalid("bounds exceeded: " + spec[0])}
         }
+        if cfg["max_frontier"] == 0 {cfg["max_frontier"] = cfg["max_pages"] * 10}
+        if cfg["max_staging_bytes"] == 0 {cfg["max_staging_bytes"] = to_int(min(cfg["max_output_bytes"] * 4, 1073741824))}
         if cfg["timeout"] <= 0 {invalid("bounds exceeded: timeout")}
         if ! contains(["preserve", "sort", "drop"], cfg["query_policy"])|| ! contains(["none", "info", "warning", "error"], cfg["fail_on"]) {invalid("invalid choice")}
         if cfg["offline"] {invalid("crawl requires network access; use validate/compare/report in offline mode")}
         if command == "inspect" {
+            if ! contains(["none", "error"], cfg["fail_on"]) {invalid("inspect --fail-on must be none or error")}
             let url := normalize(positional[0], "", cfg)
             if url == "" {invalid("invalid URL")}
             if ! cfg["allow_private_network"]&&private_reason(url) != "" {invalid("private network target blocked; use --allow-private-network for an authorized target")}
-            print(to_json_pretty(inspect_page({"url": url, "depth": 0, "baseline": null}, cfg, {}, null, channel(), 0))); return 0
+            let page := inspect_page({"url": url, "depth": 0, "baseline": null}, cfg, {}, null, channel(), 0)
+            print(to_json_pretty(page))
+            if cfg["fail_on"] == "error"&&(page["status"] == 0||page["status"] >= 400||page["error"] != "") {return 1}
+            return 0
         }
         let started := performance_now(); let cpu := process_usage()["cpu_seconds"]
         let result := crawl(cfg)
-        if cfg["metrics_file"] != null {
+        if cfg["metrics_file"] != null&&result != 2 {
             mut metrics := process_usage()
             metrics["schema"] = "siteprobe.process-metrics/v1"; metrics["wall_seconds"] = (performance_now() - started) / 1000.0
             if cpu != null {metrics["cpu_seconds"] = metrics["cpu_seconds"] - cpu}

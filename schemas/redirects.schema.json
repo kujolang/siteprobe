@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.kujolang.ai/siteprobe/redirects.v1.json",
+  "title": "SiteProbe redirects",
+  "type": "object",
+  "required": [
+    "schema",
+    "redirects"
+  ],
+  "properties": {
+    "schema": {
+      "const": "siteprobe.redirects/v1"
+    },
+    "redirects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "status"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "uri"
+          },
+          "to": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              301,
+              302,
+              303,
+              307,
+              308
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

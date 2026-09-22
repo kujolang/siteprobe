@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.kujolang.ai/siteprobe/robots.v1.json",
+  "title": "SiteProbe robots",
+  "type": "object",
+  "required": [
+    "schema",
+    "url",
+    "status",
+    "text_fingerprint",
+    "error",
+    "sitemaps"
+  ],
+  "properties": {
+    "schema": {
+      "const": "siteprobe.robots/v1"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "status": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 599
+    },
+    "text_fingerprint": {
+      "type": "string",
+      "pattern": "^$|^[a-f0-9]{64}$"
+    },
+    "error": {
+      "type": "string"
+    },
+    "sitemaps": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    }
+  },
+  "additionalProperties": true
+}

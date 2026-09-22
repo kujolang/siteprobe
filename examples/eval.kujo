@@ -1,9 +1,12 @@
+from src.siteprobe import validate_run, read_json
 # Fail deterministically when a SiteProbe run retains error-severity findings.
 argv := args()
 if len(argv) != 1 {print("usage: kujo run examples/eval.kujo -- <run>"); exit(2)}
 try {
     run_path := to_string(argv[0])
-    document := parse_json(read_file(run_path + "/findings.json"))
+    let validation_errors := validate_run(run_path)
+    if len(validation_errors) > 0 {error(join(validation_errors, "; "))}
+    document := read_json(run_path + "/findings.json")
     errors := 0
     for finding in document["findings"] {
         if finding["severity"] == "error" {errors := errors + 1}
