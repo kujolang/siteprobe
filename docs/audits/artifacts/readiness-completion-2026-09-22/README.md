@@ -7,7 +7,7 @@ with `cargo build --release --locked`; source revision is also pinned in CI.
 - `dense.json`: 25 pages, 2,000 additional links and 256 KiB JSON-LD per page, concurrency 1/4.
 - `multilingual.json`: 50 pages including Japanese language/text/JSON-LD, concurrency 1/4.
 - `consumer-qualification.json`: actual consumer command receipts with exact revisions.
-- `validation.log`: native gate, including all 45 tests, immutable oracle, package checks and generated documentation.
+- `validation.log`: native gate, including all 46 tests, immutable oracle, package checks and generated documentation.
 - `release.log`: checksummed archive and extracted native validation/doctor/version.
 
 Workload drivers validate every produced run and assert every requested page was

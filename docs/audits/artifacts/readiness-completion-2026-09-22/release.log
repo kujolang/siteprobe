@@ -1,2 +1,2 @@
-{"archive":".siteprobe/goal-release-final/siteprobe-0.3.0-macos-readiness-final.zip","checksum":".siteprobe/goal-release-final/siteprobe-0.3.0-macos-readiness-final.zip.sha256","package":"siteprobe-0.3.0-macos-readiness-final","schema":"siteprobe.release/v1","sha256":"2b71393078299fc426ddc9a22f974d1c51998a828fb0d81a63f526446810a864"}
-PASS siteprobe-0.3.0-macos-readiness-final.zip checksum, extracted native doctor and version
+{"archive":".siteprobe/path-qualified/siteprobe-0.3.0-path-qualified.zip","checksum":".siteprobe/path-qualified/siteprobe-0.3.0-path-qualified.zip.sha256","package":"siteprobe-0.3.0-path-qualified","schema":"siteprobe.release/v1","sha256":"9942fbcbe2262922e5abdcc9ce59f4a07c0801b0b4429d3d6dda4f3c1783aea1"}
+PASS siteprobe-0.3.0-path-qualified.zip checksum, extracted native doctor and version

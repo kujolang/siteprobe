@@ -85,7 +85,7 @@ controlled speedup measurements.
 
 ## Local results
 
-The pinned-runtime gate passed all 45 tests, including the unchanged hash-verified
+The pinned-runtime gate passed all 46 tests, including the unchanged hash-verified
 oracle. Relative documentation links, generated references, native package
 checks and the extracted archive passed. Actual consumer qualification passed for
 ContentGraph 0.3.0, Eval 2.0.0 and RunLedger 1.1.0 at the receipt revisions.
@@ -105,3 +105,10 @@ Implementation source: `5a1599be67278d64921d8a380467ab9f984d3cdf`. The correspon
 [cross-platform qualification run](https://github.com/kujolang/siteprobe/actions/runs/35751964943)
 is authoritative for platform outcomes; local success alone does not establish
 Linux or Windows qualification.
+
+The first hosted Windows run passed all 45 then-current tests but the new extracted
+package check exposed a relative-path bug: canonical Windows verbatim prefixes
+combined with artifact slash suffixes reported missing files. `absolute` now
+normalizes those prefixes, including UNC paths. A 46th regression validates,
+verifies and compares the immutable fixture using relative paths. The local gate
+and extracted-package recheck pass; the replacement hosted run qualifies this fix.

@@ -48,8 +48,11 @@ export func absolute(path) {
         if home_path == "" {error("cannot expand home directory")}
         value = home_path + substring(value, 1, len(value))
     }
-    if starts_with(value, "/")||regex_match(value, "^[A-Za-z]:")||starts_with(value, "\\\\") {return value}
-    return path_join(path_absolute("."), value)
+    if ! (starts_with(value, "/")||regex_match(value, "^[A-Za-z]:")||starts_with(value, "\\\\")) {value = path_join(path_absolute("."), value)}
+    # Canonical Windows verbatim roots reject the slash suffixes used by artifacts.
+    if starts_with(value, "\\\\?\\UNC\\") {return "\\\\" + substring(value, 8, len(value))}
+    if starts_with(value, "\\\\?\\") {return substring(value, 4, len(value))}
+    return value
 }
 export func user_agent() {return "Kujo-SiteProbe/" + trim(read_file("VERSION")) + " (+https://github.com/kujolang/siteprobe)"}
 export func safe_text(value) {return regex_replace(to_string(value), "[\\x00-\\x1f\\x7f]", " ")}

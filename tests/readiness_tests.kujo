@@ -188,3 +188,10 @@ export func test_coverage_limits_help_and_inspect_outcomes(ctx) {
     cli(["inspect", base, "--max-frontier", 1, "--allow-private-network"], 2)
     cli(["crawl", base, "--max-sitemaps", 51, "--allow-private-network"], 2)
 }
+
+export func test_relative_run_paths(ctx) {
+    cli(["validate", "tests/fixtures/same"], 0)
+    cli(["verify", "tests/fixtures/same"], 0)
+    let compared := parse_json(cli(["compare", "tests/fixtures/same", "tests/fixtures/same"], 0).stdout)
+    equal([], compared["changes"], "relative paths preserve run identity")
+}
